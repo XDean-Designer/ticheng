@@ -1,0 +1,223 @@
+﻿<!-- ==== COMM2 实验版提成设置（可整段删除；不改动旧提成/业绩） ==== -->
+<div class="screen hidden" id="screen-comm2-list">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="comm2ListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title title--with-help">提成设置<button type="button" class="emp-ach-help-btn" id="comm2HelpBtn" aria-label="多方案规则说明"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.25v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="5.2" r="0.85" fill="currentColor"/></svg></button><span class="comm2-exp-tag">实验</span></span>
+  </div>
+  <div class="page-body" style="padding:0;">
+    <button type="button" class="comm2-unassigned hidden" id="comm2UnassignedTip" aria-hidden="true"></button>
+    <div class="comm2-list" id="comm2List"></div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-bar__action"><button type="button" class="btn-main" id="comm2BtnAdd"><span class="btn-main__plus" aria-hidden="true">+</span><span>添加提成方案</span></button></div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-comm2-edit">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="comm2EditBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="comm2EditTitle">提成设置</span>
+  </div>
+  <div class="page-body" style="padding:0;">
+    <div class="comm2-stack">
+      <div class="comm2-edit-cards" id="comm2EditCards"></div>
+      <button type="button" class="comm2-rule-add" id="comm2BtnAddRule">+ 添加规则项</button>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-bar__action"><button type="button" class="btn-main" id="comm2BtnSave">保存</button></div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-comm2-pick">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="comm2PickBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="comm2PickScreenTitle">添加规则项</span>
+  </div>
+  <div class="page-body" style="padding:0;display:flex;flex-direction:column;">
+    <div class="comm2-pick-types" id="comm2PickTypes" role="tablist" aria-label="类型">
+      <button type="button" class="comm2-pick-types__btn on" data-comm2-pick-type="project" role="tab" aria-selected="true">项目</button>
+      <button type="button" class="comm2-pick-types__btn" data-comm2-pick-type="product" role="tab" aria-selected="false">产品</button>
+      <button type="button" class="comm2-pick-types__btn" data-comm2-pick-type="card" role="tab" aria-selected="false">会员卡</button>
+    </div>
+    <div class="comm2-pick-groups" id="comm2PickGroups"></div>
+    <div class="comm2-pick-tools">
+      <button type="button" id="comm2PickSelectAll">全选</button>
+      <span class="comm2-pick-tools__count" id="comm2PickCount">已选 <strong>0</strong> 项</span>
+      <button type="button" id="comm2PickInvert">反选</button>
+    </div>
+    <div class="comm2-pick-bundle-edit hidden" id="comm2PickBundle"></div>
+    <div class="comm2-pick-body">
+      <div class="comm2-pick-list" id="comm2PickList"></div>
+    </div>
+  </div>
+  <div class="bottom-bar bottom-bar--dual">
+    <div class="bottom-bar__action">
+      <button type="button" class="btn-main secondary" id="comm2PickCancel">取消</button>
+      <button type="button" class="btn-main" id="comm2PickOk">下一步<span id="comm2PickOkCount"></span></button>
+    </div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="comm2CatSheetMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head" id="comm2CatSheetTitle">分类提成</div>
+    <div class="emp-ach-edit-body comm2-cat-sheet-body" id="comm2CatSheetBody" style="padding:10px 16px 6px;"></div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main secondary" id="comm2CatSheetCancel">取消</button>
+      <button type="button" class="btn-main" id="comm2CatSheetOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="comm2BaseHelpMask">
+  <div class="dialog dialog--emp-help" role="dialog" aria-labelledby="comm2BaseHelpTitle">
+    <div class="dialog__title" id="comm2BaseHelpTitle">计算基数说明</div>
+    <div class="dialog__scroll emp-help-body">
+      <h4>原价模式</h4>
+      <p>范围内开单（项目、产品、会员卡开卡、快速消费、商城订单、充卡/续次/延期）按<strong>原价</strong>加总作为提成基数。快速消费原价=实收；商城订单按订单原价；充卡/续次/延期按其原价。</p>
+      <h4>实收模式</h4>
+      <p>上述开单范围相同，但按<strong>实收金额</strong>加总作为提成基数。</p>
+    </div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="comm2BaseHelpOk">知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="comm2PickHelpMask">
+  <div class="dialog dialog--emp-help" role="dialog" aria-labelledby="comm2PickHelpTitle">
+    <div class="dialog__title" id="comm2PickHelpTitle">分配模式说明</div>
+    <div class="dialog__scroll emp-help-body">
+      <h4>不分工位</h4>
+      <p>开单无需选择工位，按点客/散客统一提成。</p>
+      <h4>按工位分配</h4>
+      <p>按大/中/小工分别设置提成，各工位在方案中单独配置。</p>
+    </div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="comm2PickHelpOk">知道了</button>
+    </div>
+  </div>
+</div>
+<div class="dialog-mask" id="comm2UnassignedMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="comm2UnassignedTitle">
+    <div class="dialog__title" id="comm2UnassignedTitle">未分配提成</div>
+    <div class="dialog__body" id="comm2UnassignedBody"></div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="comm2UnassignedOk">知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="comm2MenuMask">
+  <div class="picker-sheet picker-sheet--menu">
+    <div class="catalog-action-card">
+      <div class="picker-head picker-head--stack">
+        <div class="picker-head__title" id="comm2MenuTitle">提成方案</div>
+      </div>
+      <div class="catalog-action-list">
+        <button type="button" class="catalog-action-item" data-comm2-menu-act="rename">重命名</button>
+        <button type="button" class="catalog-action-item" data-comm2-menu-act="copy">复制方案</button>
+        <button type="button" class="catalog-action-item catalog-action-item--danger" data-comm2-menu-act="delete">删除</button>
+      </div>
+    </div>
+    <div class="catalog-action-foot">
+      <button type="button" class="catalog-action-item catalog-action-item--cancel" data-comm2-menu-act="cancel">取消</button>
+    </div>
+    <div class="catalog-action-safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="comm2NameMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="comm2NameTitle">
+    <div class="dialog__title" id="comm2NameTitle">方案名称</div>
+    <input type="text" class="emp-name-dialog-input" id="comm2NameInput" placeholder="请输入方案名称" maxlength="20" />
+    <div class="dialog__actions dialog__actions--row">
+      <button type="button" class="btn-main secondary" id="comm2NameCancel">取消</button>
+      <button type="button" class="btn-main" id="comm2NameOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="comm2DeleteMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="comm2DeleteTitle">
+    <div class="dialog__title" id="comm2DeleteTitle">确认删除该方案？</div>
+    <div class="dialog__body" id="comm2DeleteBody">删除后不可恢复。</div>
+    <div class="dialog__actions dialog__actions--row">
+      <button type="button" class="btn-main secondary" id="comm2DeleteCancel">取消</button>
+      <button type="button" class="btn-main" id="comm2DeleteOk">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="comm2AssignMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">分配员工</div>
+    <div class="emp-assign-tools">
+      <button type="button" id="comm2AssignSelectAll">全选</button>
+      <span class="emp-assign-tools__count" id="comm2AssignCount">已选 0 人</span>
+      <button type="button" id="comm2AssignClear">清空</button>
+    </div>
+    <div class="comm2-assign-scroll">
+      <div class="emp-assign-list" id="comm2AssignList"></div>
+    </div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main secondary" id="comm2AssignCancel">取消</button>
+      <button type="button" class="btn-main" id="comm2AssignOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="comm2HelpMask">
+  <div class="dialog dialog--emp-help" role="dialog" aria-labelledby="comm2HelpTitle">
+    <div class="dialog__title" id="comm2HelpTitle">多方案规则</div>
+    <div class="dialog__scroll emp-help-body">
+      <h4>每人只能分配一个提成方案</h4>
+      <p>列表里点「已分配」给人时，同一员工不可同时属于多个提成方案；已被其他方案占用的员工会灰显并标注所在方案。</p>
+      <h4>按行过滤</h4>
+      <p>每一笔订单行，先按该行的支付方式对照该员工所属方案的「提成范围」。支付方式不在范围内则本行不计提成。</p>
+      <h4>覆盖优先</h4>
+      <p>方案内覆盖规则项（含系统「快速消费」）优先于分类默认；命中覆盖后不再吃分类默认。</p>
+      <h4>不同行可相加</h4>
+      <p>不同业务行、或互不覆盖的计算项，可分别计入后相加。</p>
+    </div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="comm2HelpOk">知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="comm2UnsavedMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="comm2UnsavedTitle">
+    <div class="dialog__title" id="comm2UnsavedTitle">尚未保存</div>
+    <div class="dialog__body" id="comm2UnsavedBody">尚未保存，确定要返回吗？</div>
+    <div class="dialog__actions dialog__actions--row">
+      <button type="button" class="btn-main secondary" id="comm2UnsavedCancel">留在本页</button>
+      <button type="button" class="btn-main" id="comm2UnsavedOk">不保存</button>
+    </div>
+  </div>
+</div>
+<div class="dialog-mask" id="comm2OverrideDelMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="comm2OverrideDelTitle">
+    <div class="dialog__title" id="comm2OverrideDelTitle">确认删除该规则项？</div>
+    <div class="dialog__body" id="comm2OverrideDelBody">删除后不可恢复。</div>
+    <div class="dialog__actions dialog__actions--row">
+      <button type="button" class="btn-main secondary" id="comm2OverrideDelCancel">取消</button>
+      <button type="button" class="btn-main" id="comm2OverrideDelOk">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="comm2StationMask">
+  <div class="picker-sheet">
+    <div class="picker-head">工位设置</div>
+    <div class="comm2-station-sheet" id="comm2StationSheet"></div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main" id="comm2StationOk">完成</button>
+    </div>
+  </div>
+</div>
+<!-- ==== /COMM2 ==== -->
