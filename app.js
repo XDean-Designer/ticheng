@@ -37,7 +37,12 @@
     if (id === 'screen-comm2-list') return 'comm2-list';
     if (id === 'screen-comm2-edit') return 'comm2-edit';
     if (id === 'screen-comm2-pick') return 'comm2-pick';
-    if (id === 'screen-comm2-staff') return 'comm2-staff';
+    if (id === 'screen-comm2-staff') {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.getFlow === 'function') {
+        return g.Comm2StaffDemo.getFlow();
+      }
+      return 'comm2-staff-3';
+    }
     return null;
   }
 
@@ -75,11 +80,20 @@
       }, 80);
     },
     'comm2-staff': function () {
-      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') {
-        g.Comm2StaffDemo.open();
-      } else {
-        g.showOnlyScreen('screen-comm2-staff');
-      }
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(3);
+      else g.showOnlyScreen('screen-comm2-staff');
+    },
+    'comm2-staff-3': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(3);
+      else g.showOnlyScreen('screen-comm2-staff');
+    },
+    'comm2-staff-2': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(2);
+      else g.showOnlyScreen('screen-comm2-staff');
+    },
+    'comm2-staff-1': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(1);
+      else g.showOnlyScreen('screen-comm2-staff');
     }
   };
 

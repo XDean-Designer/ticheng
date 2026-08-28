@@ -24,7 +24,9 @@
   </div>
   <div class="nav-group">
     <div class="g-t">关联页面</div>
-    <button type="button" class="nav-item" data-flow="comm2-staff"><span class="idx">✱</span>选择员工</button>
+    <button type="button" class="nav-item" data-flow="comm2-staff-3"><span class="idx">3</span>选择员工（3工位）</button>
+    <button type="button" class="nav-item" data-flow="comm2-staff-2"><span class="idx">2</span>选择员工（2工位）</button>
+    <button type="button" class="nav-item" data-flow="comm2-staff-1"><span class="idx">1</span>选择员工（1工位）</button>
   </div>
   <div class="nav-group grow">
     <div class="g-t">文档</div>
@@ -273,7 +275,7 @@
 </div>
 <div class="picker-mask picker-mask--bottom" id="comm2StaffSheetMask">
   <div class="picker-sheet tall">
-    <div class="picker-head">选择员工</div>
+    <div class="picker-head" id="comm2StaffSheetTitle">选择员工（3工位）</div>
     <div class="comm2-staff-sheet__body">
       <div class="detail-item__staff-block detail-item__staff-block--cards" data-staff-root data-ctx="linked">
         <div class="staff-grid" id="comm2StaffGrid"></div>

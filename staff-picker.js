@@ -1,6 +1,9 @@
-/* 关联页面 · 选择员工
- * 卡片 UI/UX（含 morph 动效）自 开单页面/index.html 原样复制；
- * Sheet 壳（标题「选择员工」+ 完成）挂在独立灰底页 screen-comm2-staff 上。 */
+/* 关联页面 · 选择员工（3/2/1 工位演示）
+ * 卡片 morph 自开单页面；按 stationMode 切换工位步：
+ *   3 = 大/中/小工（全宽三按钮）
+ *   2 = 大工/小工（双按钮，morph 对齐点客/散客）
+ *   1 = 无工位步（选完点客/散客即完成，摘要仅点客/散客）
+ * Sheet 挂在共用灰底页 screen-comm2-staff 上。 */
 (function (g) {
   'use strict';
 
@@ -9,7 +12,6 @@
     { id: 'mid', label: '中工' },
     { id: 'junior', label: '小工' }
   ];
-  var STAFF_ROLE_PICK_ORDER = ['junior', 'mid', 'senior'];
   var STAFF_ROLE_DEFAULT = 'senior';
 
   // 与开单页面同一套演示员工 + 头像
@@ -21,6 +23,30 @@
     { id: 'st4', name: 'Lisa', short: 'Lisa', role: '美甲师', avatar: 'assets/emp-avatars/woman-b.jpg' }
   ];
 
+  var STAFF_FLOW_MODE = {
+    'comm2-staff': 3,
+    'comm2-staff-3': 3,
+    'comm2-staff-2': 2,
+    'comm2-staff-1': 1
+  };
+  function isStaffFlow(flow) { return !!STAFF_FLOW_MODE[flow]; }
+  function flowForMode(mode) {
+    if (mode === 2) return 'comm2-staff-2';
+    if (mode === 1) return 'comm2-staff-1';
+    return 'comm2-staff-3';
+  }
+  function titleForMode(mode) {
+    if (mode === 2) return '选择员工（2工位）';
+    if (mode === 1) return '选择员工（1工位）';
+    return '选择员工（3工位）';
+  }
+  function rolePickOrder(mode) {
+    if (mode === 2) return ['senior', 'junior']; // 大工 / 小工
+    return ['junior', 'mid', 'senior']; // 小 / 中 / 大
+  }
+
+  var stationMode = 3;
+  var currentStaffFlow = 'comm2-staff-3';
   var staffRow = { id: '__linked', staffIds: [], staffRoles: {}, staffDesignated: {} };
   var staffCardEdit = null;
   var prevFlow = 'comm2-list';
@@ -49,7 +75,11 @@
       if (staffRow.staffIds.indexOf(sid) < 0) delete staffRow.staffDesignated[sid];
     });
     staffRow.staffIds.forEach(function (sid) {
-      if (!staffRow.staffRoles[sid]) staffRow.staffRoles[sid] = STAFF_ROLE_DEFAULT;
+      if (stationMode >= 2) {
+        if (!staffRow.staffRoles[sid]) staffRow.staffRoles[sid] = STAFF_ROLE_DEFAULT;
+      } else {
+        delete staffRow.staffRoles[sid];
+      }
       if (typeof staffRow.staffDesignated[sid] !== 'boolean') staffRow.staffDesignated[sid] = false;
     });
   }
@@ -62,6 +92,8 @@
   function staffPickSummaryText(sid) {
     var designated = staffRow.staffDesignated && staffRow.staffDesignated[sid] === true;
     var guest = designated ? '点客' : '散客';
+    // 1 工位：只显示点客/散客
+    if (stationMode === 1) return guest;
     var role = staffRoleLabel(staffRow.staffRoles && staffRow.staffRoles[sid] ? staffRow.staffRoles[sid] : '');
     return role ? guest + '·' + role : guest;
   }
@@ -83,6 +115,7 @@
     var edit = staffCardEdit;
     var checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
     var clearSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    var pickOrder = rolePickOrder(stationMode);
     var cards = STAFFS.map(function (st, index) {
       var done = staffRow.staffIds.indexOf(st.id) >= 0;
       var isEdit = !!(edit && edit.staffId === st.id);
@@ -96,11 +129,12 @@
           '<button type="button" class="staff-card__split-btn staff-card__split-btn--des" data-staff-opt-designate="1" data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">点客</button>' +
           '<button type="button" class="staff-card__split-btn staff-card__split-btn--guest" data-staff-opt-designate="0" data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">散客</button>' +
           '</div>';
-      } else if (isEdit && edit.face === 'role') {
-        var roleBtns = STAFF_ROLE_PICK_ORDER.map(function (rid) {
+      } else if (isEdit && edit.face === 'role' && stationMode >= 2) {
+        var roleBtns = pickOrder.map(function (rid) {
           return '<button type="button" class="staff-card__split-btn staff-card__split-btn--role" data-staff-opt-role="' + rid + '" data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">' + escapeHtml(staffRoleLabel(rid)) + '</button>';
         }).join('');
-        body = '<div class="staff-card__split staff-card__split--3" role="group" aria-label="选择工位">' + roleBtns + '</div>';
+        var splitCls = stationMode === 3 ? 'staff-card__split staff-card__split--3' : 'staff-card__split';
+        body = '<div class="' + splitCls + '" role="group" aria-label="选择工位">' + roleBtns + '</div>';
       } else {
         var pickLine = done
           ? '<div class="staff-card__title staff-card__title--pick">' + escapeHtml(staffPickSummaryText(st.id)) + '</div>'
@@ -119,7 +153,7 @@
           ' style="--staff-origin:' + origin + '"' +
           ' data-origin="' + originSide + '"' +
           ' data-staff-card data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">' +
-          '<div class="staff-card__panel" data-face="' + edit.face + '">' + body + '</div>' +
+          '<div class="staff-card__panel" data-face="' + edit.face + '" data-station-mode="' + stationMode + '">' + body + '</div>' +
           '</div>';
       }
       return '<div class="staff-card' + (done ? ' is-done' : '') + (dim ? ' is-dim' : '') + '"' +
@@ -138,7 +172,7 @@
       '</div>';
   }
 
-  /* ---- 自 开单页面/index.html 原样复制 ---- */
+  /* morph：3 工位的 role 面全宽；2 工位 role / 点客散客 / 1 工位 均按双按钮宽 */
   function animateStaffMorphLayout(grid) {
     if (!grid) return;
     var token = (grid._staffMorphToken = (grid._staffMorphToken || 0) + 1);
@@ -169,8 +203,11 @@
     var gridW = grid.clientWidth;
     if (gridW <= 0) return;
     var cellW = (gridW - gap * 2) / 3;
-    var face = editing.querySelector('[data-face]') ? editing.querySelector('[data-face]').getAttribute('data-face') : '';
-    var editWFull = face === 'role' ? gridW : Math.min(gridW, cellW * 2 + gap);
+    var faceEl = editing.querySelector('[data-face]');
+    var face = faceEl ? faceEl.getAttribute('data-face') : '';
+    var modeAttr = faceEl ? parseInt(faceEl.getAttribute('data-station-mode') || stationMode, 10) : stationMode;
+    var fullRole = face === 'role' && modeAttr === 3;
+    var editWFull = fullRole ? gridW : Math.min(gridW, cellW * 2 + gap);
     var editW = Math.max(cellW, Math.round(editWFull * (2 / 3)));
     var idx = cards.indexOf(editing);
     if (idx < 0) return;
@@ -267,30 +304,43 @@
     return document.querySelector('#comm2StaffSheetMask [data-staff-root]');
   }
 
+  function updateSheetTitle() {
+    var el = $id('comm2StaffSheetTitle');
+    if (el) el.textContent = titleForMode(stationMode);
+  }
+
   function dismissMask() {
     staffCardEdit = null;
     var mask = $id('comm2StaffSheetMask');
     if (mask) mask.classList.remove('open');
   }
 
-  function open() {
+  function open(modeOrOpts) {
+    var mode = 3;
+    if (typeof modeOrOpts === 'number') mode = modeOrOpts;
+    else if (modeOrOpts && typeof modeOrOpts.stationMode === 'number') mode = modeOrOpts.stationMode;
+    stationMode = mode === 2 ? 2 : mode === 1 ? 1 : 3;
+    currentStaffFlow = flowForMode(stationMode);
+
     var on = document.querySelector('.site-nav .nav-item.on');
     var from = on ? on.getAttribute('data-flow') : 'comm2-list';
-    if (from && from !== 'comm2-staff') prevFlow = from;
+    if (from && !isStaffFlow(from)) prevFlow = from;
+
     staffCardEdit = null;
-    // 每次打开重置为未选（演示）
     staffRow = { id: '__linked', staffIds: [], staffRoles: {}, staffDesignated: {} };
+    updateSheetTitle();
     if (typeof g.showOnlyScreen === 'function') g.showOnlyScreen('screen-comm2-staff');
     var mask = $id('comm2StaffSheetMask');
     if (mask) mask.classList.add('open');
     renderStaffInto(staffRoot());
-    if (g.setNavHighlight) g.setNavHighlight('comm2-staff');
+    if (g.setNavHighlight) g.setNavHighlight(currentStaffFlow);
   }
 
   function close() {
     dismissMask();
     var flow = prevFlow || 'comm2-list';
-    if (g.FLOW_NAV && typeof g.FLOW_NAV[flow] === 'function' && flow !== 'comm2-staff') {
+    if (isStaffFlow(flow)) flow = 'comm2-list';
+    if (g.FLOW_NAV && typeof g.FLOW_NAV[flow] === 'function' && !isStaffFlow(flow)) {
       g.FLOW_NAV[flow]();
     } else if (typeof g.showOnlyScreen === 'function') {
       g.showOnlyScreen('screen-comm2-list');
@@ -325,8 +375,19 @@
       e.preventDefault(); e.stopPropagation();
       var dSid = designateOpt.getAttribute('data-staff-id');
       if (!staffCardEdit || staffCardEdit.staffId !== dSid) return;
+      var isDes = designateOpt.getAttribute('data-staff-opt-designate') === '1';
+      // 1 工位：选完点客/散客即完成，不再进工位面
+      if (stationMode === 1) {
+        ensureStaffState();
+        if (staffRow.staffIds.indexOf(dSid) < 0) staffRow.staffIds.push(dSid);
+        staffRow.staffDesignated[dSid] = isDes;
+        delete staffRow.staffRoles[dSid];
+        staffCardEdit = null;
+        rerender();
+        return;
+      }
       staffCardEdit.face = 'role';
-      staffCardEdit.draftDesignated = designateOpt.getAttribute('data-staff-opt-designate') === '1';
+      staffCardEdit.draftDesignated = isDes;
       rerender();
       return;
     }
@@ -373,6 +434,8 @@
     open: open,
     close: close,
     dismissMask: dismissMask,
+    getMode: function () { return stationMode; },
+    getFlow: function () { return currentStaffFlow; },
     render: function () { renderStaffInto(staffRoot()); }
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);

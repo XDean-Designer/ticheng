@@ -266,7 +266,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>添加规则项页：类型 Tab（项目 / 产品 / 会员卡）+ 分组筛选 + 多选（含整类分组）+ 已配置项禁用</li>
 <li>分配员工 Sheet（员工池多选、全选、清空；<strong>已被其他方案占用的员工灰显不可选</strong>）</li>
 <li>规则卡「固定」标签：提成参数=<strong>固定金额</strong>时，规则卡计算基数标签改显「固定」（<code>#A7E6A7</code>），忽略计算基数设置；提成参数统一在规则设置 Sheet 的「提成取值」分段中设置</li>
-<li>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）+ 「选择员工」独立灰底页 + Sheet（员工卡 UI/UX 与开单页同款；纯演示，toast「已选 N 人」）</li>
+<li>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）+ 三个并列入口：「选择员工（3工位）」「选择员工（2工位）」「选择员工（1工位）」；共用灰底页 + Sheet（纯演示）</li>
 <li>试算口径：示例订单行按员工方案集合计算提成（原型试算引擎）</li>
 <li>流水订单：业绩只读展示；提成可编辑（店主 / 合伙人）；修改日志记录与查看</li>
 <li>工作台移除「业绩设置」入口；旧「提成设置」保留</li>
@@ -443,7 +443,9 @@ tr:nth-child(even) td{background:#fafbfc}
  │    └─ 完成（**无新增工位**）
  ├─ 分配员工 Sheet：员工卡多选（已占用灰显）· 全选 / 清空 · 已选 N 人 · 确定
  ├─ 关联页面（左侧导航区域）
- │    └─ 选择员工：独立灰底页（`screen-comm2-staff`）+ Sheet（员工卡 morph：点客 / 散客 → 大工 / 中工 / 小工；头像图）· 清空 · 完成（toast「已选 N 人」）
+ │    ├─ 选择员工（3工位）：点客/散客 → 大/中/小工（全宽三按钮 morph）
+ │    ├─ 选择员工（2工位）：点客/散客 → 大工/小工（双按钮 morph，对齐点客/散客）
+ │    └─ 选择员工（1工位）：仅点客/散客即完成（逻辑等同未设工位）；共用灰底 `screen-comm2-staff`
  └─ 弹层：方案命名 / 重命名、删除确认、未保存返回、删除规则项、帮助说明
 </code></pre>
 <h3>3.0 页面流（示意）</h3>
@@ -505,9 +507,19 @@ flowchart LR
 <td>底部「取消 / 确定」</td>
 </tr>
 <tr>
-<td>选择员工（关联页面）</td>
-<td>选择员工</td>
-<td>独立灰底页 + Sheet；员工卡 UI/UX 与开单页同款（点客 / 散客 → 大工 / 中工 / 小工）；底部「完成」</td>
+<td>选择员工（3工位）</td>
+<td>选择员工（3工位）</td>
+<td>共用灰底 + Sheet；点客/散客 → 大/中/小工</td>
+</tr>
+<tr>
+<td>选择员工（2工位）</td>
+<td>选择员工（2工位）</td>
+<td>共用灰底 + Sheet；点客/散客 → 大工/小工（双按钮 morph）</td>
+</tr>
+<tr>
+<td>选择员工（1工位）</td>
+<td>选择员工（1工位）</td>
+<td>共用灰底 + Sheet；仅点客/散客，摘要无工位名</td>
 </tr>
 <tr>
 <td>流水详情</td>
@@ -516,7 +528,7 @@ flowchart LR
 </tr>
 </tbody>
 </table>
-<p>功能链路演示节点（FLOW_MAP「提成设置」）：<code>comm2-list</code> / <code>comm2-edit</code> / <code>comm2-pick</code> / <code>comm2-staff</code>（原型内嵌 FLOW_NAV 亦有 <code>comm2</code> 系列）；捕获深链 <code>?capture=comm2-advisor</code> 直开「顾问标准提成」编辑页。</p>
+<p>功能链路演示节点（FLOW_MAP「提成设置」）：<code>comm2-list</code> / <code>comm2-edit</code> / <code>comm2-pick</code> / <code>comm2-staff-3</code> / <code>comm2-staff-2</code> / <code>comm2-staff-1</code>（原型内嵌 FLOW_NAV 亦有 <code>comm2</code> 系列）；捕获深链 <code>?capture=comm2-advisor</code> 直开「顾问标准提成」编辑页。</p>
 <p>深链：<code>demo.html?flow=&lt;节点 id&gt;</code>（可选 <code>&amp;capture=1</code>）。流水详情相关节点归属「开单记账」分组。</p>
 <p>实现路由建议（名称可调整）：<code>comm2-scheme-list</code> / <code>comm2-scheme-edit</code> / <code>comm2-rule-pick</code> / <code>comm2-rule-sheet</code> / <code>comm2-station-sheet</code> / <code>comm2-assign-sheet</code> / <code>comm2-staff-picker</code>。</p>
 <hr />
@@ -918,28 +930,27 @@ flowchart LR
 <li>空员工池：「暂无在岗员工」。</li>
 <li>确定：写回 <code>assigneeIds</code>；toast「已分配 N 人」/「已清空分配」；关 Sheet；重绘列表。</li>
 </ul>
-<h2>6.7 关联页面 · 选择员工 Sheet</h2>
-<p>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）中的独立入口，与提成方案编辑链路无数据联动，<strong>仅作关联功能演示</strong>（后续可继续补充关联页面）。</p>
-<p><strong>入口</strong>：左侧导航「关联页面 · 选择员工」（<code>data-flow=comm2-staff</code>）。</p>
-<p><strong>页面宿主</strong>：点击入口后先切换到独立灰底页（<code>screen-comm2-staff</code>，背景 <code>#F7F7F7</code>），再打开 Sheet；<strong>不叠在方案列表 / 编辑 / 添加规则项等现有页面上</strong>。关闭后回到进入前的页面。</p>
-<p><strong>Sheet 结构</strong>：</p>
+<h2>6.7 关联页面 · 选择员工 Sheet（3 / 2 / 1 工位）</h2>
+<p>左侧导航「<strong>关联页面</strong>」区域中三个并列入口，与提成方案编辑链路无数据联动，<strong>仅作关联功能演示</strong>。三者<strong>共用</strong>灰底页 <code>screen-comm2-staff</code> 与同一 Sheet 壳，按入口切换 <code>stationMode</code>。</p>
+<p><strong>入口</strong>：</p>
+<table>
+<thead><tr><th>导航</th><th>flow</th><th>工位步</th></tr></thead>
+<tbody>
+<tr><td>选择员工（3工位）</td><td><code>comm2-staff-3</code></td><td>点客/散客 → <strong>大工 / 中工 / 小工</strong>（全宽三按钮）</td></tr>
+<tr><td>选择员工（2工位）</td><td><code>comm2-staff-2</code></td><td>点客/散客 → <strong>大工 / 小工</strong>（双按钮，morph 宽度对齐点客/散客）</td></tr>
+<tr><td>选择员工（1工位）</td><td><code>comm2-staff-1</code></td><td><strong>仅</strong>点客/散客即完成（逻辑等同未设工位，不出工位面）</td></tr>
+</tbody>
+</table>
+<p><strong>页面宿主</strong>：先切灰底页（<code>#F7F7F7</code>），再开 Sheet；不叠在方案列表/编辑上。关闭后回进入前页面。</p>
+<p><strong>Sheet 结构</strong>：标题随版本（「选择员工（N工位）」）；5 名演示员工（含头像）；初始全部未选；底部「完成」。</p>
+<p><strong>交互动效</strong>（卡片 morph 自开单页；2 工位 role 面按双按钮宽展开）：</p>
 <ul>
-<li>标题「选择员工」。</li>
-<li>员工卡网格：<strong>5 名演示员工</strong>（顾清扬 / 林屿森 / 何苏叶 / 阿Ken / Lisa，含头像图），<strong>初始全部未选</strong>。</li>
-<li>底部「完成」。</li>
+<li>点卡片 → <code>is-pinching</code> → <code>is-expanding</code> → 「点客 / 散客」；scrim 可取消。</li>
+<li><strong>3 / 2 工位</strong>：选点客/散客后再 morph 出工位按钮；选中后摘要「点客·大工」等。</li>
+<li><strong>1 工位</strong>：选点客/散客后直接选中，摘要仅「点客」或「散客」。</li>
+<li>已选卡片「✕」可清除。</li>
 </ul>
-<p><strong>交互动效</strong>（<strong>与开单页面「选择服务员工」百分百同款</strong>，CSS + morph JS 自开单页复制）：</p>
-<ul>
-<li>点卡片 → 卡片缩窄再展开（<code>is-pinching</code> → <code>is-expanding</code>），出「<strong>点客 / 散客</strong>」双选项（其余卡片置灰）；点 scrim 可取消。</li>
-<li>选「点客 / 散客」→ 再 morph 出「<strong>大工 / 中工 / 小工</strong>」三选项；选择工位后卡片复位为选中态（左上角红色对勾，标题行显示「点客·大工」等摘要）。</li>
-<li>已选卡片右上角「✕」可清除选择。</li>
-</ul>
-<p><strong>行为</strong>：</p>
-<ul>
-<li>「完成」→ toast「已选 N 人」→ 关 Sheet → 回到进入前页面。</li>
-<li>点遮罩关闭 Sheet 并回到进入前页面。</li>
-<li>纯演示：<strong>不与方案 / 员工分配（<code>assigneeIds</code>）数据联动</strong>。</li>
-</ul>
+<p><strong>行为</strong>：「完成」→ toast「已选 N 人」→ 关 Sheet → 回进入前页面；遮罩同；不与 <code>assigneeIds</code> 联动。</p>
 <h2>6.8 流水订单：业绩只读 + 提成编辑</h2>
 <p><strong>范围</strong>：流水详情页（<code>flowDetailBody</code>）及流水编辑项内员工指标。</p>
 <table>
@@ -1355,7 +1366,7 @@ flowchart LR
 <p>读者：前端 ✓ · 后端 部分 · 测试 ✓</p>
 </blockquote>
 <h2>9.1 文案清单（须与原型一致）</h2>
-<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、恢复为默认、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配提成、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、选择员工</strong>。</p>
+<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、恢复为默认、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配提成、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、选择员工（3工位）、选择员工（2工位）、选择员工（1工位）</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、点客、散客、提成范围、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、签单、提成参数。</p>
 <p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、删除后不可恢复。、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配提成、暂无在岗员工、<strong>选择员工、点客、散客、大工、中工、小工</strong>。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存（实验）、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的散客比例/金额、比例需在 0–100%、名称不能为空、最多 5 个工位、已删除工位。</p>

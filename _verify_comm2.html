@@ -37,7 +37,7 @@
 
     <div class="picker-mask picker-mask--bottom" id="comm2StaffSheetMask">
       <div class="picker-sheet tall">
-        <div class="picker-head">选择员工</div>
+        <div class="picker-head" id="comm2StaffSheetTitle">选择员工（3工位）</div>
         <div class="comm2-staff-sheet__body">
           <div class="detail-item__staff-block detail-item__staff-block--cards" data-staff-root data-ctx="linked">
             <div class="staff-grid"></div>
@@ -142,40 +142,69 @@ function runChecks() {
   var lb3 = laborCard3 ? laborCard3.querySelector('.comm2-rule-bar__base') : null;
   V('sheet-set-back-original', !!(lb3 && lb3.textContent.trim() === '原价'), lb3 ? lb3.textContent.trim() : 'none');
 
-  // ---- 关联页面 · 选择员工（独立灰底页 + Sheet）----
-  if (window.Comm2StaffDemo && typeof window.Comm2StaffDemo.open === 'function') {
-    window.Comm2StaffDemo.open();
-  }
-  var staffScreen = q('#screen-comm2-staff');
-  V('staff-gray-screen-visible', !!(staffScreen && !staffScreen.classList.contains('hidden')));
-  var listScreen = q('#screen-comm2-list');
-  V('staff-not-overlay-list', !!(listScreen && listScreen.classList.contains('hidden')));
+  // ---- 关联页面 · 选择员工（3/2/1 工位，共用灰底）----
   var staffMask = q('#comm2StaffSheetMask');
-  V('staff-mask-open', !!(staffMask && staffMask.classList.contains('open')));
-  var staffGrid = staffMask ? staffMask.querySelector('.staff-grid') : null;
-  var cardCount = staffGrid ? staffGrid.querySelectorAll(':scope > .staff-card').length : 0;
-  V('staff-cards-count-5', cardCount === 5, cardCount);
-  var avatars = staffGrid ? staffGrid.querySelectorAll('img.staff-card__avatar') : [];
-  V('staff-avatars-img-5', avatars.length === 5, avatars.length);
+  var staffScreen = q('#screen-comm2-staff');
 
-  var hit = staffGrid ? staffGrid.querySelector('[data-staff-card-hit]') : null;
-  if (hit) hit.click();
-  var staffGrid2 = staffMask ? staffMask.querySelector('.staff-grid') : null;
-  var firstCard = staffGrid2 ? staffGrid2.querySelector('.staff-card') : null;
-  V('staff-flip-editing', !!(firstCard && firstCard.classList.contains('is-editing')));
-  // morph 网格标记在渲染时同步加上；pinching/expanding 由 rAF 异步驱动
-  V('staff-morph-grid', !!(staffGrid2 && staffGrid2.classList.contains('is-morphing')));
+  // --- 3 工位 ---
+  if (window.Comm2StaffDemo) window.Comm2StaffDemo.open(3);
+  V('staff3-title', (q('#comm2StaffSheetTitle') || {}).textContent === '选择员工（3工位）');
+  V('staff3-gray-screen', !!(staffScreen && !staffScreen.classList.contains('hidden')));
+  V('staff3-mask-open', !!(staffMask && staffMask.classList.contains('open')));
+  var g3 = staffMask ? staffMask.querySelector('.staff-grid') : null;
+  V('staff3-cards-5', !!(g3 && g3.querySelectorAll(':scope > .staff-card').length === 5));
+  var hit3 = g3 ? g3.querySelector('[data-staff-card-hit]') : null;
+  if (hit3) hit3.click();
+  g3 = staffMask.querySelector('.staff-grid');
+  var des3 = g3 ? g3.querySelector('[data-staff-opt-designate="1"]') : null;
+  if (des3) des3.click();
+  g3 = staffMask.querySelector('.staff-grid');
+  var roleBtns3 = g3 ? g3.querySelectorAll('[data-staff-opt-role]') : [];
+  V('staff3-role-btns-3', roleBtns3.length === 3, roleBtns3.length);
+  V('staff3-split-3', !!(g3 && g3.querySelector('.staff-card__split--3')));
+  var roleSenior = g3 ? g3.querySelector('[data-staff-opt-role="senior"]') : null;
+  if (roleSenior) roleSenior.click();
+  g3 = staffMask.querySelector('.staff-grid');
+  var done3 = g3 ? g3.querySelector('.staff-card.is-done .staff-card__title--pick') : null;
+  V('staff3-summary', !!(done3 && done3.textContent.indexOf('点客·大工') >= 0), done3 ? done3.textContent : '');
 
-  var desBtn = staffGrid2 ? staffGrid2.querySelector('[data-staff-opt-designate="1"]') : null;
-  if (desBtn) desBtn.click();
-  var staffGrid3 = staffMask ? staffMask.querySelector('.staff-grid') : null;
-  var roleBtn = staffGrid3 ? staffGrid3.querySelector('[data-staff-opt-role="senior"]') : null;
-  if (roleBtn) roleBtn.click();
-  var staffGrid4 = staffMask ? staffMask.querySelector('.staff-grid') : null;
-  var firstCardDone = staffGrid4 ? staffGrid4.querySelector('.staff-card') : null;
-  V('staff-select-done', !!(firstCardDone && firstCardDone.classList.contains('is-done')));
-  var pickTitle = firstCardDone ? firstCardDone.querySelector('.staff-card__title--pick') : null;
-  V('staff-summary-text', !!(pickTitle && pickTitle.textContent.indexOf('点客·大工') >= 0), pickTitle ? pickTitle.textContent : '');
+  // --- 2 工位 ---
+  if (window.Comm2StaffDemo) window.Comm2StaffDemo.open(2);
+  V('staff2-title', (q('#comm2StaffSheetTitle') || {}).textContent === '选择员工（2工位）');
+  var g2 = staffMask.querySelector('.staff-grid');
+  var hit2 = g2 ? g2.querySelector('[data-staff-card-hit]') : null;
+  if (hit2) hit2.click();
+  g2 = staffMask.querySelector('.staff-grid');
+  var des2 = g2 ? g2.querySelector('[data-staff-opt-designate="1"]') : null;
+  if (des2) des2.click();
+  g2 = staffMask.querySelector('.staff-grid');
+  var roleBtns2 = g2 ? g2.querySelectorAll('[data-staff-opt-role]') : [];
+  V('staff2-role-btns-2', roleBtns2.length === 2, roleBtns2.length);
+  V('staff2-no-split-3', !(g2 && g2.querySelector('.staff-card__split--3')));
+  var hasSenior = !!(g2 && g2.querySelector('[data-staff-opt-role="senior"]'));
+  var hasJunior = !!(g2 && g2.querySelector('[data-staff-opt-role="junior"]'));
+  var hasMid = !!(g2 && g2.querySelector('[data-staff-opt-role="mid"]'));
+  V('staff2-roles-senior-junior', hasSenior && hasJunior && !hasMid);
+  var roleJr = g2 ? g2.querySelector('[data-staff-opt-role="junior"]') : null;
+  if (roleJr) roleJr.click();
+  g2 = staffMask.querySelector('.staff-grid');
+  var done2 = g2 ? g2.querySelector('.staff-card.is-done .staff-card__title--pick') : null;
+  V('staff2-summary', !!(done2 && done2.textContent.indexOf('点客·小工') >= 0), done2 ? done2.textContent : '');
+
+  // --- 1 工位 ---
+  if (window.Comm2StaffDemo) window.Comm2StaffDemo.open(1);
+  V('staff1-title', (q('#comm2StaffSheetTitle') || {}).textContent === '选择员工（1工位）');
+  var g1 = staffMask.querySelector('.staff-grid');
+  var hit1 = g1 ? g1.querySelector('[data-staff-card-hit]') : null;
+  if (hit1) hit1.click();
+  g1 = staffMask.querySelector('.staff-grid');
+  var des1 = g1 ? g1.querySelector('[data-staff-opt-designate="1"]') : null;
+  if (des1) des1.click();
+  g1 = staffMask.querySelector('.staff-grid');
+  var roleBtns1 = g1 ? g1.querySelectorAll('[data-staff-opt-role]') : [];
+  V('staff1-no-role-step', roleBtns1.length === 0, roleBtns1.length);
+  var done1 = g1 ? g1.querySelector('.staff-card.is-done .staff-card__title--pick') : null;
+  V('staff1-summary-guest-only', !!(done1 && done1.textContent.trim() === '点客'), done1 ? done1.textContent : '');
 
   var okBtn = q('#comm2StaffOk');
   if (okBtn) okBtn.click();
