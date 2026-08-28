@@ -747,14 +747,18 @@
 
   function barStationParamsHtml(sch, block) {
     var parts = formatBlockSummary(sch, block).split('；').filter(function (s) { return s.trim(); });
-    if (parts.length <= 1) return esc(parts[0] || formatBlockSummary(sch, block));
+    if (parts.length <= 1) {
+      return '<span class="comm2-rule-bar__param-seg">' + esc(parts[0] || formatBlockSummary(sch, block)) + '</span>';
+    }
     return parts.map(function (seg) {
       return '<span class="comm2-rule-bar__param-seg">' + esc(seg.trim()) + '</span>';
     }).join('');
   }
 
   function barParamsHtml(sch, block) {
-    if (block.pickMode !== 'station') return esc(formatBlockSummary(sch, block));
+    if (block.pickMode !== 'station') {
+      return '<span class="comm2-rule-bar__param-seg">' + esc(formatBlockSummary(sch, block)) + '</span>';
+    }
     return barStationParamsHtml(sch, block);
   }
 
@@ -772,19 +776,19 @@
       : '';
     return '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') + '" data-comm2-rule-card="' + esc(target) + '">' +
       '<button type="button" class="comm2-rule-bar__main" data-comm2-card-open="' + esc(target) + '">' +
+      '<div class="comm2-rule-bar__body">' +
       '<div class="comm2-rule-bar__row1">' +
       '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
-      (isOv
-        ? '<span class="comm2-rule-bar__title-txt" title="' + esc(title) + '">' + esc(title) + '</span>'
-        : esc(title)) +
-      '</h2>' +
-      '<div class="comm2-rule-bar__caps" aria-label="提成范围">' + barScopeCapsulesHtml(block) + '</div>' +
+      '<span class="comm2-rule-bar__title-txt" title="' + esc(title) + '">' + esc(title) + '</span></h2>' +
+      '<span class="comm2-rule-bar__params">' + barParamsHtml(sch, block) + '</span>' +
       '</div>' +
       '<div class="comm2-rule-bar__row2">' +
+      '<div class="comm2-rule-bar__tags" aria-label="标签">' +
       '<span class="comm2-rule-bar__base ' + baseCls + '">' + esc(barBaseShort(block)) + '</span>' +
-      '<span class="comm2-rule-bar__params">' + barParamsHtml(sch, block) + '</span>' +
+      barScopeCapsulesHtml(block) +
+      '</div></div></div>' +
       chevSvg() +
-      '</div></button>' + delBtn + '</article>';
+      '</button>' + delBtn + '</article>';
   }
 
   function renderEditCards(sch) {
