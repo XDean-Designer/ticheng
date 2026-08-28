@@ -1,4 +1,6 @@
-/* 关联页面 · 选择员工（单独 sheet，完整交互动效：点客/散客 → 大工/中工/小工） */
+/* 关联页面 · 选择员工
+ * 卡片 UI/UX（含 morph 动效）自 开单页面/index.html 原样复制；
+ * Sheet 壳（标题「选择员工」+ 完成）挂在独立灰底页 screen-comm2-staff 上。 */
 (function (g) {
   'use strict';
 
@@ -10,12 +12,13 @@
   var STAFF_ROLE_PICK_ORDER = ['junior', 'mid', 'senior'];
   var STAFF_ROLE_DEFAULT = 'senior';
 
+  // 与开单页面同一套演示员工 + 头像
   var STAFFS = [
-    { id: 'st0', name: '顾清扬', short: '顾', role: '店主', avatar: '' },
-    { id: 'st1', name: '林屿森', short: '森', role: '美容师', avatar: '' },
-    { id: 'st2', name: '何苏叶', short: '叶', role: '店长', avatar: '' },
-    { id: 'st3', name: '阿Ken', short: 'Ken', role: '美容师', avatar: '' },
-    { id: 'st4', name: 'Lisa', short: 'Lisa', role: '美甲师', avatar: '' }
+    { id: 'st0', name: '顾清扬', short: '顾', role: '店主', avatar: 'assets/emp-avatars/man-e.jpg' },
+    { id: 'st1', name: '林屿森', short: '森', role: '美容师', avatar: 'assets/emp-avatars/man-a.jpg' },
+    { id: 'st2', name: '何苏叶', short: '叶', role: '店长', avatar: 'assets/emp-avatars/woman-a.jpg' },
+    { id: 'st3', name: '阿Ken', short: 'Ken', role: '美容师', avatar: 'assets/emp-avatars/man-b.jpg' },
+    { id: 'st4', name: 'Lisa', short: 'Lisa', role: '美甲师', avatar: 'assets/emp-avatars/woman-b.jpg' }
   ];
 
   var staffRow = { id: '__linked', staffIds: [], staffRoles: {}, staffDesignated: {} };
@@ -23,19 +26,16 @@
   var prevFlow = 'comm2-list';
 
   function $id(id) { return document.getElementById(id); }
-  function esc(s) {
+  function escapeHtml(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
   function toast(msg, isWarn) {
-    if (typeof showToast === 'function') showToast(msg, !!isWarn, 2000);
+    if (typeof showToast === 'function') showToast(msg, !!isWarn);
   }
   function staffRoleLabel(roleId) {
-    var hit = null;
-    for (var i = 0; i < STAFF_ROLE_OPTS.length; i++) {
-      if (STAFF_ROLE_OPTS[i].id === roleId) { hit = STAFF_ROLE_OPTS[i]; break; }
-    }
+    var hit = STAFF_ROLE_OPTS.find(function (r) { return r.id === roleId; });
     return hit ? hit.label : '';
   }
   function ensureStaffState() {
@@ -68,14 +68,14 @@
   function staffJobTitleHtml(st) {
     var title = st && st.role ? String(st.role).trim() : '';
     if (!title) return '';
-    return '<div class="staff-card__title">' + esc(title) + '</div>';
+    return '<div class="staff-card__title">' + escapeHtml(title) + '</div>';
   }
   function staffAvatarHtml(st) {
     if (st.avatar) {
       return '<img class="staff-card__avatar" src="' + st.avatar + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
     }
     var letter = (st.short || st.name || '?').toString().slice(0, 2);
-    return '<span class="staff-card__avatar staff-card__avatar--ph" aria-hidden="true">' + esc(letter) + '</span>';
+    return '<span class="staff-card__avatar staff-card__avatar--ph" aria-hidden="true">' + escapeHtml(letter) + '</span>';
   }
 
   function renderStaffPickerHtml() {
@@ -98,17 +98,17 @@
           '</div>';
       } else if (isEdit && edit.face === 'role') {
         var roleBtns = STAFF_ROLE_PICK_ORDER.map(function (rid) {
-          return '<button type="button" class="staff-card__split-btn staff-card__split-btn--role" data-staff-opt-role="' + rid + '" data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">' + esc(staffRoleLabel(rid)) + '</button>';
+          return '<button type="button" class="staff-card__split-btn staff-card__split-btn--role" data-staff-opt-role="' + rid + '" data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">' + escapeHtml(staffRoleLabel(rid)) + '</button>';
         }).join('');
         body = '<div class="staff-card__split staff-card__split--3" role="group" aria-label="选择工位">' + roleBtns + '</div>';
       } else {
         var pickLine = done
-          ? '<div class="staff-card__title staff-card__title--pick">' + esc(staffPickSummaryText(st.id)) + '</div>'
+          ? '<div class="staff-card__title staff-card__title--pick">' + escapeHtml(staffPickSummaryText(st.id)) + '</div>'
           : jobTitle;
         body =
           (done ? '<span class="staff-card__check">' + checkSvg + '</span>' : '') +
           staffAvatarHtml(st) +
-          '<div class="staff-card__name">' + esc(st.name) + '</div>' +
+          '<div class="staff-card__name">' + escapeHtml(st.name) + '</div>' +
           pickLine;
       }
       var clearBtn = (done && !isEdit)
@@ -127,7 +127,7 @@
         ' data-origin="' + originSide + '"' +
         ' data-staff-card data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '">' +
         clearBtn +
-        '<button type="button" class="staff-card__panel" data-staff-card-hit data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '" aria-label="' + esc(st.name) + '">' +
+        '<button type="button" class="staff-card__panel" data-staff-card-hit data-cart-id="' + staffRow.id + '" data-staff-id="' + st.id + '" aria-label="' + escapeHtml(st.name) + '">' +
         body +
         '</button>' +
         '</div>';
@@ -138,30 +138,28 @@
       '</div>';
   }
 
+  /* ---- 自 开单页面/index.html 原样复制 ---- */
   function animateStaffMorphLayout(grid) {
     if (!grid) return;
     var token = (grid._staffMorphToken = (grid._staffMorphToken || 0) + 1);
     var cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > .staff-card'));
-    var editing = null;
-    for (var c = 0; c < cards.length; c++) {
-      if (cards[c].classList.contains('is-editing')) { editing = cards[c]; break; }
-    }
+    var editing = cards.find(function (c) { return c.classList.contains('is-editing'); });
     var reduce = typeof window.matchMedia === 'function'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    cards.forEach(function (card) {
-      card.classList.remove('is-pinching', 'is-expanding');
-      card.style.transition = 'none';
-      card.style.transform = '';
-      card.style.width = '';
-      card.style.zIndex = '';
+    cards.forEach(function (c) {
+      c.classList.remove('is-pinching', 'is-expanding');
+      c.style.transition = 'none';
+      c.style.transform = '';
+      c.style.width = '';
+      c.style.zIndex = '';
     });
     grid.classList.toggle('is-morphing', !!editing);
 
     if (!editing) {
       requestAnimationFrame(function () {
         if (grid._staffMorphToken !== token) return;
-        cards.forEach(function (card) { card.style.transition = ''; });
+        cards.forEach(function (c) { c.style.transition = ''; });
       });
       return;
     }
@@ -171,8 +169,7 @@
     var gridW = grid.clientWidth;
     if (gridW <= 0) return;
     var cellW = (gridW - gap * 2) / 3;
-    var faceEl = editing.querySelector('[data-face]');
-    var face = faceEl ? faceEl.getAttribute('data-face') : '';
+    var face = editing.querySelector('[data-face]') ? editing.querySelector('[data-face]').getAttribute('data-face') : '';
     var editWFull = face === 'role' ? gridW : Math.min(gridW, cellW * 2 + gap);
     var editW = Math.max(cellW, Math.round(editWFull * (2 / 3)));
     var idx = cards.indexOf(editing);
@@ -230,21 +227,22 @@
 
     requestAnimationFrame(function () {
       if (grid._staffMorphToken !== token) return;
-      editing.classList.remove('is-pinching');
-      editing.classList.add('is-expanding');
-      applyFinalLayout();
+      editing.style.transition = 'transform .09s cubic-bezier(.4,0,.2,1), width .09s cubic-bezier(.4,0,.2,1)';
+      editing.style.width = narrowW + 'px';
+      editing.style.transform = 'translateX(' + narrowDx + 'px)';
+
+      var phaseDone = false;
+      var runExpand = function () {
+        if (phaseDone || grid._staffMorphToken !== token) return;
+        phaseDone = true;
+        editing.classList.remove('is-pinching');
+        editing.classList.add('is-expanding');
+        applyFinalLayout();
+      };
       var onShrinkEnd = function (e) {
         if (e && e.target !== editing) return;
         if (e && e.propertyName && e.propertyName !== 'width' && e.propertyName !== 'transform') return;
         editing.removeEventListener('transitionend', onShrinkEnd);
-        var runExpand = function () {
-          if (grid._staffMorphToken !== token) return;
-          cards.forEach(function (card) {
-            if (card === editing) return;
-            card.style.width = narrowW + 'px';
-            card.style.transform = 'translateX(' + narrowDx + 'px)';
-          });
-        };
         runExpand();
       };
       editing.addEventListener('transitionend', onShrinkEnd);
@@ -269,10 +267,20 @@
     return document.querySelector('#comm2StaffSheetMask [data-staff-root]');
   }
 
+  function dismissMask() {
+    staffCardEdit = null;
+    var mask = $id('comm2StaffSheetMask');
+    if (mask) mask.classList.remove('open');
+  }
+
   function open() {
     var on = document.querySelector('.site-nav .nav-item.on');
-    prevFlow = on ? on.getAttribute('data-flow') : 'comm2-list';
+    var from = on ? on.getAttribute('data-flow') : 'comm2-list';
+    if (from && from !== 'comm2-staff') prevFlow = from;
     staffCardEdit = null;
+    // 每次打开重置为未选（演示）
+    staffRow = { id: '__linked', staffIds: [], staffRoles: {}, staffDesignated: {} };
+    if (typeof g.showOnlyScreen === 'function') g.showOnlyScreen('screen-comm2-staff');
     var mask = $id('comm2StaffSheetMask');
     if (mask) mask.classList.add('open');
     renderStaffInto(staffRoot());
@@ -280,10 +288,14 @@
   }
 
   function close() {
-    staffCardEdit = null;
-    var mask = $id('comm2StaffSheetMask');
-    if (mask) mask.classList.remove('open');
-    if (g.setNavHighlight) g.setNavHighlight(prevFlow || 'comm2-list');
+    dismissMask();
+    var flow = prevFlow || 'comm2-list';
+    if (g.FLOW_NAV && typeof g.FLOW_NAV[flow] === 'function' && flow !== 'comm2-staff') {
+      g.FLOW_NAV[flow]();
+    } else if (typeof g.showOnlyScreen === 'function') {
+      g.showOnlyScreen('screen-comm2-list');
+    }
+    if (g.setNavHighlight) g.setNavHighlight(flow);
   }
 
   document.addEventListener('click', function (e) {
@@ -357,7 +369,12 @@
     });
   }
 
-  g.Comm2StaffDemo = { open: open, close: close, render: function () { renderStaffInto(staffRoot()); } };
+  g.Comm2StaffDemo = {
+    open: open,
+    close: close,
+    dismissMask: dismissMask,
+    render: function () { renderStaffInto(staffRoot()); }
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
   else wire();
 })(window);

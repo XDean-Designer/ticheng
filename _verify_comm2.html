@@ -22,6 +22,7 @@
       </div>
     </div>
     <div class="screen hidden" id="screen-comm2-pick"><div class="page-body"></div></div>
+    <div class="screen hidden" id="screen-comm2-staff"><div class="page-body page-body--staff-host"></div></div>
 
     <div class="picker-mask picker-mask--bottom" id="comm2CatSheetMask">
       <div class="picker-sheet tall">
@@ -56,7 +57,7 @@
 <script src="comm2.js"></script>
 <script src="staff-picker.js"></script>
 <script>
-/* 验证页 shim：替代 app.js 的 showToast */
+/* 验证页 shim：替代 app.js 的 showToast / showOnlyScreen / FLOW_NAV */
 window.showToast = function (msg, isWarn, ms) {
   var el = document.getElementById('toastMsg');
   if (!el) return;
@@ -64,6 +65,23 @@ window.showToast = function (msg, isWarn, ms) {
   el.classList.add('show');
   setTimeout(function () { el.classList.remove('show'); }, ms || 2000);
 };
+window.showOnlyScreen = function (id) {
+  document.querySelectorAll('#frame .screen').forEach(function (el) {
+    el.classList.add('hidden');
+  });
+  var target = document.getElementById(id);
+  if (target) target.classList.remove('hidden');
+};
+window.FLOW_NAV = {
+  'comm2-list': function () { window.showOnlyScreen('screen-comm2-list'); },
+  'comm2-edit': function () { window.showOnlyScreen('screen-comm2-edit'); },
+  'comm2-pick': function () { window.showOnlyScreen('screen-comm2-pick'); },
+  'comm2-staff': function () {
+    if (window.Comm2StaffDemo) window.Comm2StaffDemo.open();
+    else window.showOnlyScreen('screen-comm2-staff');
+  }
+};
+window.setNavHighlight = function () {};
 </script>
 <script>
 window.__VERIFY_RESULTS = [];
@@ -124,21 +142,29 @@ function runChecks() {
   var lb3 = laborCard3 ? laborCard3.querySelector('.comm2-rule-bar__base') : null;
   V('sheet-set-back-original', !!(lb3 && lb3.textContent.trim() === '原价'), lb3 ? lb3.textContent.trim() : 'none');
 
-  // ---- 关联页面 · 选择员工 sheet ----
+  // ---- 关联页面 · 选择员工（独立灰底页 + Sheet）----
   if (window.Comm2StaffDemo && typeof window.Comm2StaffDemo.open === 'function') {
     window.Comm2StaffDemo.open();
   }
+  var staffScreen = q('#screen-comm2-staff');
+  V('staff-gray-screen-visible', !!(staffScreen && !staffScreen.classList.contains('hidden')));
+  var listScreen = q('#screen-comm2-list');
+  V('staff-not-overlay-list', !!(listScreen && listScreen.classList.contains('hidden')));
   var staffMask = q('#comm2StaffSheetMask');
   V('staff-mask-open', !!(staffMask && staffMask.classList.contains('open')));
   var staffGrid = staffMask ? staffMask.querySelector('.staff-grid') : null;
   var cardCount = staffGrid ? staffGrid.querySelectorAll(':scope > .staff-card').length : 0;
   V('staff-cards-count-5', cardCount === 5, cardCount);
+  var avatars = staffGrid ? staffGrid.querySelectorAll('img.staff-card__avatar') : [];
+  V('staff-avatars-img-5', avatars.length === 5, avatars.length);
 
   var hit = staffGrid ? staffGrid.querySelector('[data-staff-card-hit]') : null;
   if (hit) hit.click();
   var staffGrid2 = staffMask ? staffMask.querySelector('.staff-grid') : null;
   var firstCard = staffGrid2 ? staffGrid2.querySelector('.staff-card') : null;
   V('staff-flip-editing', !!(firstCard && firstCard.classList.contains('is-editing')));
+  // morph 网格标记在渲染时同步加上；pinching/expanding 由 rAF 异步驱动
+  V('staff-morph-grid', !!(staffGrid2 && staffGrid2.classList.contains('is-morphing')));
 
   var desBtn = staffGrid2 ? staffGrid2.querySelector('[data-staff-opt-designate="1"]') : null;
   if (desBtn) desBtn.click();

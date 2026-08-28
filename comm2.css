@@ -1,8 +1,15 @@
 ﻿/* ==== comm2 · 实验版提成设置（可整模块删除） ==== */
 #screen-comm2-list,
 #screen-comm2-edit,
+#screen-comm2-staff,
 #screen-comm2-list .page-body,
-#screen-comm2-edit .page-body { background: #F7F7F7; }
+#screen-comm2-edit .page-body,
+#screen-comm2-staff .page-body { background: #F7F7F7; }
+#screen-comm2-staff { display: flex; flex-direction: column; }
+#screen-comm2-staff .page-body--staff-host {
+  flex: 1 1 auto; min-height: 0; padding: 0; margin: 0;
+  background: #F7F7F7;
+}
 .comm2-stack {
   padding: 12px 16px 28px;
   display: flex; flex-direction: column; gap: 16px;

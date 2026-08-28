@@ -37,6 +37,7 @@
     if (id === 'screen-comm2-list') return 'comm2-list';
     if (id === 'screen-comm2-edit') return 'comm2-edit';
     if (id === 'screen-comm2-pick') return 'comm2-pick';
+    if (id === 'screen-comm2-staff') return 'comm2-staff';
     return null;
   }
 
@@ -55,14 +56,17 @@
 
   g.FLOW_NAV = {
     'comm2-list': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.dismissMask === 'function') g.Comm2StaffDemo.dismissMask();
       if (g.Comm2Demo) g.Comm2Demo.openList();
       else g.showOnlyScreen('screen-comm2-list');
     },
     'comm2-edit': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.dismissMask === 'function') g.Comm2StaffDemo.dismissMask();
       if (g.Comm2Demo) g.Comm2Demo.openEdit('c2_advisor');
       else g.showOnlyScreen('screen-comm2-edit');
     },
     'comm2-pick': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.dismissMask === 'function') g.Comm2StaffDemo.dismissMask();
       if (!g.Comm2Demo) { g.showOnlyScreen('screen-comm2-pick'); return; }
       g.Comm2Demo.openEdit('c2_flagship');
       setTimeout(function () {
@@ -73,6 +77,8 @@
     'comm2-staff': function () {
       if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') {
         g.Comm2StaffDemo.open();
+      } else {
+        g.showOnlyScreen('screen-comm2-staff');
       }
     }
   };
