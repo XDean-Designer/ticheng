@@ -74,12 +74,16 @@ function q(sel) { return document.querySelector(sel); }
 function qa(sel) { return document.querySelectorAll(sel); }
 
 function runChecks() {
-  // ---- 规则卡：固定标签 + 比例/固定切换 ----
+  // ---- 规则卡：固定标签（仅 Sheet 中设置）----
   if (window.Comm2Demo && typeof window.Comm2Demo.openEdit === 'function') {
     window.Comm2Demo.openEdit('c2_flagship');
   }
   var cardsRoot = q('#comm2EditCards');
   V('edit-cards-rendered', !!cardsRoot && cardsRoot.children.length > 0, cardsRoot ? cardsRoot.children.length : 0);
+
+  // 规则卡上不应再有「比例/固定」切换控件
+  var anyVmode = cardsRoot ? cardsRoot.querySelector('.comm2-rule-bar__vmode, [data-comm2-bar-valmode]') : null;
+  V('no-vmode-control-on-card', !anyVmode);
 
   var groupBuyCard = cardsRoot ? cardsRoot.querySelector('[data-comm2-rule-card="override:ov_flagship_groupbuy"]') : null;
   V('groupbuy-card-exists', !!groupBuyCard);
@@ -87,8 +91,6 @@ function runChecks() {
     var gbBase = groupBuyCard.querySelector('.comm2-rule-bar__base');
     V('groupbuy-base-label-fixed', !!(gbBase && gbBase.textContent.trim() === '固定'), gbBase ? gbBase.textContent.trim() : 'none');
     V('groupbuy-base-is-fixed', !!(gbBase && gbBase.classList.contains('is-fixed')));
-    var gbAmt = groupBuyCard.querySelector('[data-comm2-bar-valmode="amount"]');
-    V('groupbuy-vmode-amount-on', !!(gbAmt && gbAmt.classList.contains('on')));
   }
 
   var laborCard = cardsRoot ? cardsRoot.querySelector('[data-comm2-rule-card="default:labor"]') : null;
@@ -96,20 +98,31 @@ function runChecks() {
   if (laborCard) {
     var lb = laborCard.querySelector('.comm2-rule-bar__base');
     V('labor-base-label-original', !!(lb && lb.textContent.trim() === '原价'), lb ? lb.textContent.trim() : 'none');
-    var pctBtn = laborCard.querySelector('[data-comm2-bar-valmode="pct"]');
-    V('labor-vmode-pct-on', !!(pctBtn && pctBtn.classList.contains('on')));
-    var fixedBtn = laborCard.querySelector('[data-comm2-bar-valmode="amount"]');
-    if (fixedBtn) fixedBtn.click();
-    var laborCard2 = q('[data-comm2-rule-card="default:labor"]');
-    var lb2 = laborCard2 ? laborCard2.querySelector('.comm2-rule-bar__base') : null;
-    V('labor-toggle-to-fixed-label', !!(lb2 && lb2.textContent.trim() === '固定'), lb2 ? lb2.textContent.trim() : 'none');
-    V('labor-toggle-to-fixed-class', !!(lb2 && lb2.classList.contains('is-fixed')));
-    var pctBtn2 = laborCard2 ? laborCard2.querySelector('[data-comm2-bar-valmode="pct"]') : null;
-    if (pctBtn2) pctBtn2.click();
-    var laborCard3 = q('[data-comm2-rule-card="default:labor"]');
-    var lb3 = laborCard3 ? laborCard3.querySelector('.comm2-rule-bar__base') : null;
-    V('labor-toggle-back-original', !!(lb3 && lb3.textContent.trim() === '原价'), lb3 ? lb3.textContent.trim() : 'none');
   }
+
+  // 通过 Sheet 将 labor 提成参数设为「固定金额」→ 卡片标签变「固定」
+  var laborOpen = q('[data-comm2-rule-card="default:labor"] [data-comm2-card-open]');
+  if (laborOpen) laborOpen.click();
+  var amountBtn = q('#comm2CatSheetBody [data-comm2-valmode="amount"]');
+  V('sheet-valmode-amount-exists', !!amountBtn);
+  if (amountBtn) amountBtn.click();
+  var sheetOk = q('#comm2CatSheetOk');
+  if (sheetOk) sheetOk.click();
+  var laborCard2 = q('[data-comm2-rule-card="default:labor"]');
+  var lb2 = laborCard2 ? laborCard2.querySelector('.comm2-rule-bar__base') : null;
+  V('sheet-set-fixed-label', !!(lb2 && lb2.textContent.trim() === '固定'), lb2 ? lb2.textContent.trim() : 'none');
+  V('sheet-set-fixed-class', !!(lb2 && lb2.classList.contains('is-fixed')));
+
+  // 再通过 Sheet 切回「按比例」→ 标签恢复「原价」
+  var laborOpen2 = q('[data-comm2-rule-card="default:labor"] [data-comm2-card-open]');
+  if (laborOpen2) laborOpen2.click();
+  var pctBtn = q('#comm2CatSheetBody [data-comm2-valmode="pct"]');
+  if (pctBtn) pctBtn.click();
+  var sheetOk2 = q('#comm2CatSheetOk');
+  if (sheetOk2) sheetOk2.click();
+  var laborCard3 = q('[data-comm2-rule-card="default:labor"]');
+  var lb3 = laborCard3 ? laborCard3.querySelector('.comm2-rule-bar__base') : null;
+  V('sheet-set-back-original', !!(lb3 && lb3.textContent.trim() === '原价'), lb3 ? lb3.textContent.trim() : 'none');
 
   // ---- 关联页面 · 选择员工 sheet ----
   if (window.Comm2StaffDemo && typeof window.Comm2StaffDemo.open === 'function') {

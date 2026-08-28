@@ -642,20 +642,6 @@
 /* ===== 计算基数 · 固定金额标签 ===== */
 .comm2-rule-bar__base.is-fixed { background: #A7E6A7; color: #1A1A1A; }
 
-/* ===== 规则卡 · 提成参数评审切换（比例 ↔ 固定） ===== */
-.comm2-rule-bar__vmode {
-  flex-shrink: 0; width: 46px; display: flex; flex-direction: column; justify-content: center;
-  gap: 2px; padding: 6px; box-sizing: border-box; border-left: 1px solid #F0F0F0;
-  background: #fff;
-}
-.comm2-rule-bar__vmode-btn {
-  border: none; border-radius: 6px; background: transparent; color: #8D8D8D;
-  font-size: 11px; line-height: 1; padding: 5px 0; font-family: inherit; cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.comm2-rule-bar__vmode-btn.on { background: #F2F2F2; color: #1A1A1A; font-weight: 600; }
-.comm2-rule-bar__vmode-btn:active { background: #ECECEC; }
-
 /* ===== 关联页面 · 选择员工 sheet（员工卡片交互） ===== */
 .comm2-staff-sheet__body { padding: 12px 16px 6px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 .comm2-staff-sheet__body .detail-item__staff-block { margin: 0; }
