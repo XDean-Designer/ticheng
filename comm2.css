@@ -640,7 +640,7 @@
 .comm2-pick-bundle__lbl { display: block; font-size: 12px; color: #929292; margin-bottom: 6px; }
 
 /* ===== 计算基数 · 固定金额标签 ===== */
-.comm2-rule-bar__base.is-fixed { background: #A7E6A7; color: #1A1A1A; }
+.comm2-rule-bar__base.is-fixed { background: #A7E6A7; color: #FFFFFF; }
 
 /* ===== 关联页面 · 选择员工 sheet（员工卡片交互） ===== */
 .comm2-staff-sheet__body { padding: 12px 16px 6px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
