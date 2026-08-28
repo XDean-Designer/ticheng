@@ -106,7 +106,7 @@ function runChecks() {
   var groupBuyCard = cardsRoot ? cardsRoot.querySelector('[data-comm2-rule-card="override:ov_flagship_groupbuy"]') : null;
   V('groupbuy-card-exists', !!groupBuyCard);
   if (groupBuyCard) {
-    var gbBase = groupBuyCard.querySelector('.comm2-rule-bar__base');
+    var gbBase = groupBuyCard.querySelector('.comm2-rule-bar__base.is-fixed, .comm2-rule-bar__base');
     V('groupbuy-base-label-fixed', !!(gbBase && gbBase.textContent.trim() === '固定'), gbBase ? gbBase.textContent.trim() : 'none');
     V('groupbuy-base-is-fixed', !!(gbBase && gbBase.classList.contains('is-fixed')));
   }
@@ -114,7 +114,7 @@ function runChecks() {
   var laborCard = cardsRoot ? cardsRoot.querySelector('[data-comm2-rule-card="default:labor"]') : null;
   V('labor-card-exists', !!laborCard);
   if (laborCard) {
-    var lb = laborCard.querySelector('.comm2-rule-bar__base');
+    var lb = laborCard.querySelector('[data-comm2-bar-base="list"].on, .comm2-rule-bar__base.is-list');
     V('labor-base-label-original', !!(lb && lb.textContent.trim() === '原价'), lb ? lb.textContent.trim() : 'none');
   }
 
@@ -127,7 +127,7 @@ function runChecks() {
   var sheetOk = q('#comm2CatSheetOk');
   if (sheetOk) sheetOk.click();
   var laborCard2 = q('[data-comm2-rule-card="default:labor"]');
-  var lb2 = laborCard2 ? laborCard2.querySelector('.comm2-rule-bar__base') : null;
+  var lb2 = laborCard2 ? laborCard2.querySelector('.comm2-rule-bar__base.is-fixed, .comm2-rule-bar__base') : null;
   V('sheet-set-fixed-label', !!(lb2 && lb2.textContent.trim() === '固定'), lb2 ? lb2.textContent.trim() : 'none');
   V('sheet-set-fixed-class', !!(lb2 && lb2.classList.contains('is-fixed')));
 
@@ -139,7 +139,7 @@ function runChecks() {
   var sheetOk2 = q('#comm2CatSheetOk');
   if (sheetOk2) sheetOk2.click();
   var laborCard3 = q('[data-comm2-rule-card="default:labor"]');
-  var lb3 = laborCard3 ? laborCard3.querySelector('.comm2-rule-bar__base') : null;
+  var lb3 = laborCard3 ? laborCard3.querySelector('[data-comm2-bar-base="list"].on, .comm2-rule-bar__base.is-list') : null;
   V('sheet-set-back-original', !!(lb3 && lb3.textContent.trim() === '原价'), lb3 ? lb3.textContent.trim() : 'none');
 
   // ---- 关联页面 · 选择员工（3/2/1 工位，共用灰底）----

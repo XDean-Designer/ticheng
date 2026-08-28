@@ -1,4 +1,4 @@
-/* ==== comm2 · 实验版提成设置（可整模块删除） ==== */
+/* ==== comm2 · 提成设置（可整模块删除） ==== */
 (function () {
   'use strict';
 
@@ -372,7 +372,8 @@
           card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0, 0) }
         }),
         overrides: [],
-        assigneeIds: ['st3']
+        /* 演示多方案：st1 同时在顾问方案 + 本方案，卡付行取高 */
+        assigneeIds: ['st1', 'st3']
       }),
       defaultScheme({
         id: 'c2_flagship',
@@ -557,31 +558,19 @@
     return ['5 项默认' + (n ? (' + ' + n + ' 条覆盖') : '')];
   }
 
-  function schemeOwningStaff(staffId, exceptSchemeId) {
-    for (var i = 0; i < store.schemes.length; i++) {
-      var s = store.schemes[i];
-      if (exceptSchemeId && s.id === exceptSchemeId) continue;
-      if ((s.assigneeIds || []).indexOf(staffId) >= 0) return s;
-    }
-    return null;
+  /** 员工除当前方案外，还出现在哪些方案（多方案可并存） */
+  function schemesAlsoContainingStaff(staffId, exceptSchemeId) {
+    var out = [];
+    store.schemes.forEach(function (s) {
+      if (exceptSchemeId && s.id === exceptSchemeId) return;
+      if ((s.assigneeIds || []).indexOf(staffId) >= 0) out.push(s);
+    });
+    return out;
   }
 
-  function enforceExclusiveAssignees(showTip) {
-    var seen = {};
-    var cleaned = false;
-    store.schemes.forEach(function (s) {
-      normalizeScheme(s);
-      s.assigneeIds = (s.assigneeIds || []).filter(function (id) {
-        if (seen[id]) { cleaned = true; return false; }
-        seen[id] = true;
-        return true;
-      });
-    });
-    if (cleaned && showTip && !store._assigneeCleanedToast) {
-      store._assigneeCleanedToast = true;
-      toast('已按一人一方案自动整理');
-    }
-    return cleaned;
+  /** @deprecated 保留空实现以免外部误调；不再做一人一方案清洗 */
+  function enforceExclusiveAssignees() {
+    return false;
   }
 
   function assignedStaffSet() {
@@ -608,7 +597,7 @@
     }
     tip.classList.remove('hidden');
     tip.setAttribute('aria-hidden', 'false');
-    tip.innerHTML = '<span class="comm2-unassigned__text">还有 <strong>' + ids.length + '</strong> 人未分配提成</span>' +
+    tip.innerHTML = '<span class="comm2-unassigned__text">还有 <strong>' + ids.length + '</strong> 人未分配任何提成方案</span>' +
       '<span class="comm2-unassigned__chev" aria-hidden="true">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>';
   }
@@ -634,24 +623,17 @@
       root.innerHTML = '<p class="comm2-empty">还没有提成方案<br>点下方按钮添加</p>';
       return;
     }
-    var menuSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>';
     root.innerHTML = store.schemes.map(function (s) {
       var n = (s.assigneeIds || []).length;
       var assignLabel = n ? s.assigneeIds.map(comm2StaffName).join(' · ') : '未分配';
-      var parts = formatSchemeRuleParts(s);
-      var ruleHtml = parts.map(function (p, i) {
-        return '<span class="emp-comm-card__rule-part">' + (i ? ' · ' : '') + esc(p) + '</span>';
-      }).join('');
-      var scopeTags = '';
+      var menuSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>';
       return '<div class="emp-comm-card comm2-scheme" data-comm2-card="' + esc(s.id) + '">' +
         '<button type="button" class="emp-comm-card__edit" data-comm2-open="' + esc(s.id) + '">' +
         '<div class="emp-comm-card__top"><div class="emp-comm-card__who">' +
         '<span class="emp-comm-card__icon" aria-hidden="true"><img src="assets/workbench/commission.png" alt="" width="40" height="40"></span>' +
         '<span class="emp-comm-card__title-wrap">' +
         '<span class="emp-comm-card__name">' + esc(s.name) + '</span>' +
-        '</span></div></div>' +
-        '<div class="emp-comm-card__rule"><span class="emp-comm-card__rule-lbl">提成规则</span>' +
-        '<span class="emp-comm-card__rule-val">' + ruleHtml + '</span></div></button>' +
+        '</span></div></div></button>' +
         '<button type="button" class="emp-comm-card__assign" data-comm2-assign="' + esc(s.id) + '">' +
         '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + '</span></button>' +
         '<button type="button" class="emp-comm-card__menu" data-comm2-menu="' + esc(s.id) + '" aria-label="更多">' + menuSvg + '</button></div>';
@@ -708,6 +690,19 @@
     return '<svg class="comm2-rule-bar__chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
   }
 
+  function delCircleSvg() {
+    return '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">' +
+      '<path d="M3 3l6 6M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  }
+
+  /** 卡上工位简称：默认大/中/小；未知工位取名首字 */
+  function stationShortLabel(sch, id) {
+    var def = COMM2_STATIONS.find(function (s) { return s.id === id; });
+    if (def && def.defaultLabel) return def.defaultLabel.charAt(0);
+    var lab = stationLabel(sch, id);
+    return lab ? String(lab).charAt(0) : '?';
+  }
+
   function barScopeCapsulesHtml(block) {
     ensurePayScopeBlock(block);
     var labels = payScopeLabelsBlock(block);
@@ -720,6 +715,34 @@
   function barBaseShort(block) {
     if (block.rule && block.rule.valueMode === 'amount') return '固定';
     return block.baseMode === 'paid' ? '实收' : '原价';
+  }
+
+  /** 卡上：原价/实收单选；固定金额时只读「固定」 */
+  function barBaseCtrlHtml(block, target) {
+    var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
+    if (isAmt) {
+      return '<span class="comm2-rule-bar__base is-fixed" aria-label="固定金额">固定</span>';
+    }
+    var isPaid = block.baseMode === 'paid';
+    return '<div class="comm2-rule-bar__seg" role="radiogroup" aria-label="计算基数">' +
+      '<button type="button" class="comm2-rule-bar__chip' + (!isPaid ? ' on' : '') +
+      (!isPaid ? ' comm2-rule-bar__base is-list' : '') +
+      '" data-comm2-bar-base="list" data-comm2-bar-target="' + esc(target) + '">原价</button>' +
+      '<button type="button" class="comm2-rule-bar__chip' + (isPaid ? ' on' : '') +
+      (isPaid ? ' comm2-rule-bar__base is-paid' : '') +
+      '" data-comm2-bar-base="paid" data-comm2-bar-target="' + esc(target) + '">实收</button></div>';
+  }
+
+  /** 卡上：现金/卡付/团购多选 */
+  function barPayCtrlHtml(block, target) {
+    ensurePayScopeBlock(block);
+    return '<div class="comm2-rule-bar__seg comm2-rule-bar__seg--pay" role="group" aria-label="提成范围">' +
+      COMM2_PAY_SCOPE.map(function (d) {
+        var on = !!block.payScope[d.key];
+        return '<button type="button" class="comm2-rule-bar__chip' + (on ? ' on' : '') +
+          '" data-comm2-bar-scope="' + esc(d.key) + '" data-comm2-bar-target="' + esc(target) +
+          '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(d.label) + '</button>';
+      }).join('') + '</div>';
   }
 
   function sheetScopeChipsHtml(block) {
@@ -745,21 +768,30 @@
       '</button></div>';
   }
 
+  function barParamSegHtml(lbl, valHtml) {
+    return '<span class="comm2-rule-bar__param-seg">' +
+      '<span class="comm2-rule-bar__p-lbl">' + esc(lbl) + '</span>' +
+      '<strong class="comm2-rule-bar__p-val">' + valHtml + '</strong></span>';
+  }
+
   function barStationParamsHtml(sch, block) {
-    var parts = formatBlockSummary(sch, block).split('；').filter(function (s) { return s.trim(); });
-    if (parts.length <= 1) {
-      return '<span class="comm2-rule-bar__param-seg">' + esc(parts[0] || formatBlockSummary(sch, block)) + '</span>';
-    }
-    return parts.map(function (seg) {
-      return '<span class="comm2-rule-bar__param-seg">' + esc(seg.trim()) + '</span>';
+    block.rule = ensureCat(block.rule, getStationIds(sch));
+    var isAmt = block.rule.valueMode === 'amount';
+    return getStationIds(sch).map(function (sid) {
+      var st = block.rule.stations[sid] || defaultPair();
+      var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
+      var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
+      return barParamSegHtml(stationShortLabel(sch, sid), esc(fmtVal(des, isAmt) + '·' + fmtVal(non, isAmt)));
     }).join('');
   }
 
   function barParamsHtml(sch, block) {
-    if (block.pickMode !== 'station') {
-      return '<span class="comm2-rule-bar__param-seg">' + esc(formatBlockSummary(sch, block)) + '</span>';
-    }
-    return barStationParamsHtml(sch, block);
+    block.rule = ensureCat(block.rule, getStationIds(sch));
+    var isAmt = block.rule.valueMode === 'amount';
+    if (block.pickMode === 'station') return barStationParamsHtml(sch, block);
+    var des = pairVal(block.rule, isAmt, 'designated', 'designatedAmt');
+    var non = pairVal(block.rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
+    return barParamSegHtml('点', esc(fmtVal(des, isAmt))) + barParamSegHtml('散', esc(fmtVal(non, isAmt)));
   }
 
   function renderRuleCard(sch, opts) {
@@ -769,26 +801,30 @@
     var iconKey = opts.iconKey || 'labor';
     var isOv = !!opts.deletable;
     var isStation = block.pickMode === 'station';
-    var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
-    var baseCls = isAmt ? 'is-fixed' : (block.baseMode === 'paid' ? 'is-paid' : 'is-list');
-    var delBtn = isOv
-      ? '<button type="button" class="comm2-rule-bar__del" data-comm2-override-del="' + esc(opts.ovId) + '" aria-label="删除">' + trashSvg() + '</button>'
+    var ovId = opts.ovId || '';
+    var menuHtml = isOv
+      ? '<div class="comm2-rule-bar__menu" role="menu">' +
+        '<button type="button" class="comm2-rule-bar__menu-item" role="menuitem" data-comm2-override-del="' + esc(ovId) + '">删除</button>' +
+        '</div>'
       : '';
-    return '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') + '" data-comm2-rule-card="' + esc(target) + '">' +
-      '<button type="button" class="comm2-rule-bar__main" data-comm2-card-open="' + esc(target) + '">' +
-      '<div class="comm2-rule-bar__body">' +
-      '<div class="comm2-rule-bar__row1">' +
+    var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') + '" data-comm2-rule-card="' + esc(target) + '"' +
+      (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
+      '<div class="comm2-rule-bar__grid">' +
+      '<div class="comm2-rule-bar__left">' +
+      '<button type="button" class="comm2-rule-bar__title-hit" data-comm2-card-open="' + esc(target) + '">' +
       '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
-      '<span class="comm2-rule-bar__title-txt" title="' + esc(title) + '">' + esc(title) + '</span></h2>' +
-      '<span class="comm2-rule-bar__params">' + barParamsHtml(sch, block) + '</span>' +
+      '<span class="comm2-rule-bar__title-txt" title="' + esc(title) + '">' + esc(title) + '</span></h2></button>' +
+      '<div class="comm2-rule-bar__hair" data-comm2-card-open="' + esc(target) + '" role="presentation"></div>' +
+      '<button type="button" class="comm2-rule-bar__params" data-comm2-card-open-params="' + esc(target) + '" aria-label="编辑提成参数">' +
+      barParamsHtml(sch, block) + '</button>' +
+      '<button type="button" class="comm2-rule-bar__left-pad" data-comm2-card-open="' + esc(target) + '" aria-label="打开规则设置"></button>' +
       '</div>' +
-      '<div class="comm2-rule-bar__row2">' +
-      '<div class="comm2-rule-bar__tags" aria-label="标签">' +
-      '<span class="comm2-rule-bar__base ' + baseCls + '">' + esc(barBaseShort(block)) + '</span>' +
-      barScopeCapsulesHtml(block) +
-      '</div></div></div>' +
-      chevSvg() +
-      '</button>' + delBtn + '</article>';
+      '<div class="comm2-rule-bar__right">' +
+      barBaseCtrlHtml(block, target) +
+      barPayCtrlHtml(block, target) +
+      '</div></div>' + menuHtml + '</article>';
+    if (!isOv) return card;
+    return '<div class="comm2-rule-swipe" data-comm2-swipe-ov="' + esc(ovId) + '">' + card + '</div>';
   }
 
   function renderEditCards(sch) {
@@ -894,7 +930,6 @@
     store._draft = null;
     store._snapshot = null;
     store._dirty = false;
-    enforceExclusiveAssignees(true);
     renderList();
     show('screen-comm2-list');
     goNav('comm2-list');
@@ -938,7 +973,7 @@
     leaveComm2Edit();
   }
 
-  /* ==== 试算引擎：按行 payScope 过滤 → 一人一方案计提 ==== */
+  /* ==== 试算引擎：按行 payScope 过滤 → 多方案候选 → 金额取高（并列按方案列表顺序） ==== */
 
   var COMM2_TRIAL_LINES = [
     { id: 'tl1', name: '开卡 · 尊享组合卡', cat: 'issue', kind: 'card', refId: 'demo_vip_combo', cardRole: 'issue', pay: 'cash', list: 2000, paid: 2000, designated: true },
@@ -1022,18 +1057,23 @@
   }
 
   function calcStaffTrial(staffId, lines) {
+    /* schemes 顺序 = store.schemes 列表顺序，并列时先出现者胜出 */
     var schemes = schemesForStaff(staffId);
     var rows = (lines || COMM2_TRIAL_LINES).map(function (line) {
       var cands = [];
-      schemes.forEach(function (sch) {
+      schemes.forEach(function (sch, schIdx) {
         var r = schemeLineAmount(sch, line);
         if (r.skipped) {
-          cands.push({ schemeId: sch.id, schemeName: sch.name, amount: 0, skipped: r.skipped, rateLabel: '—', note: '支付方式不在范围' });
+          cands.push({
+            schemeId: sch.id, schemeName: sch.name, schemeIndex: schIdx,
+            amount: 0, skipped: r.skipped, rateLabel: '—', note: '支付方式不在范围'
+          });
           return;
         }
         cands.push({
           schemeId: sch.id,
           schemeName: sch.name,
+          schemeIndex: schIdx,
           amount: r.amount,
           skipped: '',
           rateLabel: r.rateLabel,
@@ -1044,13 +1084,15 @@
       var eligible = cands.filter(function (c) { return !c.skipped; });
       var winner = null;
       eligible.forEach(function (c) {
+        /* 严格大于才替换 → 金额并列时保留列表中更靠前的方案 */
         if (!winner || c.amount > winner.amount) winner = c;
       });
       return {
         line: line,
         cands: cands,
         winner: winner,
-        amount: winner ? winner.amount : 0
+        amount: winner ? winner.amount : 0,
+        winnerSchemeId: winner ? winner.schemeId : null
       };
     });
     var total = rows.reduce(function (s, r) { return s + r.amount; }, 0);
@@ -1192,19 +1234,16 @@
     var list = comm2StaffPool();
     var sel = store._assignSel || (store._assignSel = {});
     root.innerHTML = list.map(function (s) {
-      var owner = schemeOwningStaff(s.id, store._assignId);
-      var locked = !!owner;
-      var on = !locked && !!sel[s.id];
-      if (locked && sel[s.id]) delete sel[s.id];
-      return '<button type="button" class="emp-assign-card' + (on ? ' on' : '') + (locked ? ' is-locked' : '') + '"' +
-        (locked ? ' disabled' : '') +
-        ' data-comm2-assign-tog="' + esc(s.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '"' +
-        (locked ? ' aria-disabled="true"' : '') + '>' +
+      var others = schemesAlsoContainingStaff(s.id, store._assignId);
+      var on = !!sel[s.id];
+      var alsoTxt = others.length
+        ? ('也在：' + others.map(function (o) { return esc(o.name); }).join('、'))
+        : esc(s.role || '未设置职位');
+      return '<button type="button" class="emp-assign-card' + (on ? ' on' : '') + (others.length ? ' has-others' : '') + '"' +
+        ' data-comm2-assign-tog="' + esc(s.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
         comm2AvatarHtml(s) +
         '<span class="emp-assign-card__meta"><span class="emp-assign-card__name">' + esc(s.name) + '</span>' +
-        '<span class="emp-assign-card__role">' +
-        (locked ? ('已在「' + esc(owner.name) + '」') : esc(s.role || '未设置职位')) +
-        '</span></span>' +
+        '<span class="emp-assign-card__role">' + alsoTxt + '</span></span>' +
         '<span class="emp-assign-card__check" aria-hidden="true">' + (on ? comm2CheckSvg() : '') + '</span></button>';
     }).join('') || '<div class="empty-cart" style="padding:32px 16px">暂无在岗员工</div>';
     syncComm2AssignCount();
@@ -1216,7 +1255,7 @@
     store._assignId = id;
     store._assignSel = {};
     (sch.assigneeIds || []).forEach(function (sid) {
-      if (!schemeOwningStaff(sid, id)) store._assignSel[sid] = true;
+      store._assignSel[sid] = true;
     });
     renderComm2Assign();
     openSheet('comm2AssignMask');
@@ -1226,13 +1265,6 @@
     var sch = schemeById(store._assignId);
     if (!sch) return;
     var ids = Object.keys(store._assignSel || {}).filter(function (k) { return store._assignSel[k]; });
-    for (var i = 0; i < ids.length; i++) {
-      var owner = schemeOwningStaff(ids[i], sch.id);
-      if (owner) {
-        toast(comm2StaffName(ids[i]) + ' 已在「' + owner.name + '」', true);
-        return;
-      }
-    }
     sch.assigneeIds = ids;
     closeSheet('comm2AssignMask');
     toast(ids.length ? ('已分配 ' + ids.length + ' 人') : '已清空分配');
@@ -1246,8 +1278,8 @@
       '</svg>';
   }
 
-  function sheetRowHtml(lbl, ctrlHtml, cls) {
-    return '<div class="comm2-sheet-row' + (cls ? ' ' + cls : '') + '">' +
+  function sheetRowHtml(lbl, ctrlHtml, cls, attrs) {
+    return '<div class="comm2-sheet-row' + (cls ? ' ' + cls : '') + '"' + (attrs || '') + '>' +
       '<span class="comm2-sheet-row__lbl">' + esc(lbl) + '</span>' +
       '<div class="comm2-sheet-row__ctrl">' + ctrlHtml + '</div></div>';
   }
@@ -1265,8 +1297,8 @@
     var modeHtml = '<div class="comm2-sheet-mode comm2-sheet-mode--inline comm2-sheet-ctrl" role="radiogroup" aria-label="提成取值">' +
       '<button type="button" class="comm2-sheet-mode__btn' + (!isAmt ? ' on' : '') + '" data-comm2-valmode="pct">按比例 %</button>' +
       '<button type="button" class="comm2-sheet-mode__btn' + (isAmt ? ' on' : '') + '" data-comm2-valmode="amount">固定金额 ¥</button></div>';
-    var html = sheetRowHtml('提成参数', modeHtml, 'comm2-sheet-row--params-head');
-    html += '<div class="comm2-sheet-params-body">';
+    var html = sheetRowHtml('提成参数', modeHtml, 'comm2-sheet-row--params-head', ' data-comm2-sheet-anchor="params"');
+    html += '<div class="comm2-sheet-params-body" data-comm2-sheet-anchor="params-body">';
     if (block.pickMode === 'station') {
       getStationIds(sch).forEach(function (sid) {
         var st = rule.stations[sid] || defaultPair();
@@ -1307,7 +1339,7 @@
     if (typeof wireAmountKeypadInputs === 'function') wireAmountKeypadInputs(body);
   }
 
-  function openCardSheet(target) {
+  function openCardSheet(target, focus) {
     var sch = editing();
     if (!sch) return;
     var block = getCardBlock(sch, target);
@@ -1326,6 +1358,35 @@
     refreshCardSheetBody();
     var mask = $('comm2CatSheetMask');
     if (mask) mask.classList.add('open');
+    if (focus === 'params' && body) {
+      requestAnimationFrame(function () {
+        var el = body.querySelector('[data-comm2-sheet-anchor="params"]') ||
+          body.querySelector('.comm2-sheet-row--params-head');
+        if (!el) return;
+        el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        el.classList.add('is-flash-anchor');
+        setTimeout(function () { el.classList.remove('is-flash-anchor'); }, 900);
+      });
+    }
+  }
+
+  function setBarBase(target, mode) {
+    var sch = editing();
+    var block = sch ? getCardBlock(sch, target) : null;
+    if (!sch || !block) return;
+    if (block.rule && block.rule.valueMode === 'amount') return;
+    block.baseMode = mode === 'paid' ? 'paid' : 'list';
+    markDirty();
+    renderEditCards(sch);
+  }
+
+  function toggleBarScope(target, key) {
+    var sch = editing();
+    var block = sch ? getCardBlock(sch, target) : null;
+    if (!sch || !block) return;
+    if (!toggleBlockScope(block, key)) return;
+    markDirty();
+    renderEditCards(sch);
   }
 
   function openPickSettingsSheet() {
@@ -1721,11 +1782,266 @@
   }
 
   function requestOverrideDelete(id) {
+    softDeleteOverride(id);
+  }
+
+  function confirmOverrideDelete() {
+    /* 保留 Dialog 入口兼容；卡片删除已改为直接删 + 撤销 */
+    var id = store._overrideDelId;
+    closeDialog('comm2OverrideDelMask');
+    store._overrideDelId = null;
+    if (id) softDeleteOverride(id);
+  }
+
+  var RULE_LONG_MS = 480;
+  var RULE_UNDO_MS = 2500;
+  var _undoToastTimer = null;
+
+  function hideUndoToast() {
+    var el = $('toastMsg');
+    if (!el) return;
+    el.classList.remove('show', 'is-undo');
+    el.innerHTML = '';
+  }
+
+  function showDeleteUndoToast() {
+    var el = $('toastMsg');
+    if (!el) {
+      toast('已删除规则项');
+      return;
+    }
+    el.innerHTML = '<span>已删除规则项</span><button type="button" class="comm2-toast-undo" id="comm2ToastUndo">撤销</button>';
+    el.classList.add('show', 'is-undo');
+    el.classList.remove('is-multiline');
+    clearTimeout(_undoToastTimer);
+    _undoToastTimer = setTimeout(function () {
+      hideUndoToast();
+      store._undoOverride = null;
+    }, RULE_UNDO_MS);
+    var btn = $('comm2ToastUndo');
+    if (btn) {
+      btn.onclick = function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        undoOverrideDelete();
+      };
+    }
+  }
+
+  function softDeleteOverride(id) {
     var sch = editing();
-    var ov = sch && (sch.overrides || []).find(function (o) { return o.id === id; });
-    if (isQuickOverride(ov)) { toast('系统规则不可删除', true); return; }
-    store._overrideDelId = id;
-    openDialog('comm2OverrideDelMask');
+    if (!sch || !id) return;
+    var list = sch.overrides || [];
+    var idx = -1;
+    var hit = null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === id) { idx = i; hit = list[i]; break; }
+    }
+    if (!hit) return;
+    if (isQuickOverride(hit)) { toast('系统规则不可删除', true); return; }
+    closeRuleCardMenus();
+    closeAllRuleSwipes();
+    sch.overrides = list.slice(0, idx).concat(list.slice(idx + 1));
+    store._undoOverride = { schemeId: sch.id, ov: hit, index: idx };
+    markDirty();
+    renderEditCards(sch);
+    showDeleteUndoToast();
+  }
+
+  function undoOverrideDelete() {
+    var u = store._undoOverride;
+    var sch = editing();
+    clearTimeout(_undoToastTimer);
+    hideUndoToast();
+    store._undoOverride = null;
+    if (!u || !sch || sch.id !== u.schemeId || !u.ov) return;
+    var list = sch.overrides || (sch.overrides = []);
+    var at = Math.min(Math.max(0, u.index), list.length);
+    list.splice(at, 0, u.ov);
+    markDirty();
+    renderEditCards(sch);
+    toast('已撤销删除');
+  }
+
+  function closeRuleCardMenus(except) {
+    document.querySelectorAll('.comm2-rule-bar.is-menu-open').forEach(function (el) {
+      if (el !== except) el.classList.remove('is-menu-open');
+    });
+    document.querySelectorAll('.comm2-rule-swipe.is-menu-host').forEach(function (el) {
+      var card = el.querySelector('.comm2-rule-bar');
+      if (!except || card !== except) el.classList.remove('is-menu-host');
+    });
+  }
+
+  function openRuleCardMenu(card) {
+    if (!card || !card.classList.contains('is-override')) return;
+    closeAllRuleSwipes();
+    closeRuleCardMenus(card);
+    card.classList.add('is-menu-open');
+    var swipe = card.closest('.comm2-rule-swipe');
+    if (swipe) swipe.classList.add('is-menu-host');
+    store._gestureConsumed = true;
+  }
+
+  function setRuleSwipeX(swipe, x, dragging) {
+    if (!swipe) return;
+    var clamped = Math.min(0, x);
+    if (dragging) swipe.classList.add('is-dragging');
+    else swipe.classList.remove('is-dragging');
+    swipe.style.transform = clamped ? ('translateX(' + clamped + 'px)') : '';
+  }
+
+  function snapRuleSwipe(swipe, open) {
+    /* open 已废弃：松手不吸附到半开，仅回弹或飞出 */
+    if (!swipe) return;
+    swipe.classList.remove('is-dragging', 'is-open');
+    swipe.style.transition = '';
+    swipe.style.transform = '';
+    swipe.style.opacity = '';
+  }
+
+  function closeAllRuleSwipes(except) {
+    document.querySelectorAll('.comm2-rule-swipe').forEach(function (el) {
+      if (el === except) return;
+      if (el.classList.contains('is-exiting')) return;
+      snapRuleSwipe(el, false);
+    });
+  }
+
+  function flyOutAndDelete(swipe) {
+    if (!swipe || swipe.classList.contains('is-exiting')) return;
+    var id = swipe.getAttribute('data-comm2-swipe-ov');
+    var w = swipe.offsetWidth || 320;
+    swipe.classList.add('is-exiting', 'is-dragging');
+    swipe.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1), opacity .28s ease';
+    swipe.style.transform = 'translateX(-' + (w + 48) + 'px)';
+    swipe.style.opacity = '0';
+    store._gestureConsumed = true;
+    setTimeout(function () {
+      softDeleteOverride(id);
+    }, 280);
+  }
+
+  function wireRuleCardGestures() {
+    var root = $('comm2EditCards');
+    if (!root || root._ruleGesturesWired) return;
+    root._ruleGesturesWired = true;
+    var st = null;
+
+    function clearLong() {
+      if (st && st.longTimer) {
+        clearTimeout(st.longTimer);
+        st.longTimer = null;
+      }
+    }
+
+    function endGesture(e) {
+      if (!st) return;
+      clearLong();
+      var gesture = st;
+      var doClick = !gesture.longFired && !gesture.swiping && gesture.target && !(e && e.type === 'pointercancel');
+      if (gesture.swiping && gesture.swipe && !gesture.swipe.classList.contains('is-exiting')) {
+        var w = gesture.swipe.offsetWidth || 320;
+        var threshold = w * 0.4;
+        var shouldDelete = gesture.dx <= -threshold || (gesture.dx < -48 && gesture.vx < -0.45);
+        var swipeEl = gesture.swipe;
+        var moved = gesture.moved;
+        if (shouldDelete) {
+          flyOutAndDelete(swipeEl);
+        } else {
+          swipeEl.classList.remove('is-dragging');
+          swipeEl.style.transition = 'transform .22s cubic-bezier(.22,.82,.24,1)';
+          swipeEl.style.transform = '';
+          setTimeout(function () { swipeEl.style.transition = ''; }, 220);
+          if (moved) store._gestureConsumed = true;
+        }
+      }
+      st = null;
+      if (doClick) {
+        try {
+          gesture.target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+        } catch (err) { /* ignore */ }
+      }
+    }
+
+    root.addEventListener('pointerdown', function (e) {
+      if (e.button != null && e.button !== 0) return;
+      if (e.target.closest('[data-comm2-bar-base], [data-comm2-bar-scope], [data-comm2-override-del], .comm2-rule-bar__menu')) {
+        return;
+      }
+      var swipe = e.target.closest('.comm2-rule-swipe');
+      var card = e.target.closest('.comm2-rule-bar.is-override');
+      if (!swipe && !card) {
+        closeRuleCardMenus();
+        return;
+      }
+      closeRuleCardMenus(card);
+      st = {
+        swipe: swipe,
+        card: card || (swipe && swipe.querySelector('.comm2-rule-bar')),
+        target: e.target,
+        x0: e.clientX,
+        y0: e.clientY,
+        t0: Date.now(),
+        dx: 0,
+        vx: 0,
+        moved: false,
+        swiping: false,
+        longFired: false,
+        longTimer: null,
+        lastX: e.clientX,
+        lastT: Date.now()
+      };
+      if (st.card) {
+        st.longTimer = setTimeout(function () {
+          if (!st || st.moved || st.swiping) return;
+          st.longFired = true;
+          openRuleCardMenu(st.card);
+        }, RULE_LONG_MS);
+      }
+      try { root.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    });
+
+    root.addEventListener('pointermove', function (e) {
+      if (!st) return;
+      var dx = e.clientX - st.x0;
+      var dy = e.clientY - st.y0;
+      var now = Date.now();
+      var dt = Math.max(1, now - st.lastT);
+      st.vx = (e.clientX - st.lastX) / dt;
+      st.lastX = e.clientX;
+      st.lastT = now;
+      st.dx = dx;
+      if (!st.moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
+        st.moved = true;
+        clearLong();
+      }
+      if (!st.swipe) return;
+      if (!st.swiping && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+        st.swiping = true;
+        clearLong();
+        closeRuleCardMenus();
+        closeAllRuleSwipes(st.swipe);
+      }
+      if (st.swiping) {
+        setRuleSwipeX(st.swipe, dx, true);
+      }
+    });
+
+    root.addEventListener('pointerup', endGesture);
+    root.addEventListener('pointercancel', endGesture);
+    root.addEventListener('contextmenu', function (e) {
+      if (e.target.closest('.comm2-rule-bar.is-override, .comm2-rule-swipe')) {
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('pointerdown', function (e) {
+      if (!e.target.closest('#comm2EditCards')) {
+        closeRuleCardMenus();
+        closeAllRuleSwipes();
+      }
+    }, true);
   }
 
   function confirmOverrideDelete() {
@@ -1812,7 +2128,6 @@
   function wire() {
     if (wire._done) return;
     wire._done = true;
-    enforceExclusiveAssignees(true);
 
     $('comm2ListBack') && $('comm2ListBack').addEventListener('click', backWb);
     $('comm2EditBack') && $('comm2EditBack').addEventListener('click', requestComm2Exit);
@@ -1845,16 +2160,49 @@
         store._snapshot = null;
         store._dirty = false;
       }
-      toast('提成方案已保存（实验）');
+      toast('提成方案已保存');
       openList();
     });
 
     $('comm2EditCards') && $('comm2EditCards').addEventListener('click', function (e) {
       var delBtn = e.target.closest('[data-comm2-override-del]');
-      if (delBtn) { requestOverrideDelete(delBtn.getAttribute('data-comm2-override-del')); return; }
+      if (delBtn) {
+        e.preventDefault(); e.stopPropagation();
+        closeRuleCardMenus();
+        softDeleteOverride(delBtn.getAttribute('data-comm2-override-del'));
+        return;
+      }
+      if (store._gestureConsumed) {
+        store._gestureConsumed = false;
+        e.preventDefault(); e.stopPropagation();
+        return;
+      }
+      var baseBtn = e.target.closest('[data-comm2-bar-base]');
+      if (baseBtn) {
+        e.preventDefault(); e.stopPropagation();
+        setBarBase(baseBtn.getAttribute('data-comm2-bar-target'), baseBtn.getAttribute('data-comm2-bar-base'));
+        return;
+      }
+      var scopeBtn = e.target.closest('[data-comm2-bar-scope]');
+      if (scopeBtn) {
+        e.preventDefault(); e.stopPropagation();
+        toggleBarScope(scopeBtn.getAttribute('data-comm2-bar-target'), scopeBtn.getAttribute('data-comm2-bar-scope'));
+        return;
+      }
+      var paramsBtn = e.target.closest('[data-comm2-card-open-params]');
+      if (paramsBtn) {
+        e.preventDefault(); e.stopPropagation();
+        openCardSheet(paramsBtn.getAttribute('data-comm2-card-open-params'), 'params');
+        return;
+      }
       var openBtn = e.target.closest('[data-comm2-card-open]');
-      if (openBtn) openCardSheet(openBtn.getAttribute('data-comm2-card-open'));
+      if (openBtn) {
+        e.preventDefault(); e.stopPropagation();
+        openCardSheet(openBtn.getAttribute('data-comm2-card-open'));
+      }
     });
+
+    wireRuleCardGestures();
 
     $('comm2BtnAddRule') && $('comm2BtnAddRule').addEventListener('click', openRulePick);
 
@@ -1905,15 +2253,11 @@
       if (e.target === $('comm2UnsavedMask')) closeDialog('comm2UnsavedMask');
     });
 
-    /* 分配员工 sheet */
+    /* 分配员工 sheet（可多方案；副文提示「也在：…」） */
     $('comm2AssignList') && $('comm2AssignList').addEventListener('click', function (e) {
       var btn = e.target.closest('[data-comm2-assign-tog]');
-      if (!btn || btn.disabled || btn.classList.contains('is-locked')) return;
+      if (!btn) return;
       var id = btn.getAttribute('data-comm2-assign-tog');
-      if (schemeOwningStaff(id, store._assignId)) {
-        toast('该员工已分配到其他方案', true);
-        return;
-      }
       if (!store._assignSel) store._assignSel = {};
       store._assignSel[id] = !store._assignSel[id];
       renderComm2Assign();
@@ -1921,7 +2265,6 @@
     $('comm2AssignSelectAll') && $('comm2AssignSelectAll').addEventListener('click', function () {
       if (!store._assignSel) store._assignSel = {};
       comm2StaffPool().forEach(function (s) {
-        if (schemeOwningStaff(s.id, store._assignId)) return;
         store._assignSel[s.id] = true;
       });
       renderComm2Assign();
