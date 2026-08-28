@@ -650,9 +650,27 @@
 .comm2-rule-bar__base.is-fixed { background: #A7E6A7; color: #FFFFFF; }
 
 /* ===== 关联页面 · 选择员工 sheet（员工卡片交互） ===== */
-.comm2-staff-sheet__body { padding: 12px 16px 6px; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* 固定 Sheet 高度，避免选人 morph / 重绘时整页上下抖动 */
+#comm2StaffSheetMask .picker-sheet.tall {
+  height: 560px;
+  max-height: 85%;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+#comm2StaffSheetMask .comm2-staff-sheet__body {
+  padding: 12px 16px 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
 .comm2-staff-sheet__body .detail-item__staff-block { margin: 0; }
 .comm2-staff-sheet__body .detail-item__panel-row--staff-head { display: none; }
+/* 预留两行卡片高度，重绘时空档不塌陷 */
+#comm2StaffSheetMask .staff-grid {
+  min-height: calc(96px * 2 + 10px + 14px);
+}
 .detail-item__staff-block { border-bottom: none; position: relative; }
 .staff-card-scrim {
   position: absolute; inset: -8px -4px -12px; z-index: 1;
