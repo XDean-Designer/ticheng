@@ -57,6 +57,8 @@ body {
 .site-nav .nav-link {
   display: flex; align-items: center; gap: 8px; padding: 9px 8px;
   color: #c8c8c8; text-decoration: none; font-size: 13px; border-radius: 8px;
+  width: 100%; border: 0; background: transparent; cursor: pointer; text-align: left;
+  font-family: inherit; box-sizing: border-box;
 }
 
 .site-nav .nav-link:hover { background: rgba(255, 255, 255, .06); color: #fff; }
