@@ -1,4 +1,4 @@
-/* Shell: left nav + 390×844 phone frame (aligns with 开单页面) */
+/* Shell: left nav + stage (phone layout in base.css .phone-inner) */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body { height: 100%; }
@@ -73,57 +73,14 @@ body {
   .stage { margin-left: 0; padding: 0; }
 }
 
-.phone-shell {
-  position: relative;
-  width: 390px;
-  height: 844px;
-  background: var(--bg-page, #f7f7f7);
-  overflow: hidden;
+#frame {
   box-shadow: 0 0 40px rgba(0, 0, 0, .25);
-  border-radius: 0;
-}
-
-.phone-inner {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-#frame .screen {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-height: 0;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  inset: 0;
-  background: var(--bg-page, #f7f7f7);
-}
-
-#frame .screen.hidden { display: none !important; }
-
-#frame .picker-mask,
-#frame .dialog-mask {
-  position: absolute;
-}
-
-#frame .toast-msg {
-  position: absolute;
-  left: 50%;
-  bottom: 100px;
-  transform: translateX(-50%);
-  z-index: 100;
-  pointer-events: none;
+  flex-shrink: 0;
 }
 
 /* capture modes */
 html.prd-capture .site-nav { display: none !important; }
 html.prd-capture .stage { margin-left: 0; padding: 0; }
 
-html.figma-capture-comm2-advisor { --phone-scale: 1; }
-html.figma-capture-comm2-advisor body { background: var(--bg-page); }
 html.figma-capture-comm2-advisor .site-nav { display: none !important; }
 html.figma-capture-comm2-advisor .stage { margin-left: 0; padding: 0; }

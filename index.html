@@ -22,6 +22,10 @@
     <div class="nav-arrow">↓</div>
     <button type="button" class="nav-item" data-flow="comm2-pick"><span class="idx">3</span>添加规则项</button>
   </div>
+  <div class="nav-group">
+    <div class="g-t">关联页面</div>
+    <button type="button" class="nav-item" data-flow="comm2-staff"><span class="idx">✱</span>选择员工</button>
+  </div>
   <div class="nav-group grow">
     <div class="g-t">文档</div>
     <a class="nav-link" href="PRD-提成设置.html" target="_blank">
@@ -31,7 +35,7 @@
 </aside>
 <div class="stage">
   <div id="frame" class="phone-shell">
-    <div class="phone-inner">
+    <div class="phone-inner phone">
 <!-- ==== COMM2 实验版提成设置（可整段删除；不改动旧提成/业绩） ==== -->
 <div class="screen hidden" id="screen-comm2-list">
   <div class="page-title-bar">
@@ -254,6 +258,19 @@
     </div>
   </div>
 </div>
+<div class="picker-mask picker-mask--bottom" id="comm2StaffSheetMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">选择员工</div>
+    <div class="comm2-staff-sheet__body">
+      <div class="detail-item__staff-block detail-item__staff-block--cards" data-staff-root data-ctx="linked">
+        <div class="staff-grid" id="comm2StaffGrid"></div>
+      </div>
+    </div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main" id="comm2StaffOk">完成</button>
+    </div>
+  </div>
+</div>
 <!-- ==== /COMM2 ==== -->
 
         <div class="picker-mask picker-mask--bottom" id="amountKeypadMask">
@@ -274,6 +291,7 @@
 <script src="seed-data.js"></script>
 <script src="amount-keypad.js"></script>
 <script src="comm2.js"></script>
+<script src="staff-picker.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

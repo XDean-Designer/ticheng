@@ -69,6 +69,11 @@
         var btn = document.getElementById('comm2BtnAddRule');
         if (btn) btn.click();
       }, 80);
+    },
+    'comm2-staff': function () {
+      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') {
+        g.Comm2StaffDemo.open();
+      }
     }
   };
 

@@ -1,7 +1,32 @@
-/* Extracted shared UI for comm2 standalone */
+/* comm2 standalone · shared UI extracted from card/demo.html */
 
-/* demo.html L32-52 */
 
+/* Standalone shell: .phone-inner acts as .phone */
+.phone-inner.phone,
+#frame.phone-shell {
+  width: var(--phone-w);
+  height: var(--phone-h);
+  overflow: hidden;
+  position: relative;
+  background: var(--bg-page);
+  border: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+}
+.phone-inner .picker-mask,
+.phone-inner .dialog-mask {
+  position: absolute;
+  inset: 0;
+}
+.phone-inner .toast-msg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+}
+
+/* demo L32-52 */
 :root {
   --brand: #F32F41; --brand-soft: #FFF2F2; --brand-border: #FFD5D9;
   --switch-include-on: #34C759;
@@ -24,8 +49,44 @@
   --bottom-surface-shadow: 0 -0.5px 4px 0 rgba(0, 0, 0, 0.08);
 }
 
-/* demo.html L244-533 */
-
+/* demo L207-265 */
+.phone { width: var(--phone-w); height: var(--phone-h); overflow: hidden; position: relative; background: var(--bg-page); border: 1px solid var(--border); }
+/* 原型内文案强制思源黑体；数字栏仍用 --font-data 显式覆盖 */
+.phone {
+  --font-text: "Source Han Sans SC", "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-text);
+}
+.phone button,
+.phone input,
+.phone textarea,
+.phone select,
+.phone label,
+.phone p,
+.phone span,
+.phone a,
+.phone li,
+.phone td,
+.phone th,
+.phone div,
+.phone h1,
+.phone h2,
+.phone h3,
+.phone h4 {
+  font-family: inherit;
+}
+.phone .font-data,
+.phone .font-data-lg,
+.phone .price-num,
+.phone .emp-num,
+.phone .member-card-compact__price-val.is-data {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+}
+.phone-shell { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
+.status-bar { height: 53px; background: var(--card); flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between; box-sizing: border-box; padding: 0 24px 10px; color: #000; }
+.status-bar__time { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; line-height: 1; min-width: 54px; }
+.status-bar__icons { display: flex; align-items: center; gap: 6px; height: 12px; }
+.status-bar__icons svg { display: block; flex-shrink: 0; }
 .screen { display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; position: relative; }
 
 /* 输入框统一灰色方案：禁用系统黄框 / 品牌色聚焦描边 */
@@ -48,7 +109,8 @@
   box-shadow: 0 0 0 1000px #fff inset;
   transition: background-color 99999s ease-out;
 }
-.screen.hidden { display: none !important; }
+
+/* demo L267-535 */
 .page-title-bar {
   position: relative; height: 44px; display: flex; align-items: center;
   padding: 0; background: var(--card); flex-shrink: 0;
@@ -316,9 +378,10 @@
 }
 .btn-main:disabled {
   background: var(--disabled); color: var(--text-sec); border: 1px solid var(--disabled);
+  opacity: 1; cursor: not-allowed;
+}
 
-/* demo.html L1230-1244 */
-
+/* demo L1230-1244 */
 .toast-msg {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
   box-sizing: border-box; max-width: min(310px, calc(100% - 80px));
@@ -335,16 +398,14 @@
 }
 .toast-msg.show { opacity: 1; }
 
-/* demo.html L1279-1283 */
-
+/* demo L1279-1283 */
 .ui-nav-chev {
   flex-shrink: 0; color: var(--text-sec); display: inline-flex; align-items: center; justify-content: center;
   line-height: 0;
 }
 .ui-nav-chev svg { display: block; width: 16px; height: 16px; }
 
-/* demo.html L1345-1395 */
-
+/* demo L1345-1397 */
 .hidden { display: none !important; }
 .picker-mask { position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 30; display: none; align-items: center; justify-content: center; padding: 0 32px; }
 .picker-mask.open { display: flex; }
@@ -396,9 +457,10 @@
 }
 .picker-mask--bottom .picker-foot--row .btn-main { flex: 1 1 0; width: auto; min-width: 0; }
 .picker-mask--bottom .picker-foot .btn-main.secondary {
+  background: transparent; color: var(--brand); border: 1px solid var(--brand); margin-top: 0;
+}
 
-/* demo.html L1749-1783 */
-
+/* demo L1749-1783 */
 .amount-keypad-display {
   padding: 4px 20px 12px; text-align: right; font-size: 32px; font-weight: 700;
   font-family: var(--font-data); font-variant-numeric: tabular-nums; min-height: 44px; line-height: 44px; color: var(--text);
@@ -435,8 +497,7 @@
 .amount-keypad-key--delete { font-size: 20px; color: var(--text-sec); }
 .amount-keypad-key.is-spacer { visibility: hidden; pointer-events: none; }
 
-/* demo.html L2607-2615 */
-
+/* demo L2607-2615 */
 /* Figma capture: ?capture=comm2-advisor — 固定 390×844 手机框（不随内容延伸），仅手机画布 */
 html.figma-capture-comm2-advisor { --phone-scale: 1; }
 html.figma-capture-comm2-advisor body { background: var(--bg-page); }
@@ -447,8 +508,163 @@ html.figma-capture-comm2-advisor .doc-link-stack { display: none !important; }
 html.figma-capture-comm2-advisor .phone-scale-slot { width: var(--phone-w); height: calc(var(--phone-h) + 28px); overflow: visible; }
 html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
 
-/* demo.html L3607-3686 */
+/* demo L2826-2979 */
+.catalog-group-bar {
+  display: flex; align-items: center; gap: 0;
+  padding: 8px 16px 16px; min-height: 32px; margin: 0; flex-shrink: 0; background: #fff;
+  box-sizing: border-box; position: relative;
+}
+/*
+ * 分组：灰轨 + 白胶囊文字 Tab（可横滑）
+ */
+.catalog-group-segment {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  box-sizing: border-box;
+  background: #F2F2F2;
+  border-radius: 16px;
+  overflow: hidden;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-right: 36px;
+}
+.catalog-group-scroll {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  height: 28px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  touch-action: pan-x;
+  cursor: grab;
+  scroll-padding-inline: 8px;
+  scroll-snap-type: x proximity;
+  padding-right: 36px;
+  box-sizing: border-box;
+}
+.catalog-group-scroll::-webkit-scrollbar { display: none; }
+.catalog-group-scroll.is-panning { cursor: grabbing; user-select: none; }
+/* Figma html-to-design 不保留 scrollLeft：capture 时用 transform 烘焙右端，并裁切溢出 */
+html.prd-capture #catalogGroupTabs {
+  overflow: hidden !important;
+}
+html.prd-capture #catalogGroupTabs .catalog-group-scroll__capture-track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: max-content;
+  flex-shrink: 0;
+  will-change: transform;
+}
+.catalog-group-fade {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 48px; height: auto;
+  pointer-events: none; z-index: 2;
+  background: linear-gradient(-90deg, #F2F2F2 0%, #F2F2F2 35%, rgba(242, 242, 242, 0) 100%);
+  border-radius: 0 16px 16px 0;
+}
+.catalog-group-tab {
+  position: relative;
+  flex: 0 0 auto;
+  align-self: center;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  background: transparent;
+  box-shadow: none;
+  color: #6C7279;
+  font-family: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0;
+  box-sizing: border-box;
+  scroll-snap-align: start;
+}
+.catalog-group-tab__face {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  min-height: 28px;
+  max-height: 28px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 18px;
+  color: inherit;
+  white-space: nowrap;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+.catalog-group-tab__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+.catalog-hide-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 14px;
+  color: inherit;
+  line-height: 0;
+}
+.catalog-hide-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.catalog-group-tab__face .catalog-hide-icon {
+  width: 14px;
+  height: 12px;
+}
+.catalog-group-tab.on .catalog-hide-icon {
+  color: inherit;
+}
+.catalog-hidden-toggle__label .catalog-hide-icon {
+  width: 16px;
+  height: 14px;
+  color: var(--text-sec);
+}
+.catalog-group-tab__indicator { display: none !important; }
+.catalog-group-tab.on {
+  color: var(--brand);
+  background: transparent;
+  box-shadow: none;
+}
+.catalog-group-tab.on .catalog-group-tab__face {
+  background: #fff;
+  border: none;
+  font-weight: 500;
+  color: var(--brand);
+  box-shadow: none;
+}
 
+/* demo L3607-3687 */
 .catalog-action-list { display: flex; flex-direction: column; padding: 0; }
 .catalog-action-item {
   display: block; width: 100%; border: none; background: transparent;
@@ -529,9 +745,9 @@ html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
   height: 34px;
   flex-shrink: 0;
   background: var(--card);
+}
 
-/* demo.html L4182-4210 */
-
+/* demo L4182-4219 */
 .picker-sheet--menu .picker-head--stack {
   padding: 16px 20px 16px;
   background: transparent;
@@ -561,19 +777,17 @@ html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
   width: 100%;
 }
 .picker-sheet--menu .catalog-action-foot {
-
-/* demo.html L4340-4382 */
-
-.emp-ach-items .catalog-group-bar--nogear {
-  padding: 8px 16px 10px; background: #fff;
+  border-top: 8px solid #F7F7F7;
+  background: #fff;
 }
-.emp-ach-items.is-tpl-list .catalog-group-bar--nogear {
-  background: #F7F7F7;
+.picker-sheet--menu .catalog-action-foot .catalog-action-item--cancel {
+  min-height: 54px; color: #929292; font-weight: 500; font-size: 16px;
+  background: #fff;
+  box-shadow: none;
 }
-#screen-card-group-members { background: #F7F7F7; }
-#screen-card-group-members .page-body { background: #F7F7F7; }
+.picker-sheet--menu .catalog-action-safe { background: #F7F7F7; height: 34px; }
 
-#durPickerMask.open { z-index: 45; }
+/* demo L4350-4382 */
 .dialog-mask { position: absolute; inset: 0; background: rgba(0,0,0,.45); z-index: 50; display: none; align-items: center; justify-content: center; padding: 0 32px; box-sizing: border-box; }
 .dialog-mask.show { display: flex; }
 #empRoleDelConfirmMask.show { z-index: 56; }
@@ -608,8 +822,7 @@ html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
 .dialog__actions--single { margin-top: 0; }
 .dialog__actions--single .btn-main { flex: none; width: 100%; max-width: none; }
 
-/* demo.html L5999-6009 */
-
+/* demo L5999-6009 */
 .page-title-bar .title.title--with-help {
   display: inline-flex; align-items: center; justify-content: center; gap: 4px;
   height: 25px; overflow: visible; /* 帮助按钮不被省略裁切 */
@@ -622,8 +835,97 @@ html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
 .emp-ach-help-btn:active { color: var(--text-sec); }
 .emp-ach-help-btn svg { display: block; width: 16px; height: 16px; }
 
-/* demo.html L6556-6650 */
+/* demo L6133-6220 */
+.emp-ach-edit-body { padding: 0 0 8px; max-height: min(62vh, 520px); overflow-y: auto; }
+.emp-ach-edit-section { padding: 12px 20px 4px; }
+.emp-ach-edit-section__title {
+  font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 10px;
+}
+.emp-ach-edit-value-only {
+  margin: 0; font-size: 14px; color: var(--text); line-height: 20px; font-weight: 500;
+}
+.emp-ach-item__summary.is-station {
+  font-size: 11px; line-height: 15px; letter-spacing: -0.02em;
+  white-space: normal; text-align: right; max-width: 11.5em;
+}
+.emp-ach-station-segs {
+  display: flex; gap: 8px; padding: 0;
+}
+.emp-ach-station-seg {
+  flex: 1; min-width: 0; height: 36px; border-radius: 10px;
+  border: 1px solid #E8E8E8; background: #F7F7F7;
+  font-size: 13px; font-weight: 500; color: var(--text); font-family: inherit;
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+}
+.emp-ach-station-seg.on {
+  border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 600;
+}
+.emp-ach-station-seg__dot {
+  width: 6px; height: 6px; border-radius: 50%; background: #C8C8C8; flex-shrink: 0;
+}
+.emp-ach-station-seg.on .emp-ach-station-seg__dot { background: var(--brand); }
+.emp-ach-edit-station-tip {
+  margin: 8px 0 0; font-size: 12px; line-height: 1.4; color: var(--text-sec);
+}
+.emp-ach-apply-stations {
+  display: block; width: calc(100% - 40px); margin: 4px 20px 8px;
+  height: 36px; border-radius: 10px; border: 1px dashed rgba(243, 47, 65, 0.45);
+  background: #FFF7F7; color: var(--brand); font-size: 13px; font-weight: 600;
+  font-family: inherit; cursor: pointer;
+}
+.emp-ach-apply-stations:active { opacity: .88; }
+.emp-ach-edit-chips {
+  display: flex; flex-wrap: wrap; gap: 8px;
+}
+.emp-ach-edit-chip {
+  border: 1.5px solid var(--border); background: #fff; border-radius: 999px;
+  padding: 8px 14px; font-size: 13px; color: var(--text); font-family: inherit; cursor: pointer;
+}
+.emp-ach-edit-chip.on {
+  border-color: var(--brand); background: var(--brand-soft); color: var(--brand); font-weight: 600;
+}
+.emp-ach-edit-radios {
+  display: flex; align-items: center; gap: 24px;
+}
+.emp-ach-edit-radio {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 14px; color: var(--text); cursor: pointer; font-family: inherit;
+}
+.emp-ach-edit-radio input[type="radio"] {
+  width: 18px; height: 18px; margin: 0; accent-color: var(--brand); flex-shrink: 0; cursor: pointer;
+}
+.emp-ach-edit-chips--cost {
+  flex-wrap: nowrap; gap: 6px;
+}
+.emp-ach-edit-chips--cost .emp-ach-edit-chip {
+  flex: 1 1 0; min-width: 0; padding: 8px 2px; font-size: 12px; line-height: 16px;
+  text-align: center; white-space: nowrap; border-radius: 8px;
+}
+.emp-ach-edit-fields { padding: 4px 20px 12px; display: flex; flex-direction: column; gap: 12px; }
+.emp-ach-edit-field label {
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 13px; color: var(--text-sec);
+}
+.emp-ach-edit-field input {
+  height: 44px; border: 1px solid #EDEDED; border-radius: 10px; padding: 0 12px;
+  font-size: 16px; font-family: var(--font-data); color: var(--text); background: #FAFAFA;
+  box-sizing: border-box; width: 100%;
+}
+.emp-ach-edit-fields--inline .emp-ach-edit-field label {
+  flex-direction: row; align-items: center; gap: 12px;
+  font-size: 14px; color: var(--text);
+}
+.emp-ach-edit-fields--inline .emp-ach-edit-field label > span {
+  flex-shrink: 0; white-space: nowrap; color: var(--text);
+}
+.emp-ach-edit-fields--inline .emp-ach-edit-field input {
+  flex: 1; min-width: 0; width: auto; height: 40px;
+}
+.emp-ach-edit-hint {
+  margin: 0 20px 8px; font-size: 12px; color: var(--text-sec); line-height: 1.5;
+}
 
+/* demo L6556-6650 */
 .emp-comm-card {
   position: relative; background: #fff; border-radius: 12px; padding: 14px 16px;
   font-family: var(--font-text); cursor: default;
@@ -720,8 +1022,11 @@ html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
   background: transparent; width: 100%; font-family: inherit;
 }
 
-/* demo.html L7376-7420 */
+/* demo L6997-6998 */
+.dialog--emp-help h4 { margin: 0 0 6px; font-size: 14px; font-weight: 600; color: #1A1A1A; }
+.dialog--emp-help h4:not(:first-child) { margin-top: 14px; }
 
+/* demo L7376-7426 */
 .emp-assign-tools {
   display: flex; align-items: center; justify-content: space-between;
   padding: 10px 16px; background: #fff; border-bottom: 1px solid #F0F0F0;
@@ -767,22 +1072,31 @@ html.figma-capture-comm2-advisor .phone-wrap { transform: none; }
 .emp-assign-card.is-locked,
 .emp-assign-card:disabled {
   opacity: .55;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+.emp-assign-card.is-locked .emp-assign-card__role {
+  color: #929292;
+}
 
-/* demo.html L7513-7516 */
-
+/* demo L7513-7525 */
 .emp-help-body { padding: 0; max-height: none; overflow: visible; }
 .emp-help-body p { font-size: 13px; color: var(--text-sec); line-height: 1.6; margin: 0 0 12px; text-align: left; }
 .emp-help-body h4 { font-size: 14px; color: var(--text); margin: 16px 0 6px; font-weight: 600; text-align: left; }
 .emp-help-body h4:first-child { margin-top: 0; }
+.dialog--emp-help {
+  max-width: 326px; max-height: min(520px, 75vh);
+  display: flex; flex-direction: column; padding: 20px 20px 16px;
+}
+.dialog--emp-help .dialog__scroll {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  margin: 4px 0 12px; text-align: left;
+}
+.dialog--emp-help .dialog__title { margin-bottom: 4px; }
 
-/* demo.html L7550-7558 */
-
+/* demo L7550-7554 */
 .emp-name-dialog-input {
   width: 100%; height: 44px; border: 1px solid #EDEDED; border-radius: 8px;
   padding: 0 12px; font-size: 15px; box-sizing: border-box; margin: 12px 0 0;
   font-family: inherit;
 }
-
-/* 新建方案 · 类型选择（两图标横列） */
-.emp-scheme-type-grid {
-  display: flex; align-items: stretch; justify-content: space-between;

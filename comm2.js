@@ -718,6 +718,7 @@
   }
 
   function barBaseShort(block) {
+    if (block.rule && block.rule.valueMode === 'amount') return '固定';
     return block.baseMode === 'paid' ? '实收' : '原价';
   }
 
@@ -764,6 +765,11 @@
     var iconKey = opts.iconKey || 'labor';
     var isOv = !!opts.deletable;
     var isStation = block.pickMode === 'station';
+    var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
+    var baseCls = isAmt ? 'is-fixed' : (block.baseMode === 'paid' ? 'is-paid' : 'is-list');
+    var vmodeHtml = '<div class="comm2-rule-bar__vmode" role="radiogroup" aria-label="提成参数（评审切换）">' +
+      '<button type="button" class="comm2-rule-bar__vmode-btn' + (!isAmt ? ' on' : '') + '" data-comm2-bar-valmode="pct">比例%</button>' +
+      '<button type="button" class="comm2-rule-bar__vmode-btn' + (isAmt ? ' on' : '') + '" data-comm2-bar-valmode="amount">固定¥</button></div>';
     var delBtn = isOv
       ? '<button type="button" class="comm2-rule-bar__del" data-comm2-override-del="' + esc(opts.ovId) + '" aria-label="删除">' + trashSvg() + '</button>'
       : '';
@@ -778,10 +784,12 @@
       '<div class="comm2-rule-bar__caps" aria-label="提成范围">' + barScopeCapsulesHtml(block) + '</div>' +
       '</div>' +
       '<div class="comm2-rule-bar__row2">' +
-      '<span class="comm2-rule-bar__base ' + (block.baseMode === 'paid' ? 'is-paid' : 'is-list') + '">' + esc(barBaseShort(block)) + '</span>' +
+      '<span class="comm2-rule-bar__base ' + baseCls + '">' + esc(barBaseShort(block)) + '</span>' +
       '<span class="comm2-rule-bar__params">' + barParamsHtml(sch, block) + '</span>' +
       chevSvg() +
-      '</div></button>' + delBtn + '</article>';
+      '</div></button>' +
+      vmodeHtml +
+      delBtn + '</article>';
   }
 
   function renderEditCards(sch) {
@@ -859,6 +867,43 @@
     block.pickMode = mode === 'station' ? 'station' : 'avg';
     if (store._sheetContext !== 'pick') markDirty();
     refreshCardSheetBody();
+  }
+
+  // 规则卡上「比例 ↔ 固定」评审切换（标签「固定」随提成参数显示）
+  function setBarValMode(target, mode) {
+    var sch = editing();
+    var block = sch ? getCardBlock(sch, target) : null;
+    if (!block) return;
+    var rule = ensureCat(block.rule, getStationIds(sch));
+    var want = mode === 'amount' ? 'amount' : 'pct';
+    if (rule.valueMode === want) return;
+    rule.valueMode = want;
+    var seedStation = function (st) {
+      if (want === 'amount') {
+        // 未设固定金额时按当前比例示意
+        if (!(Number(st.designatedAmt) || 0) && !(Number(st.nonDesignatedAmt) || 0)) {
+          st.designatedAmt = Math.round(Number(st.designated) || 0);
+          st.nonDesignatedAmt = Math.round(Number(st.nonDesignated) || 0);
+        }
+      } else if ((Number(st.designatedAmt) || 0) || (Number(st.nonDesignatedAmt) || 0)) {
+        // 未设比例（默认 10/10）时按当前金额示意
+        if (Number(st.designated) === 10 && Number(st.nonDesignated) === 10) {
+          st.designated = Math.round(Number(st.designatedAmt) || 0);
+          st.nonDesignated = Math.round(Number(st.nonDesignatedAmt) || 0);
+        }
+      }
+    };
+    if (block.pickMode === 'station') {
+      getStationIds(sch).forEach(function (sid) {
+        seedStation(rule.stations[sid] || (rule.stations[sid] = defaultPair()));
+      });
+    } else {
+      seedStation(rule);
+    }
+    block.rule = rule;
+    markDirty();
+    renderEditCards(sch);
+    maybeRefreshOpenCardSheet();
   }
 
   function setSheetCardRole(role) {
@@ -1845,6 +1890,15 @@
     $('comm2EditCards') && $('comm2EditCards').addEventListener('click', function (e) {
       var delBtn = e.target.closest('[data-comm2-override-del]');
       if (delBtn) { requestOverrideDelete(delBtn.getAttribute('data-comm2-override-del')); return; }
+      var vmodeBtn = e.target.closest('[data-comm2-bar-valmode]');
+      if (vmodeBtn) {
+        var vmodeTarget = e.target.closest('[data-comm2-rule-card]');
+        setBarValMode(
+          vmodeTarget ? vmodeTarget.getAttribute('data-comm2-rule-card') : null,
+          vmodeBtn.getAttribute('data-comm2-bar-valmode')
+        );
+        return;
+      }
       var openBtn = e.target.closest('[data-comm2-card-open]');
       if (openBtn) openCardSheet(openBtn.getAttribute('data-comm2-card-open'));
     });
