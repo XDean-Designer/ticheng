@@ -145,6 +145,21 @@
         if (id && g.FLOW_NAV[id]) g.FLOW_NAV[id]();
       });
     });
+    // Cursor / file:// 下 target=_blank 会被拦成 about:blank#blocked；仅 http(s) 新开页
+    var prd = document.getElementById('navPrdLink');
+    if (prd) {
+      if (location.protocol === 'http:' || location.protocol === 'https:') {
+        prd.setAttribute('target', '_blank');
+        prd.setAttribute('rel', 'noopener');
+      } else {
+        prd.removeAttribute('target');
+        prd.addEventListener('click', function (e) {
+          // 强制当前页跳转，避免内置浏览器拦截弹窗
+          e.preventDefault();
+          location.assign(prd.getAttribute('href'));
+        });
+      }
+    }
   }
 
   function boot() {
