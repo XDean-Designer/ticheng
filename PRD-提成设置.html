@@ -58,7 +58,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <tbody>
 <tr>
 <td>文档版本</td>
-<td>v1.2</td>
+<td>v1.3</td>
 </tr>
 <tr>
 <td>日期</td>
@@ -193,18 +193,26 @@ tr:nth-child(even) td{background:#fafbfc}
 <td style="text-align: center;">✓</td>
 <td>仅 PRD + 原型</td>
 </tr>
+<tr>
+<td>13</td>
+<td><strong>历史数据迁移</strong></td>
+<td style="text-align: center;">了解</td>
+<td style="text-align: center;"><strong>必看</strong></td>
+<td style="text-align: center;"><strong>必看</strong></td>
+<td>业绩设置+单项提成→新方案；阶梯保留生效；等价校验门禁</td>
+</tr>
 </tbody>
 </table>
 <p><strong>先读这几条（贯穿全文）</strong></p>
 <ol>
 <li>本期为<strong>新版提成设置</strong>（原型「提成设置·实验」<code>commission2</code>），采用 <strong>多方案</strong> 模型：每个提成方案可整体分配给若干员工，方案内按「项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>」<strong>5 项默认</strong> + N 条<strong>覆盖规则项</strong>配置提成。<strong>每人只能分配一个提成方案</strong>；开单计提时只读该员工所属唯一方案。不同行 / 互不覆盖的计算项可相加（见 §8）。<strong>快速消费</strong>在 UI 为第 5 张默认卡，数据上是系统项目覆盖项（<code>system: true</code>，<code>refId=quick</code>），不可删除。</li>
-<li><strong>提成计算不再依赖旧「业绩设置」</strong>：旧「业绩设置」功能（简单模式 / 进阶基础设置）<strong>本期被完全移除</strong>，工作台不再提供入口；其“按业绩计算提成”的旧口径一律废除。</li>
+<li><strong>提成计算不再依赖旧「业绩设置」</strong>：旧「业绩设置」功能（简单模式 / 进阶基础设置）<strong>本期被完全移除</strong>，工作台不再提供入口；其“按业绩计算提成”的旧口径一律废除。存量配置按 <strong>模块 13</strong> 折叠迁入新提成方案，保证迁移前后提成金额一致。</li>
 <li>系统内「业绩」与「业绩提成」<strong>解耦</strong>：业绩 = 流水订单按支付方式归类的金额合计，由 <strong>现金 / 卡付 / 团购 / 签单</strong> 4 部分组成（签单 = 线上「经理签单」+「记为欠款」）；业绩<strong>只作为经营统计维度</strong>，不参与提成计算，也<strong>不可人工编辑</strong>（见 §8 规则 16）。</li>
 <li><strong>流水订单</strong>：订单行内「业绩」<strong>只读展示</strong>，不再可编辑；「提成」仍可编辑，但需权限（<strong>店主 / 合伙人</strong>），且每次改动记录<strong>修改日志</strong>（操作人 / 时间 / 前后值），流水详情可查看（见 §6.8、§8 规则 18–19）。</li>
 <li><strong>提成生效时点</strong>：开单（结算）时按员工所属方案自动计算提成并<strong>写入订单行</strong> <code>staffCommissions</code>；此后可在流水详情人工修正（有权限者）。薪资核算取订单行提成汇总（薪资联动本期 PRD 只给口径，不展开完整薪资规格，见模块 2）。</li>
 <li>每条提成规则的<strong>提成范围</strong>为支付方式多选：<strong>现金 / 卡付 / 团购 / 签单</strong> 四类（签单 = 经理签单 + 记为欠款）。范围外的支付方式对应订单行<strong>不计提成</strong>。</li>
 <li>原型工具栏「无数据 / 有数据」造数<strong>仅演示</strong>，不进正式产品。接口路径标 <code>【待联调确认】</code>，正式接口文档暂无交付时间；不臆造现网 URL。</li>
-<li>本期<strong>仅单店</strong>；旧「提成设置」（阶梯比例版 <code>commission</code>）<strong>保留为独立模块</strong>，不在本文展开；新老两套并存时以本文为准。</li>
+<li>本期<strong>仅单店</strong>；旧「提成设置」中的<strong>阶梯提成</strong>方案 <strong>完整保留并继续生效</strong>（走旧阶梯引擎，不迁入新模型，见 §13.1）；旧<strong>单项提成</strong>按模块 13 迁为新方案。新老并存时：阶梯员工读旧引擎，已迁单项员工读新引擎。</li>
 </ol>
 <p>交互行为与文案以 <strong><code>demo.html</code> 当前表现</strong> 为准。</p>
 <hr />
@@ -269,7 +277,8 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）+ 三个并列入口：「选择员工（3工位）」「选择员工（2工位）」「选择员工（1工位）」；共用灰底页 + Sheet（纯演示）</li>
 <li>试算口径：示例订单行按员工方案集合计算提成（原型试算引擎）</li>
 <li>流水订单：业绩只读展示；提成可编辑（店主 / 合伙人）；修改日志记录与查看</li>
-<li>工作台移除「业绩设置」入口；旧「提成设置」保留</li>
+<li>工作台移除「业绩设置」入口；旧单项提成配置下线；<strong>阶梯提成入口与方案保留并继续生效</strong></li>
+<li><strong>历史数据迁移（模块 13）</strong>：业绩设置 + 单项提成 → 新提成方案；多层等价校验门禁通过后方可切换读路径</li>
 <li>权限：<code>achCommSet</code> 仅店主 / 合伙人；流水提成编辑仅店主 / 合伙人</li>
 </ul>
 <h2>1.4 本期不做（Out）</h2>
@@ -279,7 +288,8 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>多门店提成配置与同步（<strong>本期仅单店</strong>）</li>
 <li>正式提成结算单 / 工资条打印</li>
 <li>原型的「无数据 / 有数据」造数开关</li>
-<li>历史提成数据的迁移方案（<strong>暂无</strong>）</li>
+<li><strong>阶梯提成迁入新模型</strong>（本期仅保留旧引擎生效；新阶梯能力另期设计后再迁）</li>
+<li>新提成规则块内「扣成本」一等公民字段（迁移用快照折叠；长期增强另期）</li>
 </ul>
 <h2>1.5 旧 → 新能力映射（不写废弃产品名）</h2>
 <table>
@@ -296,7 +306,19 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>按“业绩”计算提成</td>
-<td>移除：提成基数由规则「原价 / 实收」直接定义，与业绩解耦</td>
+<td>移除：提成基数由规则「原价 / 实收」直接定义，与业绩解耦；存量经 §13 公式折叠</td>
+</tr>
+<tr>
+<td>业绩设置（高级+按项%）</td>
+<td>迁入各 RuleBlock 的 <code>baseMode</code> + 覆盖规则折算后的提成比例（见 §13）</td>
+</tr>
+<tr>
+<td>单项提成（点客/散客/%/¥/工位）</td>
+<td>迁入 <code>CatRule</code> / 按项 <code>overrides</code></td>
+</tr>
+<tr>
+<td>阶梯提成</td>
+<td><strong>不迁移</strong>；配置保留，结算继续走旧阶梯引擎</td>
 </tr>
 <tr>
 <td>特殊项目单独提成</td>
@@ -320,7 +342,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 </tbody>
 </table>
-<p>映射不足时以原型字段与行为为准。</p>
+<p>映射不足时以原型字段与行为为准；存量迁移细节以模块 13 为准。</p>
 <hr />
 <h1>模块 2　用户场景与成功标准</h1>
 <blockquote>
@@ -1469,6 +1491,11 @@ flowchart LR
 <li><strong>Given</strong> 工作台，<strong>When</strong> 查看入口，<strong>Then</strong> <strong>无</strong>「业绩设置」；「提成设置·实验」与旧「提成设置」并存。</li>
 <li><strong>Given</strong> 店员 / 店长 / 高级店员，<strong>When</strong> 点击工作台「提成设置·实验」，<strong>Then</strong> 权限拦截（toast），不进入。</li>
 <li><strong>Given</strong> 方案列表有未分配员工，<strong>When</strong> 查看列表顶部，<strong>Then</strong> 提示「还有 N 人未分配提成」；点击弹名单；全部分配后提示消失。</li>
+<li><strong>Given</strong> 门店有阶梯提成方案，<strong>When</strong> 执行单项迁移 Job，<strong>Then</strong> 阶梯配置 hash 不变、阶梯员工结算仍走旧阶梯引擎。</li>
+<li><strong>Given</strong> 单项提成 + 业绩设置已折叠且层 A–D 校验全过，<strong>When</strong> 切换读路径，<strong>Then</strong> 仅已迁单项员工走新引擎；样本提成与旧单项引擎分位全等。</li>
+<li><strong>Given</strong> 某项目 cost&gt;0 已按快照价折叠，<strong>When</strong> 查看迁移报告，<strong>Then</strong> 该项出现在「改价敏感」清单。</li>
+<li><strong>Given</strong> 同卡充值/续次/续费提成参数不一致且订单难区分，<strong>When</strong> 迁移，<strong>Then</strong> 状态 <code>needs_review</code>，该方案不自动发布。</li>
+<li><strong>Given</strong> 员工同时绑定阶梯与单项（脏数据），<strong>When</strong> 迁移门禁，<strong>Then</strong> 阻断该员工切换，默认优先阶梯直至人工处理。</li>
 </ol>
 <hr />
 <h1>模块 11　非功能（极简）</h1>
@@ -1480,7 +1507,7 @@ flowchart LR
 <li>方案数量与员工分配为单店量级；列表无需分页（方案数量少）。</li>
 <li>埋点：无专表；若现网统一规范另案。</li>
 <li>图片 / 上传：本模块无上传。</li>
-<li>金额精度：提成金额建议保留两位小数（round2）；比例 0–100。</li>
+<li>金额精度：提成金额建议保留两位小数（round2）；比例 0–100；<strong>迁移与新旧引擎必须共用同一 <code>moneyRound</code></strong>（见 §13.6.0）。</li>
 <li><strong>本期仅单店</strong>。</li>
 </ul>
 <hr />
@@ -1495,15 +1522,415 @@ flowchart LR
 <tbody>
 <tr>
 <td>本文 <code>PRD-提成设置.md</code></td>
-<td>开发与测试准稿</td>
+<td>开发与测试准稿（含模块 13 迁移）</td>
 </tr>
 <tr>
-<td>交互原型 <code>demo.html</code></td>
+<td>交互原型 <code>demo.html</code> / 独立原型 <code>提成设置/</code></td>
 <td>唯一可视依据；功能链路「提成设置·实验」（<code>commission2</code>）+ 流水详情</td>
+</tr>
+<tr>
+<td>迁移 Job + 等价校验器</td>
+<td>后端交付；门禁报告见 §13.6–13.8</td>
 </tr>
 </tbody>
 </table>
-<p>开发与测试只需 <strong>PRD + 原型</strong>。与价目 / 会员卡交叉时，覆盖规则目标数据以 <code>PRD-项目创建与管理.md</code>、<code>PRD-会员卡管理.md</code> 为准，提成逻辑以本文为准。冲突时以原型界面为准修正 PRD。</p>
+<p>开发与测试只需 <strong>PRD + 原型</strong>（迁移实现另附 Job/校验器）。与价目 / 会员卡交叉时，覆盖规则目标数据以 <code>PRD-项目创建与管理.md</code>、<code>PRD-会员卡管理.md</code> 为准，提成逻辑以本文为准。冲突时以原型界面为准修正 PRD。</p>
+<hr />
+<h1><code></code></h1>
+<blockquote><p><code></code></p></blockquote>
+<blockquote><p><code></code></p></blockquote>
+<h2><code></code></h2>
+<p><code></code></p>
+<table><thead><tr><th><code></code></th><th><code></code></th></tr></thead><tbody>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+</tbody></table>
+<h3><code></code></h3>
+<table><thead><tr><th><code></code></th><th><code></code></th></tr></thead><tbody>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+</tbody></table>
+<h3><code></code></h3>
+<table><thead><tr><th><code></code></th><th><code></code></th></tr></thead><tbody>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+</tbody></table>
+<hr />
+<h2><code></code></h2>
+<h3><code></code></h3>
+<pre><code>
+price  = 售价(原价) 或 实收    // 由该分类高级设置决定
+
+cost   = 按项手填成本（无则 0）
+
+achPct = 按项业绩%（默认 100%）
+
+comm   = 点客或散客提成比例；或固定金额
+
+
+
+若「不计算」: 提成 = 0
+
+若固定金额:   提成 = 点客/散客（及工位）对应固定 ¥
+
+若比例:       业绩额 = max(0, (price − cost) × achPct)
+
+              提成   = moneyRound(业绩额 × comm)
+
+</code></pre>
+<h3><code></code></h3>
+<pre><code>
+base = line.list | line.paid     // RuleBlock.baseMode
+
+若 payScope 不含该支付方式: 0
+
+若 valueMode=amount: 固定 ¥
+
+若 valueMode=pct:    moneyRound(base × rate / 100)
+
+</code></pre>
+<p><code></code></p>
+<h3><code></code></h3>
+<p><code></code></p>
+<pre><code>
+旧: moneyRound( max(0,(P−cost)×achPct) × comm )
+
+新: moneyRound( P × newRate / 100 )
+
+
+
+当 P&gt;0:
+
+  newRate = comm × achPct × max(0, P − cost) / P
+
+  （旧 comm 若已是百分数，按同一百分数语义换算，禁止混用 0–1 与 0–100）
+
+</code></pre>
+<table><thead><tr><th><code></code></th><th><code></code></th></tr></thead><tbody>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+</tbody></table>
+<hr />
+<h2><code></code></h2>
+<p><code></code></p>
+<h3><code></code></h3>
+<table><thead><tr><th><code></code></th><th><code></code></th></tr></thead><tbody>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+</tbody></table>
+<h3><code></code></h3>
+<table><thead><tr><th><code></code></th><th><code></code></th></tr></thead><tbody>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+<tr><td><code></code></td><td><code></code></td></tr>
+</tbody></table>
+<pre><code>
+
+
+### 13.3.3 单项提成 → CatRule / overrides
+
+
+
+| 旧 | 新 |
+
+|----|-----|
+
+| 点客/散客比例 | `designated` / `nonDesignated` |
+
+| 点客/散客固定金额 | `valueMode='amount'` + Amt 字段 |
+
+| 分大/中/小工 | `pickMode='station'` + `rule.stations[id]` |
+
+| 逐项不同比例 | `overrides[]`（project / product / card） |
+
+
+
+### 13.3.4 充值 / 续次 / 续费合并
+
+
+
+1. 三类参数**完全相同** → 一条充卡规则  
+
+2. **存在差异** → **禁止静默平均**  
+
+   - 能区分订单行：分别覆盖  
+
+   - 不能区分：`needs_review`，**阻断自动发布**直至运营确认  
+
+
+
+### 13.3.5 多方案与员工
+
+
+
+</code></pre>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<pre><code>
+
+
+### 13.3.6 payScope
+
+
+
+默认 `cash / memberCard / groupBuy / sign = true`。  
+
+「不计算」用比例/金额 0 表达，不靠关闭 payScope。
+
+
+
+---
+
+
+
+## 13.4 特殊项（M1）
+
+
+
+| 项 | 策略 |
+
+|----|------|
+
+| 商城订单 | 归入产品；`baseMode` 取旧「商城订单」高级设置 |
+
+| 赠金耗卡 | 卡付耗卡行 + 折算覆盖；无稳定标签 → `needs_review` |
+
+| 赠送服务 / 抵用券 | 并入项目；实收常为 0 时 `paid` 下提成为 0；旧按售价则 `list` + 折叠率 |
+
+| 无法识别类型 | 报告 + `needs_review`，不猜测 |
+
+
+
+---
+
+
+
+## 13.5 迁移算法
+
+
+
+</code></pre>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<pre><code>
+
+
+**按项折叠伪代码**
+
+
+
+</code></pre>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<p><code></code></p>
+<pre><code>
+
+
+**幂等**：`Scheme._v3` + `migrationBatchId`。阶梯数据 **永不** 被 batch 覆盖。
+
+
+
+---
+
+
+
+## 13.6 等价校验（迁移不改数的硬门槛）
+
+
+
+原则：切换前证明「配置折叠正确」+「引擎结果一致」+「阶梯未受影响」。任一层失败则门店不切换。
+
+
+
+### 13.6.0 Round 与金额单位（Day0 锁定）
+
+
+
+从旧源码锁定并单测固化：金额单位（分/元）、舍入函数与乘除顺序。  
+
+新引擎与迁移折叠 **必须调用同一 `moneyRound`**。
+
+
+
+### 13.6.1 层 A · 配置折叠自洽
+
+
+
+| 检查 | 通过条件 |
+
+|------|----------|
+
+| 固定金额 | 点客/散客（及工位）金额逐项相等 |
+
+| 比例且 cost=0、achPct=100% | `newRate == 旧 comm` |
+
+| 比例需折叠 | 快照 P 上旧(P)=新(P)；并对 **P±1 分** 邻域探测 |
+
+| 不计算 | 新 rate/amount 全 0 |
+
+
+
+### 13.6.2 层 B · 合成订单双跑
+
+
+
+每门店 ≥ **300** 条样本（不足则补齐笛卡尔积）：  
+
+分类 × 点客/散客 × 三工位 × 四支付；每个实际 override 至少命中 1 行；含 cost&gt;0、achPct≠100%、不计算、固定金额、快消、商城、实收=0 签单。  
+
+
+
+</code></pre>
+<h3><code></code></h3>
+<p><code></code></p>
+<p><code></code></p>
+<pre><code>
+
+
+### 13.6.4 层 D · 阶梯未受损回归（强制）
+
+
+
+1. 阶梯配置迁移前后 hash 一致  
+
+2. 阶梯员工历史订单回放金额不变  
+
+3. 路由探针：仅绑阶梯员工的结算 **未进入** 新 Scheme 路径  
+
+
+
+任一项失败 → **全店阻断**。
+
+
+
+### 13.6.5 层 E · 属性加固（推荐）
+
+
+
+- cost=0 且 achPct=100%：随机 P 抽样 20 次新旧全等  
+
+- cost&gt;0：仅保证快照 P；报告「改价敏感」
+
+
+
+### 13.6.6 门禁与发布
+
+
+
+</code></pre>
+<p><code></code></p>
+<pre><code>
+
+
+- 不通过 → 不切换；出 diff / 改价敏感 / 卡冲突 / 双绑报告  
+
+- 通过 → **仅**切换已迁单项员工读路径；阶梯不变  
+
+- 回滚：`useLegacyItemCommission`（仅单项，与阶梯独立）
+
+
+
+### 13.6.7 上线后观察
+
+
+
+灰度双写 ≥7 天（仅单项员工）；阶梯监控「是否误入新引擎」告警。再关旧单项配置入口。
+
+
+
+---
+
+
+
+## 13.7 已知非恒等风险（须产品接受）
+
+
+
+1. **扣成本 + 日后改价**：快照折叠；改价后可能漂移 → 报告改价敏感；二期可加 `deductCost`  
+
+2. **实收近似 P**：未过层 A/B 不得上线  
+
+3. **充值≠续次≠续费** 难区分 → 人工确认  
+
+4. **赠金/赠送/抵用券** 标签不全 → 复核，禁止静默  
+
+5. **阶梯** 不迁入新模型；用层 D 保证继续生效且金额不变  
+
+
+
+---
+
+
+
+## 13.8 迁移交付物
+
+
+
+1. 字段级映射 + 折叠公式 + 统一 `moneyRound`（本文）  
+
+2. 可重入迁移 Job（保护阶梯；JSON/CSV 报告）  
+
+3. 层 A–D（+E）校验器  
+
+4. 回滚开关 `useLegacyItemCommission`  
+
+5. UI：阶梯只读标签与旧编辑入口  
+
+
+
+## 13.9 实施顺序
+
+
+
+1. 锁定旧引擎 round/字段；阶梯 hash 与路由工具  
+
+2. `foldLegacyToScheme`（只动单项）  
+
+3. 金样门店层 A–D 全绿  
+
+4. 批量门禁  
+
+5. 灰度切单项读路径；确认阶梯不变  
+
+6. 下线业绩设置与旧单项入口；保留阶梯入口  
+
+
+
 <p class="foot-note">给 AI / 研发请使用同目录 <code>PRD-提成设置.md</code>；本页仅作阅读预览。交互以 <code>demo.html</code> 为准。</p>
 </article></div>
 <script src="assets/vendor/mermaid.min.js"></script>
