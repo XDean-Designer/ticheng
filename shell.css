@@ -45,7 +45,8 @@ body {
 .site-nav .nav-item:hover { background: rgba(255, 255, 255, .06); color: #fff; }
 .site-nav .nav-item.on { background: rgba(243, 47, 65, .2); color: #fff; font-weight: 600; }
 
-.site-nav .nav-item .idx {
+.site-nav .nav-item .idx,
+.site-nav .nav-link .idx {
   width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
   background: rgba(255, 255, 255, .12); color: #fff; font-size: 11px;
   display: flex; align-items: center; justify-content: center;

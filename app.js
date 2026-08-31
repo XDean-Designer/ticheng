@@ -145,18 +145,7 @@
         if (id && g.FLOW_NAV[id]) g.FLOW_NAV[id]();
       });
     });
-    // Cursor 内置浏览器会拦截 target=_blank → about:blank#blocked；始终同页跳转
-    var prd = document.getElementById('navPrdLink');
-    if (prd) {
-      prd.addEventListener('click', function () {
-        var href = prd.getAttribute('data-prd-href') || 'prd.html';
-        try {
-          location.assign(new URL(href, location.href).href);
-        } catch (err) {
-          location.href = href;
-        }
-      });
-    }
+    // PRD 入口为原生 <a href="PRD-%E6%8F%90…html">，勿改回 button + location.assign（Cursor 内置浏览器常点击无反应）
   }
 
   function boot() {

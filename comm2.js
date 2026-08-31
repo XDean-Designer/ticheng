@@ -1236,14 +1236,20 @@
     root.innerHTML = list.map(function (s) {
       var others = schemesAlsoContainingStaff(s.id, store._assignId);
       var on = !!sel[s.id];
-      var alsoTxt = others.length
-        ? ('也在：' + others.map(function (o) { return esc(o.name); }).join('、'))
-        : esc(s.role || '未设置职位');
+      var roleHtml;
+      if (others.length) {
+        var names = others.map(function (o) { return esc(o.name); }).join('、');
+        roleHtml = '<span class="emp-assign-card__role emp-assign-card__role--also" aria-label="也在其他方案：' + names + '">' +
+          '<i class="emp-assign-card__also-ico" aria-hidden="true"></i>' +
+          '<span class="emp-assign-card__also-names">' + names + '</span></span>';
+      } else {
+        roleHtml = '<span class="emp-assign-card__role">' + esc(s.role || '未设置职位') + '</span>';
+      }
       return '<button type="button" class="emp-assign-card' + (on ? ' on' : '') + (others.length ? ' has-others' : '') + '"' +
         ' data-comm2-assign-tog="' + esc(s.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
         comm2AvatarHtml(s) +
         '<span class="emp-assign-card__meta"><span class="emp-assign-card__name">' + esc(s.name) + '</span>' +
-        '<span class="emp-assign-card__role">' + alsoTxt + '</span></span>' +
+        roleHtml + '</span>' +
         '<span class="emp-assign-card__check" aria-hidden="true">' + (on ? comm2CheckSvg() : '') + '</span></button>';
     }).join('') || '<div class="empty-cart" style="padding:32px 16px">暂无在岗员工</div>';
     syncComm2AssignCount();
@@ -2253,7 +2259,7 @@
       if (e.target === $('comm2UnsavedMask')) closeDialog('comm2UnsavedMask');
     });
 
-    /* 分配员工 sheet（可多方案；副文提示「也在：…」） */
+    /* 分配员工 sheet（可多方案；副文用 file-multiple 图标 + 方案名） */
     $('comm2AssignList') && $('comm2AssignList').addEventListener('click', function (e) {
       var btn = e.target.closest('[data-comm2-assign-tog]');
       if (!btn) return;
