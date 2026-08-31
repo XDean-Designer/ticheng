@@ -2,11 +2,33 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>剑琅联盟 · 提成设置</title>
 <link rel="stylesheet" href="comm2.css">
 <link rel="stylesheet" href="base.css">
 <link rel="stylesheet" href="shell.css">
+<script>
+/* 尽早切壳，避免闪一下桌面导航：手机全屏 / 电脑完整壳 */
+(function () {
+  function preferMobile() {
+    var q = new URLSearchParams(location.search).get('view');
+    if (q === 'mobile') return true;
+    if (q === 'desktop') return false;
+    if (window.matchMedia('(max-width: 760px)').matches) return true;
+    /* 真机横屏常 >760：用屏幕短边区分手机与 iPad（iPad 短边通常 ≥768） */
+    var touch = window.matchMedia('(pointer: coarse) and (hover: none)').matches;
+    var shortSide = Math.min(screen.width || 0, screen.height || 0);
+    return touch && shortSide > 0 && shortSide <= 500;
+  }
+  function apply() {
+    var mobile = preferMobile();
+    document.documentElement.classList.toggle('view-mobile', mobile);
+    document.documentElement.classList.toggle('view-desktop', !mobile);
+  }
+  apply();
+  window.__comm2ApplyViewShell = apply;
+})();
+</script>
 </head>
 <body>
 <aside class="site-nav">

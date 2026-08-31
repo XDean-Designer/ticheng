@@ -148,7 +148,21 @@
     // PRD 入口为原生 <a href="PRD-%E6%8F%90…html">，勿改回 button + location.assign（Cursor 内置浏览器常点击无反应）
   }
 
+  function wireViewShell() {
+    var apply = g.__comm2ApplyViewShell;
+    if (typeof apply !== 'function') return;
+    apply();
+    var mq = window.matchMedia('(max-width: 760px)');
+    var onChange = function () { apply(); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+    window.addEventListener('orientationchange', function () {
+      setTimeout(apply, 50);
+    });
+  }
+
   function boot() {
+    wireViewShell();
     wireSiteNav();
     wireAmountKeypadControls && wireAmountKeypadControls();
 

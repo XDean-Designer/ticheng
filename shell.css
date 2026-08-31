@@ -71,14 +71,65 @@ body {
   padding: 24px 20px 40px;
 }
 
+/* 窄窗兜底（JS 未跑 / 无 class 时）：仅藏导航，不全屏化手机框 */
 @media (max-width: 760px) {
-  .site-nav { display: none; }
-  .stage { margin-left: 0; padding: 0; }
+  html:not(.view-desktop) .site-nav { display: none; }
+  html:not(.view-desktop) .stage { margin-left: 0; padding: 0; }
 }
 
 #frame {
   box-shadow: 0 0 40px rgba(0, 0, 0, .25);
   flex-shrink: 0;
+}
+
+/*
+ * 手机模式（html.view-mobile）：只显示右侧手机屏，全屏可操作。
+ * 桌面模式（html.view-desktop / 默认）：左侧导航 + 390×844 手机框。
+ * 强制覆盖：?view=mobile | ?view=desktop
+ * 假状态栏（9:41）保留。
+ */
+html.view-mobile,
+html.view-mobile body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg-page, #F7F7F7);
+}
+
+html.view-mobile .site-nav {
+  display: none !important;
+}
+
+html.view-mobile .stage {
+  margin-left: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+html.view-mobile #frame {
+  box-shadow: none;
+}
+
+html.view-mobile #frame.phone-shell,
+html.view-mobile .phone-inner.phone {
+  width: 100%;
+  width: 100vw;
+  height: 100%;
+  height: 100dvh;
+  max-width: none;
+  border: none;
+  border-radius: 0;
+}
+
+/* 真机底部安全区叠在原有 34px 之上 */
+html.view-mobile {
+  --safe-bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+}
+
+html.view-mobile .status-bar {
+  padding-top: env(safe-area-inset-top, 0px);
+  height: calc(53px + env(safe-area-inset-top, 0px));
 }
 
 /* capture modes */
