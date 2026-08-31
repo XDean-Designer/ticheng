@@ -63,6 +63,15 @@
 }
 .comm2-unassigned.hidden { display: none; }
 .comm2-unassigned:active { opacity: .88; }
+.comm2-unassigned__lead {
+  display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
+}
+.comm2-unassigned__ico {
+  flex-shrink: 0; width: 16px; height: 16px;
+  background: currentColor;
+  -webkit-mask: url('assets/icons/users-profiles-02.svg') center / contain no-repeat;
+  mask: url('assets/icons/users-profiles-02.svg') center / contain no-repeat;
+}
 .comm2-unassigned__text { min-width: 0; }
 .comm2-unassigned__text strong { color: #1A1A1A; font-weight: 600; }
 .comm2-unassigned__chev {
@@ -92,6 +101,33 @@
   flex: 1; min-width: 0; justify-content: flex-end;
   flex-wrap: wrap; white-space: normal; line-height: 18px; text-align: right;
 }
+
+/* 方案卡 · 经理签单计算提成行（开关独立于支付范围） */
+.comm2-signcomm {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; min-height: 44px; margin-top: 8px; padding: 12px 0 0;
+  border: none; background: transparent; position: relative;
+  font-size: 13px; color: var(--text-sec); line-height: 1.35;
+  font-family: inherit; cursor: pointer; text-align: left; box-sizing: border-box;
+}
+.comm2-signcomm::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0;
+  height: 1px; background: var(--card-divider);
+  transform: scaleY(0.5); transform-origin: center top; pointer-events: none;
+}
+.comm2-signcomm:active { opacity: .85; }
+.comm2-signcomm__label { flex: 1; min-width: 0; }
+.comm2-signcomm__switch {
+  width: 44px; height: 26px; border-radius: 13px; background: var(--disabled, #EDEDED);
+  position: relative; flex-shrink: 0; display: block;
+  transition: background .2s;
+}
+.comm2-signcomm__switch::after {
+  content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%;
+  background: #fff; top: 2px; left: 2px; transition: transform .2s;
+}
+.comm2-signcomm__switch.on { background: var(--brand); }
+.comm2-signcomm__switch.on::after { transform: translateX(18px); }
 
 /* 分配员工 sheet：列表滚动区 */
 .comm2-assign-scroll { max-height: 42vh; overflow-y: auto; }

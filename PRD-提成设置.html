@@ -39,9 +39,9 @@ tr:nth-child(even) td{background:#fafbfc}
 </head>
 <body>
   <div class="topbar">
-    <div class="topbar__title">PRD-提成设置<span class="topbar__hint">阅读预览 · 表格与标题已排版</span></div>
+    <div class="topbar__title">PRD-提成设置<span class="topbar__hint">阅读预览 · v1.9 · 表格与标题已排版</span></div>
     <div class="topbar__actions">
-      <a class="ghost" href="demo.html">打开交互原型</a>
+      <a class="ghost" href="index.html">打开交互原型</a>
       <a class="ghost" href="PRD-提成设置.md" download>下载 Markdown</a>
       <a class="primary" href="PRD-提成设置.md" target="_blank" rel="noopener">打开源文件 .md</a>
     </div>
@@ -55,34 +55,26 @@ tr:nth-child(even) td{background:#fafbfc}
 <th>内容</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>文档版本</td>
-<td>v1.6</td>
-</tr>
-<tr>
+<td>v1.9</td>
+</tr><tr>
 <td>日期</td>
-<td>2026-08-28</td>
-</tr>
-<tr>
+<td>2026-08-31</td>
+</tr><tr>
 <td>交互原型（唯一可视依据）</td>
-<td>同目录 <code>demo.html</code>（中文镜像：<code>剑琅联盟-RTB重构.html</code>；功能链路「提成设置」<code>commission2</code>，及「开单记账」流水详情）</td>
-</tr>
-<tr>
+<td>本目录 <code>index.html</code>（独立原型）</td>
+</tr><tr>
 <td>画布</td>
 <td>390 × 844</td>
-</tr>
-<tr>
+</tr><tr>
 <td>目的</td>
 <td>供前端 / 后端 / 测试及 AI 工具落地「新版提成设置」；<strong>只需本文 + 交互原型</strong></td>
-</tr>
-<tr>
+</tr><tr>
 <td>关联（非必读）</td>
 <td>同目录 <code>PRD-项目创建与管理.md</code>（覆盖规则项的项目/产品目标取自价目数据）；<code>PRD-会员卡管理.md</code>（覆盖规则的会员卡目标取自卡模板）</td>
-</tr>
-</tbody>
-</table>
-<hr />
+</tr></tbody></table>
+<hr>
 <h2>怎么读这份 PRD</h2>
 <p>正文按模块编排。<strong>不用通读全文</strong>，按角色跳章即可。</p>
 <table>
@@ -90,132 +82,126 @@ tr:nth-child(even) td{background:#fafbfc}
 <tr>
 <th>#</th>
 <th>模块</th>
-<th style="text-align: center;">前端</th>
-<th style="text-align: center;">后端</th>
-<th style="text-align: center;">测试</th>
+<th>前端</th>
+<th>后端</th>
+<th>测试</th>
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>1</td>
 <td>背景 / 目标 / 范围 / 能力映射</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
 <td>重构叙事、防范围蔓延</td>
-</tr>
-<tr>
+</tr><tr>
 <td>2</td>
 <td>用户场景与成功标准</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>了解</td>
+<td>✓</td>
 <td>测「业务对不对」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>3</td>
 <td>信息架构与页面清单</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>了解</td>
+<td>✓</td>
 <td>做哪些页</td>
-</tr>
-<tr>
+</tr><tr>
 <td>4</td>
 <td>状态机</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;"><strong>必看</strong></td>
-<td style="text-align: center;"><strong>必看</strong></td>
+<td>✓</td>
+<td><strong>必看</strong></td>
+<td><strong>必看</strong></td>
 <td>方案/规则块/编辑态/工位/分配</td>
-</tr>
-<tr>
+</tr><tr>
 <td>5</td>
 <td>交互细则 / 异常流</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>了解</td>
+<td>✓</td>
 <td>校验、toast、拦截</td>
-</tr>
-<tr>
+</tr><tr>
 <td>6</td>
 <td>功能规格</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>了解</td>
+<td>✓</td>
 <td>逐屏字段与跳转；含 §6.10 关联页面（薪资 / 流水）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>7</td>
 <td>数据模型与接口约定</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;"><strong>必看</strong></td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td><strong>必看</strong></td>
+<td>✓</td>
 <td>字段、能力清单、时序</td>
-</tr>
-<tr>
+</tr><tr>
 <td>8</td>
 <td>业务规则</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;"><strong>必看</strong></td>
-<td style="text-align: center;"><strong>必看</strong></td>
+<td>✓</td>
+<td><strong>必看</strong></td>
+<td><strong>必看</strong></td>
 <td>计提规则、多方案取高、业绩四部分、权限</td>
-</tr>
-<tr>
+</tr><tr>
 <td>9</td>
 <td>文案清单与权限</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">部分</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>部分</td>
+<td>✓</td>
 <td>文案；角色权限矩阵</td>
-</tr>
-<tr>
+</tr><tr>
 <td>10</td>
 <td>验收 P0 + 造数场景</td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;"><strong>必看</strong></td>
+<td>了解</td>
+<td>了解</td>
+<td><strong>必看</strong></td>
 <td>Given→When→Then</td>
-</tr>
-<tr>
+</tr><tr>
 <td>11</td>
 <td>非功能（极简）</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓</td>
 <td></td>
-</tr>
-<tr>
+</tr><tr>
 <td>12</td>
 <td>交付物</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">—</td>
-<td style="text-align: center;">✓</td>
+<td>✓</td>
+<td>—</td>
+<td>✓</td>
 <td>仅 PRD + 原型</td>
-</tr>
-<tr>
+</tr><tr>
 <td>13</td>
 <td><strong>历史数据迁移</strong></td>
-<td style="text-align: center;">了解</td>
-<td style="text-align: center;"><strong>必看</strong></td>
-<td style="text-align: center;"><strong>必看</strong></td>
+<td>了解</td>
+<td><strong>必看</strong></td>
+<td><strong>必看</strong></td>
 <td>业绩设置+单项提成→新方案；阶梯保留生效；等价校验门禁</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
+<blockquote>
+<p><strong>v1.7（2026-08-31）审计对齐</strong>：支付范围改为三类；规则卡以原型「卡面可点」为准；覆盖删除改为左滑/长按+撤销；工位缺失兜底对齐原型；分配副文为图标+方案名；并补边界规则。§6.8 / §6.10 等关联页<strong>保留</strong>，标注「本系统现有页面」。</p>
+</blockquote>
+<blockquote>
+<p><strong>v1.8（2026-08-31）经理签单开关</strong>：方案卡新增「经理签单计算提成」switch（默认关闭）。经理签单为<strong>支付方式之一（相当于免单）</strong>，订单行不计入现金/卡付/团购三类支付范围，由方案级 <code>signComm</code> 开关决定是否计提。试算新增经理签单演示行。</p>
+</blockquote>
+<blockquote>
+<p><strong>v1.9（2026-08-31）去大原型引用</strong>：本原型与 <code>demo.html</code> / <code>剑琅联盟-RTB重构.html</code>（<code>commission2</code>）<strong>非同一系统</strong>，删除全部大原型文件 / 页面引用；流水 / 薪资关联页为本系统现有页面（§6.8 / §6.10 保留）；模块 13 迁移口径修正：原系统 <code>payScope.sign</code> 迁移为方案级 <code>signComm</code>。</p>
+</blockquote>
 <p><strong>先读这几条（贯穿全文）</strong></p>
 <ol>
-<li>本期为<strong>新版提成设置</strong>（原型「提成设置」<code>commission2</code>），采用 <strong>多方案</strong> 模型：每个提成方案可整体分配给若干员工，方案内按「项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>」<strong>5 项默认</strong> + N 条<strong>覆盖规则项</strong>配置提成。<strong>每人可分配多个提成方案</strong>；开单计提时对该员工所属全部方案按订单行分别计算，计算项重叠时取提成金额更高者（并列按方案列表顺序）。不同行分别取高后可相加（见 §8）。<strong>快速消费</strong>在 UI 为第 5 张默认卡，数据上是系统项目覆盖项（<code>system: true</code>，<code>refId=quick</code>），不可删除。</li>
+<li>本期为<strong>新版提成设置</strong>（原型「提成设置」），采用 <strong>多方案</strong> 模型：每个提成方案可整体分配给若干员工，方案内按「项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>」<strong>5 项默认</strong> + N 条<strong>覆盖规则项</strong>配置提成。<strong>每人可分配多个提成方案</strong>；开单计提时对该员工所属全部方案按<strong>订单行</strong>分别计算，<strong>计算项重叠时取提成金额更高者</strong>（并列按方案列表顺序先出现者胜出；见 §8）。不同行分别取高后可相加。<strong>快速消费</strong>在 UI 为第 5 张默认卡，数据上是系统项目覆盖项（<code>system: true</code>，<code>refId=quick</code>），不可删除。</li>
 <li><strong>提成计算不再依赖旧「业绩设置」</strong>：旧「业绩设置」功能（简单模式 / 进阶基础设置）<strong>本期被完全移除</strong>，工作台不再提供入口；其“按业绩计算提成”的旧口径一律废除。存量配置按 <strong>模块 13</strong> 折叠迁入新提成方案，保证迁移前后提成金额一致。</li>
-<li>系统内「业绩」与「业绩提成」<strong>解耦</strong>：业绩<strong>只作为经营统计维度</strong>，<strong>不参与提成计算</strong>，也<strong>不可人工编辑</strong>（见 §8 规则 16）。金额口径统一为对应项的<strong>开单原价（标价）加总</strong>（不用实收）。展示分列因页面而异：流水 / 「员工业绩提成明细」的业绩仍可按支付方式展示；「员工薪资明细 · 业绩统计」按提成设置 5 类（项目 / 产品 / 办卡 / 充卡 / 快速消费）展示（见 §6.10）。</li>
-<li><strong>流水订单</strong>：订单行内「业绩」<strong>只读展示</strong>，不再可编辑；「提成」仍可编辑，但需权限（<strong>店主 / 合伙人</strong>），且每次改动记录<strong>修改日志</strong>。覆盖页：开单流水详情、流水订单修改、项目流水修改（见 §6.8、§6.10、§8 规则 18–19）。</li>
+<li>系统内「业绩」与「业绩提成」<strong>解耦</strong>：业绩<strong>只作为经营统计维度</strong>，<strong>不参与提成计算</strong>，也<strong>不可人工编辑</strong>（见 §8 规则 16）。金额口径统一为对应项的<strong>开单原价（标价）加总</strong>（不用实收）。展示分列因页面而异：流水 / 「员工业绩提成明细」的业绩仍可按支付方式（现金 / 卡付 / 团购 / 经理签单 / 记为欠款）展示；「员工薪资明细 · 业绩统计」按提成设置 5 类（项目 / 产品 / 办卡 / 充卡 / 快速消费）展示（见 §6.10）。</li>
+<li><strong>流水订单</strong>：订单行内「业绩」<strong>只读展示</strong>，不再可编辑；「提成」仍可编辑，但需权限（<strong>店主 / 合伙人</strong>），且每次改动记录<strong>修改日志</strong>（操作人 / 时间 / 前后值）。覆盖页：开单流水详情、流水订单修改、项目流水修改（见 §6.8、§6.10、§8 规则 18–19）。</li>
 <li><strong>提成生效时点</strong>：开单（结算）时按员工所属方案自动计算提成并<strong>写入订单行</strong> <code>staffCommissions</code>；此后可在流水详情人工修正（有权限者）。薪资侧「提成统计 / 提成分列」字段对齐提成设置 5 类，且 <strong>「项目」列 = 项目类提成合计 − 快速消费提成</strong>（快速消费另列；五列之和 = 提成总计）；详见 §6.10。</li>
-<li>每条提成规则的<strong>提成范围</strong>为支付方式多选：<strong>现金 / 卡付 / 团购 / 签单</strong> 四类（签单 = 经理签单 + 记为欠款）。范围外的支付方式对应订单行<strong>不计提成</strong>。</li>
+<li>每条提成规则的<strong>提成范围</strong>为支付方式多选：<strong>现金 / 卡付 / 团购</strong> 三类。范围外的支付方式对应订单行<strong>不计提成</strong>。</li>
 <li>原型工具栏「无数据 / 有数据」造数<strong>仅演示</strong>，不进正式产品。接口路径标 <code>【待联调确认】</code>，正式接口文档暂无交付时间；不臆造现网 URL。</li>
 <li>本期<strong>仅单店</strong>；旧「提成设置」中的<strong>阶梯提成</strong>方案 <strong>完整保留并继续生效</strong>（走旧阶梯引擎，不迁入新模型，见 §13.1）；旧<strong>单项提成</strong>按模块 13 迁为新方案。新老并存时：阶梯员工读旧引擎，已迁单项员工读新引擎。</li>
 </ol>
-<p>交互行为与文案以 <strong><code>demo.html</code> 当前表现</strong> 为准。</p>
-<hr />
+<p>交互行为与文案以 <strong>本目录 <code>index.html</code>（及 <code>comm2.js</code>）当前表现</strong> 为准。</p>
+<hr>
 <h1>模块 1　背景 / 目标 / 范围 / 能力映射</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 ✓ · 测试 ✓</p>
@@ -224,7 +210,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <p>旧提成为「阶梯比例」单方案模型，且提成计算依赖旧「业绩设置」产出的计算基数；「业绩设置」同时承担业绩口径配置，职责混叠、配置链路长，商户难以表达“不同分类、不同支付方式、不同工位”的差异化提成。</p>
 <p>本期重构为<strong>多方案提成设置</strong>：</p>
 <ul>
-<li><strong>方案化</strong>：一套提成规则即一个「提成方案」，可命名、复制、整方案分配员工；<strong>每人只能分配一个方案</strong>，适应多岗位（顾问 / 技师 / 销售）并存的门店。</li>
+<li><strong>方案化</strong>：一套提成规则即一个「提成方案」，可命名、复制、整方案分配员工；<strong>每人可分配多个方案</strong>，开单按行对多方案结果<strong>取高</strong>；适应多岗位（顾问 / 技师 / 销售）并存的门店。</li>
 <li><strong>规则块化</strong>：方案内 5 项默认（项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>）+ 用户覆盖规则项（指定项目、产品、会员卡、整类分组）；快速消费在数据上为系统项目覆盖项。</li>
 <li><strong>口径独立</strong>：提成基数 = 订单行<strong>原价 / 实收</strong>（按规则配置），不再经过旧「业绩设置」；旧「业绩设置」整体移除。</li>
 <li><strong>业绩解耦</strong>：业绩按<strong>原价加总</strong>统计、只读、不参与提成；展示分列因页而异（支付方式或提成设置 5 类，见 §6.10）。</li>
@@ -238,46 +224,38 @@ tr:nth-child(even) td{background:#fafbfc}
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>多方案并存</td>
 <td>多套方案并存；<strong>每人可分配多个方案</strong>；同行重叠取金额更高者</td>
-</tr>
-<tr>
+</tr><tr>
 <td>规则可分层</td>
 <td>5 项默认（含快速消费系统覆盖）+ 用户覆盖规则项</td>
-</tr>
-<tr>
+</tr><tr>
 <td>口径独立</td>
-<td>计算基数（原价 / 实收）与支付范围（现金 / 卡付 / 团购 / 签单）由规则自定，不依赖业绩设置</td>
-</tr>
-<tr>
+<td>计算基数（原价 / 实收）与支付范围（现金 / 卡付 / 团购）由规则自定，不依赖业绩设置</td>
+</tr><tr>
 <td>分配灵活</td>
 <td>方案整体分配员工；工位（默认大 / 中 / 小工，可改名 / 删除，<strong>不可新增</strong>）参与按工位分配</td>
-</tr>
-<tr>
+</tr><tr>
 <td>业绩解耦</td>
 <td>业绩按原价加总、只读、不参与提成；展示分列因页而异（支付方式或 5 类，见 §6.10）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>流水可审计</td>
 <td>开单自动算提成写行；详情可查看，人工修正（店主 / 合伙人）留修改日志</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>1.3 本期做（In）</h2>
 <ul>
 <li>提成方案列表（新建 / 重命名 / 复制 / 删除；未分配员工提示）</li>
 <li>方案编辑页：5 项默认规则卡（含快速消费）+ 覆盖规则项卡 + 「添加规则项」</li>
-<li>规则设置 Sheet：提成范围（4 类支付方式）、计算基数（原价 / 实收）、分配模式（不分工位 / 按工位）、提成取值（按比例 % / 固定金额 ¥）、点客 / 散客参数（按工位时逐工位）</li>
+<li>规则设置 Sheet：提成范围（3 类支付方式）、计算基数（原价 / 实收）、分配模式（不分工位 / 按工位）、提成取值（按比例 % / 固定金额 ¥）、点客 / 散客参数（按工位时逐工位）</li>
 <li>工位设置 Sheet：改名（恢复默认 / 确定）、删除（至少保留 1 个）；<strong>不可新增工位</strong></li>
 <li>添加规则项页：类型 Tab（项目 / 产品 / 会员卡）+ 分组筛选 + 多选（含整类分组）+ 已配置项禁用</li>
-<li>分配员工 Sheet（员工池多选、全选、清空；<strong>已在其他方案者可勾选，副文「也在：…」</strong>）</li>
+<li>分配员工 Sheet（员工池多选、全选、清空；已在其他方案者可勾选，副文为 <strong>file-multiple 图标 + 方案名</strong>（无「也在：」字面））</li>
 <li>规则卡「固定」标签：提成参数=<strong>固定金额</strong>时，规则卡计算基数标签改显「固定」（<code>#A7E6A7</code>），忽略计算基数设置；提成参数统一在规则设置 Sheet 的「提成取值」分段中设置</li>
 <li>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）+ 三个并列入口：「选择员工（3工位）」「选择员工（2工位）」「选择员工（1工位）」；共用灰底页 + Sheet（纯演示）</li>
 <li>试算口径：示例订单行按员工方案集合计算提成（原型试算引擎）</li>
-<li>流水订单：业绩只读展示（去编辑 icon）；提成可编辑（店主 / 合伙人）；修改日志记录与查看（开单流水详情 / 流水订单修改 / 项目流水修改）</li>
-<li>关联页面口径对齐：员工薪资明细（业绩统计 / 提成统计）、员工业绩提成明细（见 §6.10）</li>
+<li>流水订单 / 薪资关联口径（§6.8 / §6.10）：<strong>规格保留（本系统现有页面）</strong></li>
+<li>关联页面口径对齐：员工薪资明细（业绩统计 / 提成统计）、员工业绩提成明细（见 §6.10；非本包 UI）</li>
 <li>工作台移除「业绩设置」入口；旧单项提成配置下线；<strong>阶梯提成入口与方案保留并继续生效</strong></li>
 <li><strong>历史数据迁移（模块 13）</strong>：业绩设置 + 单项提成 → 新提成方案；多层等价校验门禁通过后方可切换读路径</li>
 <li>权限：<code>achCommSet</code> 仅店主 / 合伙人；流水提成编辑仅店主 / 合伙人</li>
@@ -300,51 +278,39 @@ tr:nth-child(even) td{background:#fafbfc}
 <th>新体系如何配置</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>单一固定提成比例</td>
 <td>多方案：每方案 5 项默认规则（项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>按“业绩”计算提成</td>
 <td>移除：提成基数由规则「原价 / 实收」直接定义，与业绩解耦；存量经 §13 公式折叠</td>
-</tr>
-<tr>
+</tr><tr>
 <td>业绩设置（高级+按项%）</td>
 <td>迁入各 RuleBlock 的 <code>baseMode</code> + 覆盖规则折算后的提成比例（见 §13）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>单项提成（点客/散客/%/¥/工位）</td>
 <td>迁入 <code>CatRule</code> / 按项 <code>overrides</code></td>
-</tr>
-<tr>
+</tr><tr>
 <td>阶梯提成</td>
 <td><strong>不迁移</strong>；配置保留，结算继续走旧阶梯引擎</td>
-</tr>
-<tr>
+</tr><tr>
 <td>特殊项目单独提成</td>
 <td>覆盖规则项：指定项目 / 产品 / 会员卡 / 整类分组</td>
-</tr>
-<tr>
+</tr><tr>
 <td>快速消费单独提成</td>
 <td>第 5 项默认「快速消费」；数据为系统项目覆盖项（<code>ov_sys_quick</code>），不吃「项目」默认</td>
-</tr>
-<tr>
+</tr><tr>
 <td>按工位分别设提成</td>
 <td>分配模式 = 按工位分配，逐工位设点客 / 散客参数</td>
-</tr>
-<tr>
+</tr><tr>
 <td>全体员工一套规则</td>
 <td>方案 + 分配员工；<strong>可一人多方案，重叠取高</strong></td>
-</tr>
-<tr>
+</tr><tr>
 <td>流水改业绩 / 改提成</td>
 <td>业绩只读；提成可改（店主 / 合伙人）且留修改日志</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <p>映射不足时以原型字段与行为为准；存量迁移细节以模块 13 为准。</p>
-<hr />
+<hr>
 <h1>模块 2　用户场景与成功标准</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 了解 · 测试 ✓</p>
@@ -357,25 +323,19 @@ tr:nth-child(even) td{background:#fafbfc}
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>店主（默认）</td>
 <td>全部能力：配置提成方案、分配员工、编辑流水提成</td>
-</tr>
-<tr>
+</tr><tr>
 <td>合伙人</td>
 <td>同店主（含 <code>achCommSet</code>、流水提成编辑）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>店长</td>
 <td>无提成配置权限；不可编辑流水提成</td>
-</tr>
-<tr>
+</tr><tr>
 <td>高级店员 / 店员</td>
 <td>无提成配置权限；不可编辑流水提成；业绩全程只读</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>2.2 核心场景</h2>
 <table>
 <thead>
@@ -385,60 +345,52 @@ tr:nth-child(even) td{background:#fafbfc}
 <th>成功标准</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>新建提成方案</td>
 <td>输入名称即建方案并进入编辑</td>
 <td>列表出现新方案；未分配前“未分配”</td>
-</tr>
-<tr>
+</tr><tr>
 <td>配 5 项默认提成</td>
 <td>项目 / 产品 / 办卡 / 充卡 / 快速消费分别设范围、基数、分配、参数</td>
 <td>各规则卡摘要正确；保存后列表摘要更新</td>
-</tr>
-<tr>
+</tr><tr>
 <td>覆盖指定项目</td>
 <td>某项目单独给更高提成</td>
 <td>覆盖规则卡在编辑页出现且优先级高于默认</td>
-</tr>
-<tr>
+</tr><tr>
 <td>覆盖整类分组</td>
 <td>把价目某自定义分组整类设统一提成</td>
 <td>分组内所有项目 / 产品命中该覆盖</td>
-</tr>
-<tr>
+</tr><tr>
 <td>按工位分配</td>
 <td>大 / 中 / 小工分别设点客散客参数</td>
 <td>规则卡显示逐工位参数；工位改名全局生效</td>
-</tr>
-<tr>
+</tr><tr>
 <td>分配员工</td>
 <td>把方案分配给人，<strong>可一人多方案</strong></td>
-<td>已在其他方案者可勾选并提示「也在：…」；列表“已分配”显示人名</td>
-</tr>
-<tr>
+<td>已在其他方案者可勾选并以图标+方案名提示；列表“已分配”显示人名</td>
+</tr><tr>
 <td>快速消费独立计提</td>
 <td>快消不吃「项目」默认</td>
 <td>命中系统覆盖 <code>ov_sys_quick</code>；不可删除</td>
-</tr>
-<tr>
+</tr><tr>
+<td>经理签单独立开关</td>
+<td>方案级决定经理签单（相当于免单）订单是否计算提成</td>
+<td>方案卡第二行 switch；关闭时经理签单行不计提成</td>
+</tr><tr>
 <td>流水查看与修正</td>
 <td>详情看业绩（只读）与提成</td>
-<td>业绩不可编辑；提成可编辑（店主 / 合伙人）且留修改日志</td>
-</tr>
-<tr>
+<td>业绩不可编辑、无编辑 icon；提成可编辑（店主 / 合伙人）且留修改日志</td>
+</tr><tr>
 <td>店员看流水</td>
 <td>可查看，但不可改提成</td>
 <td>编辑被权限拦截并 toast</td>
-</tr>
-<tr>
+</tr><tr>
 <td>薪资明细对齐</td>
 <td>业绩 / 提成统计与提成设置口径一致</td>
 <td>业绩按原价加总；提成分列 5 类且「项目」扣快速消费（§6.10）</td>
-</tr>
-</tbody>
-</table>
-<hr />
+</tr></tbody></table>
+<hr>
 <h1>模块 3　信息架构与页面清单</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 了解 · 测试 ✓</p>
@@ -447,53 +399,52 @@ tr:nth-child(even) td{background:#fafbfc}
  ├─ 方案列表
  │    ├─ 标题栏：提成设置 · 帮助（多方案规则）
  │    ├─ 未分配提示条（还有 N 人未分配任何提成方案）
- │    ├─ 方案卡：图标 · 名称 · 提成规则摘要（5 项默认( + N 条覆盖)）· 已分配员工
+ │    ├─ 方案卡：图标 · 名称 · 经理签单计算提成（switch）· 已分配员工
  │    │         · 分配入口 · ⋯ 菜单（重命名 / 复制方案 / 删除）
  │    └─ 底部「+ 添加提成方案」/ 空态
- ├─ 方案编辑
- │    ├─ 5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快速消费）
- │    ├─ 覆盖规则项卡（可删除；不含系统快消）+「+ 添加规则项」
- │    └─ 底部「保存」
- ├─ 添加规则项
- │    ├─ 类型 Tab：项目 / 产品 / 会员卡
- │    ├─ 分组轨（全部 / 自定义组）+ 全选 · 已选 N 项 · 反选
- │    ├─ 列表（名称 + 价格 / 面值；已配置项灰底白勾禁用；整类分组可勾）
- │    └─ 底部「取消 / 下一步(N)」
- ├─ 规则设置 Sheet（分类 / 覆盖 / 添加规则项共用）
- │    ├─ 提成范围（现金 / 卡付 / 团购 / 签单 多选 chips）
- │    ├─ 计算基数（原价模式 / 实收模式；提成取值=固定金额时规则卡标签改显「固定」）
- │    ├─ 分配模式（不分工位 / 按工位分配 → 工位设置）
- │    ├─ 会员卡（办卡 / 充卡；仅会员卡覆盖规则显示）
- │    ├─ 提成取值（按比例 % / 固定金额 ¥）+ 点客 / 散客 输入
- │    └─ 取消 / 确定
- ├─ 工位设置 Sheet
- │    ├─ 工位行：名称 · 改名 / 删除；编辑态：输入 · 恢复为默认 / 确定
- │    └─ 完成（**无新增工位**）
- ├─ 分配员工 Sheet：员工卡多选（也在其他方案可勾选并提示）· 全选 / 清空 · 已选 N 人 · 确定
- ├─ 关联页面（左侧导航区域）
- │    ├─ 选择员工（3工位）：点客/散客 → 大/中/小工（全宽三按钮 morph）
- │    ├─ 选择员工（2工位）：点客/散客 → 大工/小工（双按钮 morph，对齐点客/散客）
- │    └─ 选择员工（1工位）：仅点客/散客即完成（逻辑等同未设工位）；共用灰底 `screen-comm2-staff`
- └─ 弹层：方案命名 / 重命名、删除确认、未保存返回、删除规则项、帮助说明
+├─ 方案编辑
+│    ├─ 5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快速消费）
+│    ├─ 覆盖规则项卡（可删除；不含系统快消）+「+ 添加规则项」
+│    └─ 底部「保存」
+├─ 添加规则项
+│    ├─ 类型 Tab：项目 / 产品 / 会员卡
+│    ├─ 分组轨（全部 / 自定义组）+ 全选 · 已选 N 项 · 反选
+│    ├─ 列表（名称 + 价格 / 面值；已配置项灰底白勾禁用；整类分组可勾）
+│    └─ 底部「取消 / 下一步(N)」
+├─ 规则设置 Sheet（分类 / 覆盖 / 添加规则项共用）
+│    ├─ 提成范围（现金 / 卡付 / 团购 多选 chips）
+│    ├─ 计算基数（原价模式 / 实收模式；提成取值=固定金额时规则卡标签改显「固定」）
+│    ├─ 分配模式（不分工位 / 按工位分配 → 工位设置）
+│    ├─ 会员卡（办卡 / 充卡；仅会员卡覆盖规则显示）
+│    ├─ 提成取值（按比例 % / 固定金额 ¥）+ 点客 / 散客 输入
+│    └─ 取消 / 确定
+├─ 工位设置 Sheet
+│    ├─ 工位行：名称 · 改名 / 删除；编辑态：输入 · 恢复为默认 / 确定
+│    └─ 完成（**无新增工位**）
+├─ 分配员工 Sheet：员工卡多选（也在其他方案可勾选并提示）· 全选 / 清空 · 已选 N 人 · 确定
+├─ 关联页面（左侧导航区域）
+│    ├─ 选择员工（3工位）：点客/散客 → 大/中/小工（全宽三按钮 morph）
+│    ├─ 选择员工（2工位）：点客/散客 → 大工/小工（双按钮 morph，对齐点客/散客）
+│    └─ 选择员工（1工位）：仅点客/散客即完成（逻辑等同未设工位）；共用灰底 `screen-comm2-staff`
+└─ 弹层：方案命名 / 重命名、删除方案确认、未保存返回、帮助说明；覆盖删除为左滑/长按+撤销 toast（§5.5）
 </code></pre>
 <h3>3.0 页面流（示意）</h3>
 <div class="mermaid">
 flowchart LR
-  W[工作台] --&gt;|提成设置| L[方案列表]
-  L --&gt;|添加提成方案| N[[命名 Dialog]]
-  N --&gt;|创建| E[方案编辑]
-  L --&gt;|点方案卡| E
-  E --&gt;|点规则卡| S[[规则设置 Sheet]]
-  E --&gt;|按工位已选再次点击| ST[[工位设置 Sheet]]
-  E --&gt;|添加规则项| P[添加规则项]
-  P --&gt;|下一步| S
-  L --&gt;|已分配| A[[分配员工 Sheet]]
-  L --&gt;|⋯ 菜单| M[[重命名 / 复制 / 删除]]
-  E --&gt;|保存| L
-  L --&gt;|左侧导航 · 关联页面| STF[[选择员工 Sheet]]
-  W --&gt;|开单| B[流水订单]
-  B --&gt;|流水详情| D[业绩只读 · 提成可编辑]
-
+  W[工作台] -->|提成设置| L[方案列表]
+  L -->|添加提成方案| N[[命名 Dialog]]
+  N -->|创建| E[方案编辑]
+  L -->|点方案卡| E
+  E -->|点规则卡| S[[规则设置 Sheet]]
+  E -->|按工位已选再次点击| ST[[工位设置 Sheet]]
+  E -->|添加规则项| P[添加规则项]
+  P -->|下一步| S
+  L -->|已分配| A[[分配员工 Sheet]]
+  L -->|⋯ 菜单| M[[重命名 / 复制 / 删除]]
+  E -->|保存| L
+  L -->|左侧导航 · 关联页面| STF[[选择员工 Sheet]]
+  W -->|开单| B[流水订单]
+  B -->|流水详情| D[业绩只读 · 提成可编辑]
 </div>
 <table>
 <thead>
@@ -503,63 +454,50 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>方案列表</td>
 <td>提成设置</td>
 <td>帮助；未分配提示条；底部「+ 添加提成方案」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>方案编辑</td>
 <td>{方案名}</td>
 <td>5 默认规则卡（含快速消费）+ 用户覆盖规则项 +「+ 添加规则项」；底部「保存」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>添加规则项</td>
 <td>添加规则项</td>
 <td>类型 Tab / 分组轨 / 全选·反选 / 下一步</td>
-</tr>
-<tr>
+</tr><tr>
 <td>规则设置</td>
 <td>分类名 / 覆盖名 / 添加规则项 · 设置</td>
 <td>底部「取消 / 确定」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>工位设置</td>
 <td>工位设置</td>
 <td>底部「完成」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>分配员工</td>
 <td>分配员工</td>
 <td>底部「取消 / 确定」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>选择员工（3工位）</td>
 <td>选择员工（3工位）</td>
 <td>共用灰底 + Sheet；点客/散客 → 大/中/小工</td>
-</tr>
-<tr>
+</tr><tr>
 <td>选择员工（2工位）</td>
 <td>选择员工（2工位）</td>
 <td>共用灰底 + Sheet；点客/散客 → 大工/小工（双按钮 morph）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>选择员工（1工位）</td>
 <td>选择员工（1工位）</td>
 <td>共用灰底 + Sheet；仅点客/散客，摘要无工位名</td>
-</tr>
-<tr>
+</tr><tr>
 <td>流水详情</td>
 <td>流水详情</td>
 <td>业绩 / 提成指标；修改记录入口</td>
-</tr>
-</tbody>
-</table>
-<p>功能链路演示节点（FLOW_MAP「提成设置」）：<code>comm2-list</code> / <code>comm2-edit</code> / <code>comm2-pick</code> / <code>comm2-staff-3</code> / <code>comm2-staff-2</code> / <code>comm2-staff-1</code>（原型内嵌 FLOW_NAV 亦有 <code>comm2</code> 系列）；捕获深链 <code>?capture=comm2-advisor</code> 直开「顾问标准提成」编辑页。</p>
-<p>深链：<code>demo.html?flow=&lt;节点 id&gt;</code>（可选 <code>&amp;capture=1</code>）。流水详情相关节点归属「开单记账」分组。</p>
+</tr></tbody></table>
+<p>功能链路演示节点（FLOW_MAP「提成设置」）：<code>comm2-list</code> / <code>comm2-edit</code> / <code>comm2-pick</code> / <code>comm2-staff</code>（原型内嵌 FLOW_NAV 亦有 <code>comm2</code> 系列）；捕获深链 <code>?capture=comm2-advisor</code> 直开「顾问标准提成」编辑页。</p>
 <p>实现路由建议（名称可调整）：<code>comm2-scheme-list</code> / <code>comm2-scheme-edit</code> / <code>comm2-rule-pick</code> / <code>comm2-rule-sheet</code> / <code>comm2-station-sheet</code> / <code>comm2-assign-sheet</code> / <code>comm2-staff-picker</code>。</p>
-<hr />
+<hr>
 <h1>模块 4　状态机</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 <strong>必看</strong> · 测试 <strong>必看</strong></p>
@@ -576,25 +514,19 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>草稿（<code>store._draft</code>）</td>
 <td>「添加提成方案」命名后进入编辑；保存后入列表顶部</td>
-</tr>
-<tr>
+</tr><tr>
 <td>已保存</td>
 <td>进入编辑即持 <code>_snapshot</code>；未保存返回可还原</td>
-</tr>
-<tr>
+</tr><tr>
 <td>已分配</td>
-<td><code>assigneeIds</code> 非空；同一员工可出现在多个方案</td>
-</tr>
-<tr>
+<td><code>assigneeIds</code> 非空；员工<strong>可</strong>出现在多个方案</td>
+</tr><tr>
 <td>未分配</td>
-<td><code>assigneeIds</code> 为空；列表「已分配：未分配」；计入未分配提示</td>
-</tr>
-</tbody>
-</table>
+<td><code>assigneeIds</code> 为空；列表「已分配：未分配」；计入未分配提示（不属于<strong>任何</strong>方案）</td>
+</tr></tbody></table>
 <h2>4.2 编辑脏状态</h2>
 <ul>
 <li>进入编辑页对任一规则 / 覆盖 / 工位 / 范围等产生写入即置脏（<code>_dirty</code>）。</li>
@@ -611,33 +543,27 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>提成范围 <code>payScope</code></td>
-<td><code>{cash, memberCard, groupBuy, sign}</code> 各布尔</td>
+<td><code>{cash, memberCard, groupBuy}</code> 各布尔</td>
 <td>至少选 1 类；取消最后 1 类被拦截</td>
-</tr>
-<tr>
+</tr><tr>
 <td>计算基数 <code>baseMode</code></td>
 <td><code>list</code> 原价 / <code>paid</code> 实收</td>
 <td>规则卡彩色标签「原价」「实收」；<strong>当提成取值=固定金额时，该标签改显「固定」（<code>#A7E6A7</code>），忽略计算基数设置</strong></td>
-</tr>
-<tr>
+</tr><tr>
 <td>分配模式 <code>pickMode</code></td>
 <td><code>avg</code> 平均 / <code>station</code> 按工位</td>
 <td>按工位时逐工位参数生效</td>
-</tr>
-<tr>
+</tr><tr>
 <td>提成取值 <code>valueMode</code></td>
 <td><code>pct</code> 比例 / <code>amount</code> 固定金额</td>
 <td>切换保留双字段（点客 / 散客）；<strong>固定金额时规则卡计算基数标签显示「固定」</strong></td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>4.4 覆盖规则项（Override）</h2>
 <pre><code>添加：选择目标（项目/产品/会员卡/整类分组）→ 设置 → 确定 → 写入 overrides，置脏
 命中：订单行匹配 targets 之一即命中；多 target 命中同一行仍只计一次
-删除：确认「确认删除该规则项？」→ 移除，置脏
+删除：左滑 / 长按菜单立即移除 + 撤销 toast（§5.5），置脏；无确认 Dialog 主路径
 </code></pre>
 <ul>
 <li>覆盖规则的<strong>优先级高于</strong>默认规则（§8 规则 5 解析顺序）。</li>
@@ -652,15 +578,16 @@ flowchart LR
 <ul>
 <li>删除确认文案：「删除后，各规则卡上该工位的提成参数将一并清除，确定删除？」。</li>
 <li>改名输入 maxlength 4；空名 toast「名称不能为空」；「恢复为默认」在已是默认名时禁用。</li>
-<li>按工位模式下，工位删除导致订单行无法命中该工位 → 回退规则级点客 / 散客（§8 规则 7 兜底）。</li>
+<li>按工位模式下，订单行工位缺失或已删：取方案 <code>stationIds</code> <strong>首个工位</strong>对应参数；若该工位参数块亦不存在 → <code>defaultPair()</code>（§8 规则 7）。</li>
 <li><strong>不可新增</strong>：工位设置 Sheet 无「+ 新增工位」入口。</li>
 </ul>
 <h2>4.6 分配状态</h2>
 <ul>
 <li>员工池 = 开单员工池（<code>EmployeeDemo.getBillingStaffPool</code>；回退内置 st1–st5）。</li>
-<li><strong>多方案可并存</strong>：同一员工可出现在多个方案的 <code>assigneeIds</code>；分配 Sheet 不灰显禁用，副文提示「也在：{方案名…}」。</li>
-<li>分配 Sheet：全选勾选当前可见员工池全部人；确定直接写回本方案 <code>assigneeIds</code>（不校验互斥）。进入列表时<strong>不再</strong>做一人一方案自动清洗。</li>
-<li>未分配 = 员工池中不属于<strong>任何</strong>方案的员工；列表顶部提示「还有 <strong>N</strong> 人未分配任何提成方案」，点击查看名单 Dialog。</li>
+<li><strong>多方案可并存</strong>：同一员工可出现在多个方案的 <code>assigneeIds</code>；分配 Sheet 不灰显禁用，副文为图标 + 其他方案名（<code>aria-label</code> 含「也在其他方案」）。</li>
+<li>分配 Sheet：全选勾选当前可见员工池全部人；确定直接写回本方案 <code>assigneeIds</code>（不校验互斥）。</li>
+<li>进入列表时<strong>不再</strong>做一人一方案自动清洗。</li>
+<li>未分配 = 员工池中不属于任何方案的员工；列表顶部提示「还有 <strong>N</strong> 人未分配任何提成方案」，点击查看名单 Dialog。</li>
 <li>确定后 toast「已分配 N 人」或「已清空分配」。</li>
 </ul>
 <h2>4.7 流水订单指标状态</h2>
@@ -671,18 +598,14 @@ flowchart LR
 <th>状态</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>业绩</td>
 <td><strong>只读展示</strong>；不再可编辑</td>
-</tr>
-<tr>
+</tr><tr>
 <td>提成</td>
 <td>可编辑（店主 / 合伙人权限）；改动写订单行并记录修改日志</td>
-</tr>
-</tbody>
-</table>
-<hr />
+</tr></tbody></table>
+<hr>
 <h1>模块 5　交互细则 / 异常流</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 了解 · 测试 ✓</p>
@@ -702,57 +625,43 @@ flowchart LR
 <th>提示</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>方案名称为空（新建 / 重命名）</td>
 <td>请输入方案名称</td>
-</tr>
-<tr>
+</tr><tr>
 <td>规则点客比例无效（非数字 / &lt;0）</td>
 <td>请输入有效的点客比例</td>
-</tr>
-<tr>
+</tr><tr>
 <td>规则散客比例无效</td>
 <td>请输入有效的散客比例</td>
-</tr>
-<tr>
+</tr><tr>
 <td>固定金额模式点客金额无效</td>
 <td>请输入有效的点客金额</td>
-</tr>
-<tr>
+</tr><tr>
 <td>固定金额模式散客金额无效</td>
 <td>请输入有效的散客金额</td>
-</tr>
-<tr>
+</tr><tr>
 <td>比例 &gt; 100%</td>
 <td>比例需在 0–100%</td>
-</tr>
-<tr>
+</tr><tr>
 <td>取消某块最后一个支付方式</td>
 <td>至少选一种支付方式</td>
-</tr>
-<tr>
+</tr><tr>
 <td>保存时某默认类范围为 0</td>
 <td>「{类名}」至少选一种支付方式</td>
-</tr>
-<tr>
+</tr><tr>
 <td>保存时某覆盖范围为 0</td>
 <td>覆盖规则「{标题}」至少选一种支付方式</td>
-</tr>
-<tr>
+</tr><tr>
 <td>工位改名后为空</td>
 <td>名称不能为空</td>
-</tr>
-<tr>
+</tr><tr>
 <td>工位数已达上限新增</td>
 <td>最多 5 个工位</td>
-</tr>
-<tr>
+</tr><tr>
 <td>权限不足（编辑流水提成）</td>
 <td>当前为「{角色}」，无法修改提成（以原型文案为准）</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>5.3 拦截与确认</h2>
 <table>
 <thead>
@@ -761,33 +670,25 @@ flowchart LR
 <th>行为</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>返回未保存编辑页</td>
 <td>Dialog「尚未保存」；留在本页 / 不保存</td>
-</tr>
-<tr>
+</tr><tr>
 <td>删除方案</td>
 <td>Dialog「确认删除该方案？」「删除后不可恢复。」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>删除覆盖规则项</td>
-<td>Dialog「确认删除该规则项？」「删除后不可恢复。」</td>
-</tr>
-<tr>
+<td>无确认 Dialog：左滑 / 长按菜单直接删 + 撤销 toast（§5.5）</td>
+</tr><tr>
 <td>删除工位</td>
 <td>confirm「删除后，各规则卡上该工位的提成参数将一并清除，确定删除？」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>编辑流水提成（权限不足）</td>
 <td>toast 拦截，数据不变</td>
-</tr>
-<tr>
+</tr><tr>
 <td>点击已配置（灰底白勾）规则目标</td>
 <td>不可点击（disabled）</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>5.4 空态</h2>
 <table>
 <thead>
@@ -796,37 +697,63 @@ flowchart LR
 <th>空态文案</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>方案列表无方案</td>
 <td>还没有提成方案 / 点下方按钮添加</td>
-</tr>
-<tr>
+</tr><tr>
 <td>添加规则项某分类无内容</td>
 <td>该分类下暂无内容</td>
-</tr>
-<tr>
+</tr><tr>
 <td>添加规则项列表无分组</td>
 <td>分组轨隐藏（仅「全部」）</td>
+</tr></tbody></table>
+<hr>
+<h2>5.5 覆盖规则删除（左滑 / 长按 + 撤销）</h2>
+<blockquote>
+<p>以独立原型为准；<strong>无</strong>「确认删除该规则项」主路径 Dialog。</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>方式</th>
+<th>行为</th>
 </tr>
-</tbody>
-</table>
-<hr />
+</thead>
+<tbody><tr>
+<td><strong>左滑</strong></td>
+<td>用户覆盖卡外层 <code>.comm2-rule-swipe</code>；向左滑超阈值（约卡片宽 40% 或快速甩出）→ 飞出动画 → 立即从 <code>overrides</code> 移除</td>
+</tr><tr>
+<td><strong>长按</strong></td>
+<td>长按约 480ms → 卡片右侧下拉菜单「删除」→ 立即移除</td>
+</tr><tr>
+<td><strong>撤销</strong></td>
+<td>toast「已删除规则项」+「撤销」按钮，约 <strong>2.5s</strong>（<code>RULE_UNDO_MS</code>）；点击撤销按原索引插回；超时后不可撤销</td>
+</tr><tr>
+<td><strong>系统项</strong></td>
+<td>快速消费（<code>system</code>）不可删；无删除菜单 / 左滑宿主</td>
+</tr></tbody></table>
+<ul>
+<li>撤销栈：原型保留<strong>最近一次</strong>删除；连续删除后仅最后一次可撤销。</li>
+<li>离开编辑页（不保存 / 保存成功回列表）后撤销栈清空。</li>
+<li>手势进行中消费 click，避免误开 Sheet；与卡面胶囊点击互斥（胶囊 <code>pointerdown</code> 不启动手势）。</li>
+</ul>
 <h1>模块 6　功能规格</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 了解 · 测试 ✓</p>
 </blockquote>
-<p>下列字段、按钮、跳转均须与原型一致；视觉以原型为准（规则卡布局见 §6.2.1–6.2.6；基数 / 范围标签为 20px 高胶囊、圆角 999px：原价 <code>#FFB6B6</code>、实收 <code>#BBB6FF</code>、<strong>固定 <code>#A7E6A7</code> 白字（提成参数为固定金额时）</strong>；提成参数文字 <code>#8D8D8D</code>）。</p>
+<p>下列字段、按钮、跳转均须与原型一致；视觉以原型为准（规则卡布局见 §6.2；右列胶囊为黑白灰立体段控 + 选中莫兰迪字色 <code>#E89D64</code> / <code>#E06767</code>；固定金额时右上显示只读「固定」灰标）。</p>
 <h2>6.1 方案列表</h2>
 <p><strong>结构</strong></p>
 <ul>
 <li>标题栏：返回 ·「提成设置」· 帮助（多方案规则）。</li>
-<li>未分配提示条（<code>comm2UnassignedTip</code>）：存在未分配员工时显示「还有 <strong>N</strong> 人未分配提成」+ 右侧 chevron；点击弹 Dialog 列出名单；无未分配时隐藏。</li>
-<li>方案卡（<code>emp-comm-card</code>）：</li>
+<li>未分配提示条（<code>comm2UnassignedTip</code>）：存在未分配员工时显示「还有 <strong>N</strong> 人未分配任何提成方案」+ 右侧 chevron；点击弹 Dialog 列出名单；无未分配时隐藏。</li>
+<li>方案卡（<code>emp-comm-card</code>）：
+<ul>
 <li>主区：图标（提成图）· 方案名称 · 提成规则摘要「5 项默认」或「5 项默认 · N 条覆盖」。</li>
-<li>分配行：「已分配」+ 员工名（<code>·</code> 连接；空为「未分配」）。</li>
+<li>经理签单行：「经理签单计算提成」+ 右侧 switch（<code>comm2-signcomm</code>）；点击切换方案 <code>signComm</code>，立即生效并 toast「经理签单已计入提成 / 经理签单不计入提成」，无需进编辑页。</li>
+<li>分配行：「已分配」+ 员工名（<code> · </code> 连接；空为「未分配」）。</li>
 <li>⋯ 菜单（<code>comm2MenuMask</code>）：重命名 / 复制方案 / 删除；取消在 foot。</li>
-<li>底部：品牌红「+ 添加提成方案」（→ 命名 Dialog）。</li>
+</ul><li>底部：品牌红「+ 添加提成方案」（→ 命名 Dialog）。</li>
 <li>空态：还没有提成方案 / 点下方按钮添加。</li>
 </ul>
 <p><strong>菜单动作</strong></p>
@@ -837,100 +764,131 @@ flowchart LR
 <th>行为</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>重命名</td>
 <td>Dialog「重命名方案」，预填当前名；确定 toast「方案已重命名」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>复制方案</td>
-<td>生成「{原名} 副本」，<code>assigneeIds</code> 清空；toast「方案已复制」</td>
-</tr>
-<tr>
+<td>生成「{原名} 副本」，<code>assigneeIds</code> 清空，<code>signComm</code> 原样保留；toast「方案已复制」</td>
+</tr><tr>
 <td>删除</td>
 <td>Dialog「确认删除该方案？」；确认 toast「方案已删除」</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>6.2 方案编辑</h2>
 <ul>
 <li>标题 = 方案名。</li>
-<li>卡片区：5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快速消费）+ 用户覆盖规则项卡（右侧删除按钮）+ 底部「+ 添加规则项」。</li>
-<li>点规则卡 → 规则设置 Sheet；覆盖项点删除 → 删除确认。</li>
+<li>卡片区：5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快速消费）+ 用户覆盖规则项卡 + 底部「+ 添加规则项」。</li>
+<li>交互分区见下；覆盖删除见 §5.5。</li>
 <li>底部「保存」：校验全部默认 / 覆盖范围 ≥1 类 → toast「提成方案已保存」→ 回列表。</li>
 </ul>
-<h3>6.2.1 规则卡（<code>comm2-rule-bar</code>）布局总则</h3>
-<p>规则卡为<strong>两行信息区</strong> + <strong>右侧导航箭头</strong>，整体为可点击横条（覆盖项另含删除按钮）。默认规则左侧竖条品牌色；覆盖规则竖条 <code>#FF8A3D</code>。</p>
-<pre>┌─▌ [行1] 图标 标题………          点客10%·散客10%        › ┐
-│      [行2]  原价  现金  卡付  团购                        │
-└─▌                                              [🗑 覆盖] ┘</pre>
+<h3>6.2.1 规则卡布局总则（对齐原型）</h3>
+<p>规则卡为<strong>左右两列网格</strong>：左列标题 + 发丝线 + 提成参数；右列计算基数控件 + 提成范围控件。默认规则左竖条品牌色；覆盖规则 <code>#FF8A3D</code>。用户覆盖外包左滑容器。</p>
+<pre><code>┌─▌ 标题（≤6 字完整 / 超出省略）          [ 原价 | 实收 ] 或「固定」 ┐
+│  ──────── 发丝线 ────────                                     │
+│  点 10%   散 10%（或 大/中/小 …）     [ 现金 | 卡付 | 团购 ]   │
+└─▌                                                              ┘
+</code></pre>
 <table>
-<thead><tr><th>区域</th><th>行</th><th>内容</th><th>说明</th></tr></thead>
-<tbody>
-<tr><td>主信息</td><td><strong>1</strong></td><td>标题 + <strong>提成参数</strong></td><td><strong>必须在同一行</strong>；标题在左，参数在右</td></tr>
-<tr><td>标签</td><td><strong>2</strong></td><td><strong>计算基数标签</strong> + <strong>提成范围胶囊</strong></td><td>全部标签放第二行；左缘与标题文字对齐</td></tr>
-<tr><td>导航</td><td>—</td><td>chevron ›</td><td><strong>垂直居中于整张卡片</strong>（含两行）；不参与换行</td></tr>
-<tr><td>操作</td><td>—</td><td>删除（仅覆盖项）</td><td>卡片最右侧独立按钮，与主区左分隔线</td></tr>
-</tbody>
-</table>
-<p><strong>交互</strong>：提成参数（比例 / 固定金额）<strong>仅在规则设置 Sheet「提成取值」分段设置</strong>；规则卡<strong>只读展示</strong>，不提供比例/固定切换控件。</p>
-<h3>6.2.2 第一行 · 标题</h3>
+<thead>
+<tr>
+<th>热区</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>标题 / 发丝线 / 左列垫高空白</td>
+<td>打开规则设置 Sheet</td>
+</tr><tr>
+<td>提成参数区</td>
+<td>打开 Sheet，并滚动/高亮「提成参数」锚点</td>
+</tr><tr>
+<td>右列「原价/实收」段控</td>
+<td><strong>卡面直接切换</strong> <code>baseMode</code>（置脏，不经 Sheet 确定）；固定金额时改为只读「固定」灰标，不可点切</td>
+</tr><tr>
+<td>右列「现金/卡付/团购」段控</td>
+<td><strong>卡面直接多选切换</strong> <code>payScope</code>（至少保留 1 类，否则 toast）</td>
+</tr><tr>
+<td>比例/固定</td>
+<td><strong>仅在 Sheet</strong>「提成取值」切换；卡上不提供比例/固定控件</td>
+</tr></tbody></table>
+<h3>6.2.2 标题</h3>
 <table>
-<thead><tr><th>规则</th><th>说明</th></tr></thead>
-<tbody>
-<tr><td>结构</td><td>分类图标（14×14）+ 标题文案；默认卡为类名，覆盖卡为覆盖标题（多目标以「、」连接）</td></tr>
-<tr><td>字数 ≤6</td><td><strong>完整显示</strong>，不加省略号</td></tr>
-<tr><td>字数 &gt;6</td><td><strong>至少显示 6 个字符</strong>，超出部分以 … 截断</td></tr>
-<tr><td>计字</td><td>中文、英文、数字、标点<strong>各计 1 字</strong></td></tr>
-<tr><td>完整标题</td><td>写入 HTML <code>title</code> 属性；长按 / hover 可查看全文</td></tr>
-<tr><td>宽度</td><td>标题区可收缩，文本区保底 <code>min-width: 6em</code>；单行 <code>text-overflow: ellipsis</code></td></tr>
-<tr><td>与参数关系</td><td>标题与提成参数<strong>不得拆到两行</strong>；标题让位给参数</td></tr>
-</tbody>
-</table>
-<h3>6.2.3 第一行 · 提成参数</h3>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>结构</td>
+<td>分类图标 + 标题；覆盖为多目标「、」连接</td>
+</tr><tr>
+<td>≤6 字</td>
+<td>完整显示</td>
+</tr><tr>
+<td>&gt;6 字</td>
+<td>至少显示 6 字 + <code>…</code>；<code>title</code> 属性含全文</td>
+</tr><tr>
+<td>计字</td>
+<td>中英数标点各计 1</td>
+</tr></tbody></table>
+<h3>6.2.3 提成参数展示</h3>
 <table>
-<thead><tr><th>规则</th><th>说明</th></tr></thead>
-<tbody>
-<tr><td>位置</td><td>标题<strong>右侧</strong>、chevron <strong>左侧</strong>；<strong>不得与 chevron / 删除按钮重叠</strong></td></tr>
-<tr><td>样式</td><td><code>#8D8D8D</code>、12px、字重 500；<strong>右对齐</strong></td></tr>
-<tr><td>完整性</td><td>参数<strong>必须完整展示</strong>，不可用省略号截断数值</td></tr>
-<tr><td>换行</td><td>空间不足时允许换行；换行后<strong>各行均右对齐</strong></td></tr>
-<tr><td>不分工位</td><td>整段为单一单元：<code>点客{X}·散客{Y}</code> 或 <code>点客¥{X}·散客¥{Y}</code>；不得在「点客」「散客」之间拆开</td></tr>
-<tr><td>按工位分配</td><td>每个工位为<strong>不可分割单元</strong>：<code>{工位名} {点客值}·{散客值}</code>（DOM：<code>comm2-rule-bar__param-seg</code>）</td></tr>
-<tr><td>按工位换行</td><td>放不下的工位段<strong>整体</strong>移至下一行（例：「小工 10%·10%」整段到第二行）</td></tr>
-<tr><td>工位改名</td><td>卡片即时反映 <code>stationLabels</code>（见 §6.4）</td></tr>
-</tbody>
-</table>
-<h3>6.2.4 第二行 · 标签</h3>
-<p>第二行仅放<strong>标签</strong>，不含提成参数、不含 chevron。</p>
+<thead>
+<tr>
+<th>规则</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>短标</td>
+<td>不分工位：<code>点</code> / <code>散</code>；按工位：工位名首字（默认大/中/小）</td>
+</tr><tr>
+<td>数值</td>
+<td>字号加大、主文字色；比例带 <code>%</code>，固定带 <code>¥</code>；工位段为 <code>值·值</code></td>
+</tr><tr>
+<td>完整</td>
+<td>数值不可省略号截断；空间不足时可换行</td>
+</tr><tr>
+<td>工位改名</td>
+<td>即时反映 <code>stationLabels</code></td>
+</tr></tbody></table>
+<h3>6.2.4 右列胶囊样式</h3>
 <table>
-<thead><tr><th>标签类型</th><th>样式</th><th>规则</th></tr></thead>
-<tbody>
-<tr><td><strong>计算基数</strong></td><td>胶囊 20px 高、圆角 999px、11px 白字</td><td><strong>原价</strong> <code>#FFB6B6</code> / <strong>实收</strong> <code>#BBB6FF</code>；<code>valueMode=amount</code> 时改显 <strong>固定</strong> <code>#A7E6A7</code></td></tr>
-<tr><td><strong>提成范围</strong></td><td>胶囊 20px 高、<code>#F5F5F5</code> 底</td><td>现金 / 卡付 / 团购 / 签单；未选时显示「—」</td></tr>
-<tr><td>排列顺序</td><td>—</td><td><strong>先</strong>计算基数，<strong>后</strong>提成范围</td></tr>
-<tr><td>对齐</td><td>—</td><td>左缘与标题文字对齐（<code>padding-left: 19px</code>）</td></tr>
-<tr><td>溢出</td><td>—</td><td>标签过多时<strong>自动换行</strong></td></tr>
-</tbody>
-</table>
-<h3>6.2.5 空间冲突优先级</h3>
-<ol>
-<li><strong>提成参数完整展示</strong>（可换行，不可截断）</li>
-<li><strong>标题至少 6 字 + 省略</strong></li>
-<li><strong>chevron / 删除按钮</strong>固定占位，内容不得侵入</li>
-</ol>
-<p>按工位参数换行时，第一行高度随参数行数增加；chevron 仍相对<strong>整卡</strong>垂直居中。</p>
-<h3>6.2.6 覆盖规则卡差异</h3>
+<thead>
+<tr>
+<th>状态</th>
+<th>样式</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>未选</td>
+<td>浅灰底、淡灰字</td>
+</tr><tr>
+<td>选中（原价/实收）</td>
+<td>白底 + 字色 <code>#E89D64</code> + 轻阴影</td>
+</tr><tr>
+<td>选中（现金/卡付/团购）</td>
+<td>白底 + 字色 <code>#E06767</code> + 轻阴影</td>
+</tr><tr>
+<td>固定金额</td>
+<td>右上只读灰标「固定」，替代原价/实收段控</td>
+</tr></tbody></table>
+<h3>6.2.5 覆盖规则卡</h3>
 <table>
-<thead><tr><th>项</th><th>默认规则卡</th><th>覆盖规则卡</th></tr></thead>
-<tbody>
-<tr><td>左竖条</td><td>品牌色</td><td><code>#FF8A3D</code></td></tr>
-<tr><td>标题</td><td>类名 + 类图标</td><td>覆盖标题 + 归属类图标；长标题走 §6.2.2</td></tr>
-<tr><td>删除</td><td>无</td><td>右侧垃圾桶；系统「快速消费」不可删</td></tr>
-<tr><td>布局</td><td>§6.2.1–6.2.5</td><td>§6.2.1–6.2.5</td></tr>
-</tbody>
-</table>
-<p>设置「固定金额」后：第二行计算基数标签显示「固定」，第一行参数展示 ¥ 格式。</p>
+<thead>
+<tr>
+<th>项</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>删除</td>
+<td>左滑飞出或长按菜单（§5.5）；<strong>无</strong>右侧垃圾桶主路径</td>
+</tr><tr>
+<td>系统快消</td>
+<td>不可删、无左滑宿主</td>
+</tr></tbody></table>
 <h2>6.3 规则设置 Sheet（分类 / 覆盖 / 添加规则项共用）</h2>
 <table>
 <thead>
@@ -940,42 +898,33 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>提成范围</td>
-<td>chips 多选（现金 / 卡付 / 团购 / 签单）</td>
+<td>chips 多选（现金 / 卡付 / 团购）</td>
 <td>至少 1 类；选中态品牌色</td>
-</tr>
-<tr>
+</tr><tr>
 <td>计算基数</td>
-<td>分段：原价模式 / 实收模式</td>
+<td>分段：原价模式 / 实收模式（固定金额时仍可展示；计提不乘基数）</td>
 <td><code>baseMode</code>；分段保持可切换，<strong>但当提成取值切换为「固定金额」时，规则卡上的计算基数标签改显「固定」，不再随分段变化</strong></td>
-</tr>
-<tr>
+</tr><tr>
 <td>分配模式</td>
 <td>分段：不分工位 / 按工位分配</td>
 <td>按工位已选中时<strong>再次点击</strong> → 打开工位设置 Sheet；齿轮浅灰内嵌</td>
-</tr>
-<tr>
+</tr><tr>
 <td>会员卡</td>
 <td>分段：办卡 / 充卡</td>
 <td><strong>仅</strong>覆盖规则且目标为会员卡时显示（<code>showCardRole</code>）；决定 <code>cardRole</code> 与归属类（办卡→<code>issue</code> / 充卡→<code>card</code>）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>提成取值</td>
 <td>分段：按比例 % / 固定金额 ¥</td>
 <td>切换保留双字段；<strong>固定金额时规则卡计算基数标签显示「固定」</strong></td>
-</tr>
-<tr>
+</tr><tr>
 <td>点客 / 散客</td>
 <td>双输入框（<code>input-amount</code>，金额键盘）</td>
 <td>不分工位：规则级一组；按工位：<strong>每工位一组</strong>（<code>工位名</code> 行）</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <p>标题：默认分类为类名；覆盖为覆盖标题；添加规则项为「添加规则项 · 设置」。取消 / 确定在 foot。</p>
-<p><strong>确定（默认 / 覆盖）</strong>：校验输入 → 写回块 → toast「已更新规则」→ 关 Sheet → 重绘卡片并高亮该卡（flash）。
-<strong>确定（添加规则项）</strong>：见 §6.5。</p>
+<p><strong>确定（默认 / 覆盖）</strong>：校验输入 → 写回块 → toast「已更新规则」→ 关 Sheet → 重绘卡片并高亮该卡（flash）。 <strong>确定（添加规则项）</strong>：见 §6.5。</p>
 <h2>6.4 工位设置 Sheet</h2>
 <table>
 <thead>
@@ -984,59 +933,70 @@ flowchart LR
 <th>行为</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>工位行（非编辑态）</td>
 <td>工位名 + 「改名」/「删除」（仅 1 个工位时删除禁用）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>工位行（编辑态）</td>
 <td>输入框（maxlength 4，聚焦全选）+「恢复为默认」（已是默认名禁用）/「确定」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>新增工位</td>
 <td><strong>本期不可新增</strong>（无入口）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>完成</td>
 <td>关 Sheet，回到规则设置 / 编辑页</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <p>改名 / 删除后：重绘工位 Sheet、编辑卡片，若规则 Sheet 打开则刷新其参数区。</p>
 <h2>6.5 添加规则项</h2>
 <p><strong>入口</strong>：编辑页「+ 添加规则项」。</p>
-<p><strong>页面</strong>：
-- 类型 Tab：<strong>项目 / 产品 / 会员卡</strong>（默认项目）。
-- 分组轨：全部 + 自定义分组（会员卡为卡分组），无分组时隐藏。
-- 工具行：全选 · 已选 N 项 · 反选。
-- 列表项：名称 + 副行（项目 / 产品为价格 <code>¥x</code>；会员卡为「面值 ¥x」/「已下架」）。
-- 整类行：当前分组顶部「整类 · {组名}」可整体勾选。
-- 已配置项：<strong>灰底圆 + 白勾</strong>（<code>is-configured</code>），disabled，不可选；被整类覆盖涵盖的单项目同样禁用。
-- 底部：取消 / <strong>下一步（N）</strong>（N=已选数；为 0 时禁用）。</p>
-<p><strong>交互</strong>：
-- 勾选单项：互斥清理——勾选单项时，移除覆盖它的整类组勾选；勾选整类组时，移除组内单项勾选。
-- 会员卡类型下，勾选时带当前 <code>cardRole</code>（办卡 / 充卡在下一步设置 Sheet 中可切）。
-- 「下一步」→ 规则设置 Sheet（标题「添加规则项 · 设置」）→ 确定 → 生成覆盖规则项写入 <code>overrides</code>，toast「已添加规则项」→ 回编辑页。</p>
+<p><strong>页面</strong>：</p>
+<ul>
+<li>类型 Tab：<strong>项目 / 产品 / 会员卡</strong>（默认项目）。</li>
+<li>分组轨：全部 + 自定义分组（会员卡为卡分组），无分组时隐藏。</li>
+<li>工具行：全选 · 已选 N 项 · 反选。</li>
+<li>列表项：名称 + 副行（项目 / 产品为价格 <code>¥x</code>；会员卡为「面值 ¥x」/「已下架」）。</li>
+<li>整类行：当前分组顶部「整类 · {组名}」可整体勾选。</li>
+<li>已配置项：<strong>灰底圆 + 白勾</strong>（<code>is-configured</code>），disabled，不可选；被整类覆盖涵盖的单项目同样禁用。</li>
+<li>底部：取消 / <strong>下一步（N）</strong>（N=已选数；为 0 时禁用）。</li>
+</ul>
+<p><strong>交互</strong>：</p>
+<ul>
+<li>勾选单项：互斥清理——勾选单项时，移除覆盖它的整类组勾选；勾选整类组时，移除组内单项勾选。</li>
+<li>会员卡类型下，勾选时带当前 <code>cardRole</code>（办卡 / 充卡在下一步设置 Sheet 中可切）。</li>
+<li>「下一步」→ 规则设置 Sheet（标题「添加规则项 · 设置」）→ 确定 → 生成覆盖规则项写入 <code>overrides</code>，toast「已添加规则项」→ 回编辑页。</li>
+</ul>
 <p><strong>覆盖项数据</strong>：<code>targets</code> 保存目标（kind / refId / name；整类为 <code>group</code> + <code>groupKind</code>；会员卡带 <code>cardRole</code>）；标题 = 目标名以「、」连接。</p>
 <h2>6.6 分配员工 Sheet</h2>
 <ul>
-<li>标题「分配员工」；工具行：全选 · 已选 N 人 · 清空。</li>
-<li>员工卡：头像 + 姓名 + 职位（缺省「未设置职位」）+ 勾选。</li>
-<li>空员工池：「暂无在岗员工」。</li>
-<li>确定：写回 <code>assigneeIds</code>；toast「已分配 N 人」/「已清空分配」；关 Sheet；重绘列表。</li>
+<li>员工池多选；全选 / 清空；已选 N 人；确定写回 <code>assigneeIds</code>。</li>
+<li><strong>一人可多方案</strong>：不灰显禁用。</li>
+<li>若员工已在其他方案：副文展示 <strong>file-multiple 图标</strong>（<code>assets/icons/file-multiple.svg</code>，12×12，字色 <code>#C4795A</code>）+ 其他方案名（<code>、</code> 连接）；<code>aria-label</code> 为「也在其他方案：…」。</li>
+<li>未在其他方案：副文为职位文案。</li>
 </ul>
 <h2>6.7 关联页面 · 选择员工 Sheet（3 / 2 / 1 工位）</h2>
 <p>左侧导航「<strong>关联页面</strong>」区域中三个并列入口，与提成方案编辑链路无数据联动，<strong>仅作关联功能演示</strong>。三者<strong>共用</strong>灰底页 <code>screen-comm2-staff</code> 与同一 Sheet 壳，按入口切换 <code>stationMode</code>。</p>
 <p><strong>入口</strong>：</p>
 <table>
-<thead><tr><th>导航</th><th>flow</th><th>工位步</th></tr></thead>
-<tbody>
-<tr><td>选择员工（3工位）</td><td><code>comm2-staff-3</code></td><td>点客/散客 → <strong>大工 / 中工 / 小工</strong>（全宽三按钮）</td></tr>
-<tr><td>选择员工（2工位）</td><td><code>comm2-staff-2</code></td><td>点客/散客 → <strong>大工 / 小工</strong>（双按钮，morph 宽度对齐点客/散客）</td></tr>
-<tr><td>选择员工（1工位）</td><td><code>comm2-staff-1</code></td><td><strong>仅</strong>点客/散客即完成（逻辑等同未设工位，不出工位面）</td></tr>
-</tbody>
-</table>
+<thead>
+<tr>
+<th>导航</th>
+<th>flow</th>
+<th>工位步</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>选择员工（3工位）</td>
+<td><code>comm2-staff-3</code></td>
+<td>点客/散客 → <strong>大工 / 中工 / 小工</strong>（全宽三按钮）</td>
+</tr><tr>
+<td>选择员工（2工位）</td>
+<td><code>comm2-staff-2</code></td>
+<td>点客/散客 → <strong>大工 / 小工</strong>（双按钮，morph 宽度对齐点客/散客）</td>
+</tr><tr>
+<td>选择员工（1工位）</td>
+<td><code>comm2-staff-1</code></td>
+<td><strong>仅</strong>点客/散客即完成（逻辑等同未设工位，不出工位面）</td>
+</tr></tbody></table>
 <p><strong>页面宿主</strong>：先切灰底页（<code>#F7F7F7</code>），再开 Sheet；不叠在方案列表/编辑上。关闭后回进入前页面。</p>
 <p><strong>Sheet 结构</strong>：标题随版本（「选择员工（N工位）」）；5 名演示员工（含头像）；初始全部未选；底部「完成」。</p>
 <p><strong>交互动效</strong>（卡片 morph 自开单页；2 工位 role 面按双按钮宽展开）：</p>
@@ -1047,8 +1007,10 @@ flowchart LR
 <li>已选卡片「✕」可清除。</li>
 </ul>
 <p><strong>行为</strong>：「完成」→ toast「已选 N 人」→ 关 Sheet → 回进入前页面；遮罩同；不与 <code>assigneeIds</code> 联动。</p>
-
 <h2>6.8 流水订单：业绩只读 + 提成编辑</h2>
+<blockquote>
+<p><strong>本系统现有页面</strong>：下列规格约束本系统流水页；本目录 <code>index.html</code> 不含完整流水 UI。</p>
+</blockquote>
 <p><strong>范围</strong>（工作台路径）：</p>
 <ul>
 <li>流水订单 → 门店流水 → <strong>开单流水详情</strong></li>
@@ -1057,81 +1019,150 @@ flowchart LR
 </ul>
 <p>以及流水详情 / 编辑项内员工指标行（与 §6.10.3 配图一致）。</p>
 <table>
-<thead><tr><th>指标</th><th>行为</th></tr></thead>
-<tbody>
-<tr><td>业绩</td><td><strong>只读</strong>：不可点、不可改；<strong>去掉</strong>表示可编辑的铅笔 / 编辑 icon；样式不得暗示可点（如可编辑胶囊态）</td></tr>
-<tr><td>提成</td><td>可点金额键盘编辑；<strong>仅店主 / 合伙人</strong>；每次修改写订单行 <code>staffCommissions</code> 并追加修改日志</td></tr>
-</tbody>
-</table>
+<thead>
+<tr>
+<th>指标</th>
+<th>行为</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>业绩</td>
+<td><strong>只读</strong>：不可点、不可改；<strong>去掉</strong>表示可编辑的铅笔 / 编辑 icon；样式不得暗示可点（如可编辑胶囊态）</td>
+</tr><tr>
+<td>提成</td>
+<td>可点金额键盘编辑；<strong>仅店主 / 合伙人</strong>；每次修改写订单行 <code>staffCommissions</code> 并追加修改日志</td>
+</tr></tbody></table>
 <ul>
 <li>开单流水详情展开员工行：可见「现金类」等支付标签旁的「业绩 / 提成」并排胶囊；业绩只读、提成可点（本期<strong>不改</strong>行头「现金类」等支付标签文案，另单处理）。</li>
 <li>流水订单修改：卡片可保留「编辑」入口进入项目流水修改；卡片上业绩胶囊不可点、无编辑暗示。</li>
 <li>项目流水修改：业绩行去掉铅笔 icon 并禁止改值；提成行保留铅笔 icon 与编辑能力。</li>
-<li>修改日志：复用流水现有修改记录（<code>editLogs</code>）；提成改动时 <code>summary</code> 记「修改提成：{旧值}→{新值}」；流水详情「修改记录」/「修改订单 · 查看」可查。</li>
-<li>权限不足点击提成：toast 拦截，值不变。</li>
-<li>原型流水编辑提示文案中“业绩可设置”表述与本期“业绩只读”不符，随本期调整为仅提及成。</li>
+<li>修改日志：复用流水现有修改记录（<code>editLogs</code>，结构 <code>{id, time, operator, summary}</code>）；提成改动时 <code>summary</code> 记「修改提成：{旧值}→{新值}」，<code>operator</code> 取当前登录员工，<code>time</code> 取当前时间；流水详情「修改记录 · N」/「修改订单 · 查看」入口可查看。</li>
+<li>权限不足（店长 / 高级店员 / 店员）点击提成：toast 拦截，值不变。</li>
+<li>原型流水编辑提示文案「…再为项目设置服务人与业绩」中“业绩可设置”表述与本期“业绩只读”不符，随本期调整为仅提及成（最终文案以原型联调为准）。</li>
 </ul>
 <h2>6.9 帮助弹窗（原型文案）</h2>
 <table>
-<thead><tr><th>弹窗</th><th>内容</th></tr></thead>
-<tbody>
-<tr><td>多方案规则（列表页帮助）</td><td>①每人可分配多个提成方案（已在其他方案提示「也在：…」仍可勾选）；②计算项重叠按行取金额更高者（并列按列表顺序）；③按行过滤支付范围；④方案内覆盖优先；⑤不同业务行分别取高后可相加</td></tr>
-<tr><td>计算基数说明（规则 Sheet「原价模式」旁）</td><td>原价模式：范围内开单按<strong>原价</strong>加总作基数；实收模式：按<strong>实收金额</strong>加总</td></tr>
-<tr><td>分配模式说明</td><td>不分工位：开单无需选工位，按点客 / 散客统一提成；按工位分配：按大 / 中 / 小工分别设置提成</td></tr>
-</tbody>
-</table>
+<thead>
+<tr>
+<th>弹窗</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>多方案规则（列表页帮助）</td>
+<td>①每人可分配多个提成方案（已在其他方案以图标+方案名提示，仍可勾选）；②计算项重叠按行取金额更高者（并列按列表顺序）；③按行过滤支付范围；④方案内覆盖优先；⑤不同业务行分别取高后可相加</td>
+</tr><tr>
+<td>计算基数说明（规则 Sheet「原价模式」旁）</td>
+<td>原价模式：范围内开单（项目、产品、会员卡开卡、快速消费、商城订单、充卡/续次/延期）按<strong>原价</strong>加总作基数（快速消费原价=实收；商城按订单原价；充卡/续次/延期按原价）；实收模式：范围相同，按<strong>实收金额</strong>加总</td>
+</tr><tr>
+<td>分配模式说明</td>
+<td>不分工位：开单无需选工位，按点客 / 散客统一提成；按工位分配：按大 / 中 / 小工分别设置提成</td>
+</tr></tbody></table>
 <h2>6.10 关联页面变更（薪资 / 流水 · 对齐提成设置）</h2>
-<blockquote><p>本章描述因本期提成设置改造而联动的<strong>现网关联页</strong>规格；配图见 <code>assets/related/</code>（源目录：<code>提成关联页面/</code>）。薪资页完整交互规格不在本期展开，<strong>仅锁定口径与字段对齐</strong>。</p></blockquote>
+<blockquote>
+<p><strong>本系统现有页面</strong>：本章约束本系统薪资 / 流水关联页；配图见 <code>assets/related/</code>。本目录原型仅演示提成方案配置。薪资页完整交互另模块；<strong>此处仅锁定口径与字段对齐</strong>。</p>
+</blockquote>
 <h3>6.10.0 通用口径</h3>
 <table>
-<thead><tr><th>概念</th><th>口径</th></tr></thead>
-<tbody>
-<tr><td>业绩金额</td><td>对应分类 / 分列项的<strong>开单原价（标价）加总</strong>；<strong>不用实收</strong>；与提成设置「原价模式」的标价定义一致</td></tr>
-<tr><td>业绩与提成</td><td>业绩只读、不参与提成计算；提成来自订单行 <code>staffCommissions</code></td></tr>
-<tr><td>提成分列 5 类</td><td><strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>（对齐提成设置默认卡）</td></tr>
-<tr><td>「项目」提成净值</td><td><strong>项目列 = 项目类提成合计 − 快速消费提成</strong>；「快速消费」单独成列；<strong>五列之和 = 提成总计</strong></td></tr>
-<tr><td>「项目」业绩（5 类场景）</td><td><strong>项目列 = 项目类原价合计（不含快速消费）</strong>；快速消费单独成列；<strong>五列之和 = 业绩总计</strong></td></tr>
-</tbody>
-</table>
+<thead>
+<tr>
+<th>概念</th>
+<th>口径</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>业绩金额</td>
+<td>对应分类 / 分列项的<strong>开单原价（标价）加总</strong>；<strong>不用实收</strong>；与提成设置「原价模式」的标价定义一致</td>
+</tr><tr>
+<td>业绩与提成</td>
+<td>业绩只读、不参与提成计算；提成来自订单行 <code>staffCommissions</code>（开单自动算 + 有权限人工修正）</td>
+</tr><tr>
+<td>提成分列 5 类</td>
+<td><strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>（对齐提成设置默认卡）</td>
+</tr><tr>
+<td>「项目」提成净值</td>
+<td><strong>项目列展示值 = 项目类提成合计 − 快速消费提成</strong>；「快速消费」单独成列；<strong>五列之和 = 提成总计</strong>（不加总两次）</td>
+</tr><tr>
+<td>「项目」业绩（5 类场景）</td>
+<td><strong>项目列 = 项目类原价合计（不含快速消费）</strong>；快速消费单独成列；<strong>五列之和 = 业绩总计</strong></td>
+</tr></tbody></table>
 <h3>6.10.1 工作台 → 员工薪资 → 员工薪资明细</h3>
 <p><strong>配图</strong>：<code>assets/related/MuMu-20260828-100433-951.png</code>（业绩统计）、<code>assets/related/MuMu-20260828-171110-007.png</code>（提成统计）</p>
 <table>
-<thead><tr><th>区块</th><th>现状（截图）</th><th>变更后</th></tr></thead>
-<tbody>
-<tr><td>业绩统计 · 圆环 / 图例</td><td>售卡业绩、产品业绩、现金类（服务）、卡付（服务）、团购（服务）、经理签单（服务）</td><td>改为 <strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；金额 = 各类<strong>原价加总</strong>；项目不含快速消费；五列之和 = 「总计」</td></tr>
-<tr><td>提成统计 · 圆环 / 图例</td><td>现金类、卡付、团购、经理签单</td><td>改为 <strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；<strong>项目列扣减快速消费提成</strong>；五列之和 = 「总计」</td></tr>
-<tr><td>本月合计薪资 / 提成总计</td><td>—</td><td>数值仍取订单行提成汇总；与提成统计总计一致</td></tr>
-<tr><td>服务 / 售卡人次摘要等</td><td>服务人次、售卡数量等</td><td><strong>本期不改字段结构</strong></td></tr>
-</tbody>
-</table>
-<figure style="margin:12px 0 18px"><img src="assets/related/MuMu-20260828-100433-951.png" alt="员工薪资明细 · 业绩统计" style="max-width:100%;border:1px solid #e5e6eb;border-radius:8px"/><figcaption style="font-size:12px;color:#646a73;margin-top:6px">员工薪资明细 · 业绩统计（现状参考）</figcaption></figure>
-<figure style="margin:12px 0 18px"><img src="assets/related/MuMu-20260828-171110-007.png" alt="员工薪资明细 · 提成统计" style="max-width:100%;border:1px solid #e5e6eb;border-radius:8px"/><figcaption style="font-size:12px;color:#646a73;margin-top:6px">员工薪资明细 · 提成统计（现状参考）</figcaption></figure>
+<thead>
+<tr>
+<th>区块</th>
+<th>现状（截图）</th>
+<th>变更后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>业绩统计 · 圆环 / 图例</td>
+<td>售卡业绩、产品业绩、现金类（服务）、卡付（服务）、团购（服务）、经理签单（服务）</td>
+<td>改为 <strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；金额 = 各类<strong>原价加总</strong>；项目不含快速消费；五列之和 = 「总计」</td>
+</tr><tr>
+<td>提成统计 · 圆环 / 图例</td>
+<td>现金类、卡付、团购、经理签单</td>
+<td>改为 <strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；<strong>项目列扣减快速消费提成</strong>；五列之和 = 「总计」</td>
+</tr><tr>
+<td>本月合计薪资 / 提成总计</td>
+<td>—</td>
+<td>数值仍取订单行提成汇总；与提成统计总计一致</td>
+</tr><tr>
+<td>服务 / 售卡人次摘要等</td>
+<td>服务人次、售卡数量等</td>
+<td><strong>本期不改字段结构</strong>（仅保证其「金额」若表示业绩，与原价口径不冲突）</td>
+</tr></tbody></table>
 <h3>6.10.2 工作台 → 员工薪资 → 员工业绩提成明细</h3>
 <p><strong>配图</strong>：<code>assets/related/MuMu-20260828-100124-920.png</code></p>
 <table>
-<thead><tr><th>区块</th><th>现状（截图）</th><th>变更后</th></tr></thead>
-<tbody>
-<tr><td>月合计 · 业绩</td><td>分列：现金类 / 卡付 / 团购 / 经理签单 / 记为欠款</td><td><strong>分列字段名保持支付方式五格</strong>；金额改为对应支付方式下相关项的<strong>原价加总</strong>；业绩总计 = 五格之和</td></tr>
-<tr><td>月合计 · 提成</td><td>同上五格（支付方式）</td><td>改为 <strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；<strong>项目列 = 项目类提成 − 快速消费提成</strong>；五列之和 = 提成总计</td></tr>
-<tr><td>日合计 / 单笔记录</td><td>展示该日 / 该笔业绩与提成</td><td>业绩仍只读；金额口径同上（原价）；提成展示订单行写入值</td></tr>
-</tbody>
-</table>
-<figure style="margin:12px 0 18px"><img src="assets/related/MuMu-20260828-100124-920.png" alt="员工业绩提成明细" style="max-width:100%;border:1px solid #e5e6eb;border-radius:8px"/><figcaption style="font-size:12px;color:#646a73;margin-top:6px">员工业绩提成明细（现状参考）</figcaption></figure>
+<thead>
+<tr>
+<th>区块</th>
+<th>现状（截图）</th>
+<th>变更后</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>月合计 · 业绩</td>
+<td>分列：现金类 / 卡付 / 团购 / 经理签单 / 记为欠款；金额偏实收或旧口径</td>
+<td><strong>分列字段名保持支付方式五格</strong>；金额改为对应支付方式下相关项的<strong>原价加总</strong>；业绩总计 = 五格之和</td>
+</tr><tr>
+<td>月合计 · 提成</td>
+<td>同上五格（支付方式）</td>
+<td>改为 <strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；<strong>项目列 = 项目类提成 − 快速消费提成</strong>；五列之和 = 提成总计</td>
+</tr><tr>
+<td>日合计 / 单笔记录</td>
+<td>展示该日 / 该笔业绩与提成</td>
+<td>业绩仍只读；金额口径同上（原价）；提成展示订单行写入值</td>
+</tr></tbody></table>
 <h3>6.10.3 工作台 → 流水订单 → 门店流水（三页）</h3>
-<p><strong>配图</strong>：开单流水详情收起态 <code>MuMu-20260828-100043-464.png</code>；展开员工业绩/提成 <code>MuMu-20260828-172659-652.png</code>；流水订单修改 <code>MuMu-20260828-100802-339.png</code>；项目流水修改 <code>MuMu-20260828-101035-436.png</code>。</p>
+<p><strong>配图</strong>：</p>
+<ul>
+<li>开单流水详情（收起态）：<code>assets/related/MuMu-20260828-100043-464.png</code></li>
+<li>开单流水详情（展开员工业绩 / 提成）：<code>assets/related/MuMu-20260828-172659-652.png</code></li>
+<li>流水订单修改：<code>assets/related/MuMu-20260828-100802-339.png</code></li>
+<li>项目流水修改：<code>assets/related/MuMu-20260828-101035-436.png</code></li>
+</ul>
 <table>
-<thead><tr><th>页面</th><th>变更</th></tr></thead>
-<tbody>
-<tr><td>开单流水详情</td><td>展开员工行后出现「现金类」+「业绩」+「提成」并排区：业绩<strong>只读</strong>（无铅笔 / 无编辑暗示）；提成<strong>可编辑</strong>（店主 / 合伙人）；行头支付标签文案本期不改</td></tr>
-<tr><td>流水订单修改</td><td>卡片上业绩胶囊只读、不可点；可保留「编辑」进入项目流水修改；提成仍可经编辑链路修改</td></tr>
-<tr><td>项目流水修改</td><td>业绩行<strong>删除铅笔 icon</strong>并禁止输入；提成行保留铅笔 icon 与编辑；「指定」开关等其他控件不变</td></tr>
-</tbody>
-</table>
-<figure style="margin:12px 0 18px"><img src="assets/related/MuMu-20260828-172659-652.png" alt="开单流水详情 · 展开" style="max-width:100%;border:1px solid #e5e6eb;border-radius:8px"/><figcaption style="font-size:12px;color:#646a73;margin-top:6px">开单流水详情 · 展开员工行（业绩 / 提成）</figcaption></figure>
-<figure style="margin:12px 0 18px"><img src="assets/related/MuMu-20260828-100802-339.png" alt="流水订单修改" style="max-width:100%;border:1px solid #e5e6eb;border-radius:8px"/><figcaption style="font-size:12px;color:#646a73;margin-top:6px">流水订单修改</figcaption></figure>
-<figure style="margin:12px 0 18px"><img src="assets/related/MuMu-20260828-101035-436.png" alt="项目流水修改" style="max-width:100%;border:1px solid #e5e6eb;border-radius:8px"/><figcaption style="font-size:12px;color:#646a73;margin-top:6px">项目流水修改（业绩铅笔需删除）</figcaption></figure>
+<thead>
+<tr>
+<th>页面</th>
+<th>变更</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开单流水详情</td>
+<td>展开员工行后出现「现金类」+「业绩」+「提成」并排区：业绩<strong>只读</strong>（无铅笔 / 无编辑暗示）；提成<strong>可编辑</strong>（店主 / 合伙人）；行头支付标签文案本期不改</td>
+</tr><tr>
+<td>流水订单修改</td>
+<td>卡片上业绩胶囊只读、不可点；可保留「编辑」进入项目流水修改；提成仍可经编辑链路修改</td>
+</tr><tr>
+<td>项目流水修改</td>
+<td>业绩行<strong>删除铅笔 icon</strong>并禁止输入；提成行保留铅笔 icon 与编辑；「指定」开关等其他控件不变</td>
+</tr></tbody></table>
 <p>行为细则与权限、修改日志同 §6.8。</p>
-
+<hr>
 <h1>模块 7　数据模型与接口约定</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 <strong>必看</strong> · 测试 ✓</p>
@@ -1145,49 +1176,43 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>id</td>
 <td>string</td>
 <td>唯一；新建为 <code>c2_{timestamp}</code></td>
-</tr>
-<tr>
+</tr><tr>
 <td>name</td>
 <td>string</td>
 <td>方案名；≤20 字</td>
-</tr>
-<tr>
+</tr><tr>
 <td>stationIds</td>
 <td>string[]</td>
 <td>工位 id 列表；默认 <code>['senior','mid','junior']</code>；<strong>不可新增</strong>；可删至 ≥1</td>
-</tr>
-<tr>
+</tr><tr>
 <td>stationLabels</td>
 <td>object</td>
 <td><code>{ [stationId]: { label } }</code>；缺省回退默认标签（大工 / 中工 / 小工）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>defaults</td>
 <td>object</td>
 <td>4 类分类默认规则块，键：<code>labor</code> 项目 / <code>sales</code> 产品 / <code>issue</code> 办卡 / <code>card</code> 充卡（见 7.2）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>overrides</td>
 <td>OverrideRule[]</td>
 <td>覆盖规则项（见 7.3）；<strong>必含</strong>系统项 <code>ov_sys_quick</code>（快速消费，<code>system: true</code>）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>assigneeIds</td>
 <td>string[]</td>
 <td>分配员工 id；可空；<strong>同一员工可出现在多个方案</strong></td>
-</tr>
-<tr>
+</tr><tr>
+<td>signComm</td>
+<td>boolean</td>
+<td><strong>经理签单计算提成</strong>开关；经理签单为支付方式之一（相当于免单）。默认 <code>false</code>；复制方案原样保留</td>
+</tr><tr>
 <td>_v3</td>
 <td>boolean</td>
 <td>数据模型版本标记（迁移用）</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>7.2 规则块 <code>RuleBlock</code>（defaults 值 &amp; override 主体共用）</h2>
 <table>
 <thead>
@@ -1197,34 +1222,30 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>payScope</td>
 <td>object</td>
-<td><code>{ cash, memberCard, groupBuy, sign }</code> 各布尔；<strong>至少 1 个 true</strong>；<code>sign</code> = 经理签单 + 记为欠款</td>
-</tr>
-<tr>
+<td><code>{ cash, memberCard, groupBuy }</code> 各布尔；<strong>至少 1 个 true</strong></td>
+</tr><tr>
 <td>baseMode</td>
-<td>'list' | 'paid'</td>
+<td>'list' \</td>
+<td>'paid'</td>
 <td>原价模式 / 实收模式；规则卡标签「原价」/「实收」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>pickMode</td>
-<td>'avg' | 'station'</td>
+<td>'avg' \</td>
+<td>'station'</td>
 <td>不分工位 / 按工位分配</td>
-</tr>
-<tr>
+</tr><tr>
 <td>rule</td>
 <td>CatRule</td>
 <td>见 7.2.1</td>
-</tr>
-<tr>
+</tr><tr>
 <td>cardRole</td>
-<td>'issue' | 'card'</td>
+<td>'issue' \</td>
+<td>'card'</td>
 <td>仅覆盖会员卡规则；办卡 / 充卡（影响归属类与命中）</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h3>7.2.1 分类规则 <code>CatRule</code></h3>
 <table>
 <thead>
@@ -1234,39 +1255,32 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>valueMode</td>
-<td>'pct' | 'amount'</td>
+<td>'pct' \</td>
+<td>'amount'</td>
 <td>按比例 % / 固定金额 ¥</td>
-</tr>
-<tr>
+</tr><tr>
 <td>designated</td>
 <td>number</td>
 <td>点客比例（pct 模式）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>nonDesignated</td>
 <td>number</td>
 <td>散客比例（pct 模式）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>designatedAmt</td>
 <td>number</td>
 <td>点客金额（amount 模式）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>nonDesignatedAmt</td>
 <td>number</td>
 <td>散客金额（amount 模式）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>stations</td>
 <td>object</td>
 <td><code>{ [stationId]: { designated, nonDesignated, designatedAmt, nonDesignatedAmt } }</code>；按工位分配时逐工位取值</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>7.3 覆盖规则项 <code>OverrideRule</code></h2>
 <table>
 <thead>
@@ -1276,39 +1290,34 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>id</td>
 <td>string</td>
 <td>唯一；用户项 <code>ov_{timestamp}</code>；系统快消固定 <code>ov_sys_quick</code></td>
-</tr>
-<tr>
+</tr><tr>
 <td>system</td>
 <td>boolean</td>
 <td>可选；<code>true</code> 表示系统项（快速消费），UI 进默认区、不可删</td>
-</tr>
-<tr>
+</tr><tr>
 <td>belongCat</td>
-<td>'labor'|'sales'|'issue'|'card'</td>
+<td>'labor'\</td>
+<td>'sales'\</td>
+<td>'issue'\</td>
+<td>'card'</td>
 <td>归属分类（决定图标与解析兜底）；快消为 <code>labor</code></td>
-</tr>
-<tr>
+</tr><tr>
 <td>title</td>
 <td>string</td>
 <td>目标名「、」连接；长标题省略号截断；快消固定「快速消费」</td>
-</tr>
-<tr>
+</tr><tr>
 <td>payScope / baseMode / pickMode / rule</td>
 <td>同 7.2</td>
 <td></td>
-</tr>
-<tr>
+</tr><tr>
 <td>targets</td>
 <td>Target[]</td>
 <td>命中目标（见 7.3.1）；快消为 <code>[{ kind:'project', refId:'quick', name:'快速消费' }]</code></td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h3>7.3.1 目标 <code>Target</code></h3>
 <table>
 <thead>
@@ -1318,34 +1327,32 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>kind</td>
-<td>'project'|'product'|'card'|'group'</td>
+<td>'project'\</td>
+<td>'product'\</td>
+<td>'card'\</td>
+<td>'group'</td>
 <td>项目 / 产品 / 会员卡 / 整类分组</td>
-</tr>
-<tr>
+</tr><tr>
 <td>refId</td>
 <td>string</td>
 <td>价目项目 / 产品 id，或会员卡模板 id，或分组 id</td>
-</tr>
-<tr>
+</tr><tr>
 <td>name</td>
 <td>string</td>
 <td>展示名</td>
-</tr>
-<tr>
+</tr><tr>
 <td>cardRole</td>
-<td>'issue'|'card'</td>
+<td>'issue'\</td>
+<td>'card'</td>
 <td>仅会员卡目标</td>
-</tr>
-<tr>
+</tr><tr>
 <td>groupKind</td>
-<td>'project'|'product'</td>
+<td>'project'\</td>
+<td>'product'</td>
 <td>仅整类分组目标（区分项目组 / 产品组）</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <h2>7.4 流水订单扩展字段（与提成相关）</h2>
 <p>订单行（<code>FLOW_ORDERS.items[]</code>）已含：</p>
 <table>
@@ -1355,25 +1362,19 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>staffIds / staffDesignated / staffRoles</td>
 <td>员工、点散客标记、工位（role）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>staffAchievements</td>
 <td>每员工业绩（<strong>只读</strong>）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>staffCommissions</td>
 <td>每员工提成（可编辑，店主 / 合伙人）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>editLogs</td>
 <td>修改记录 <code>{id, time, operator, summary}</code>；提成人工改动追加「修改提成：旧→新」</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <p>订单级 <code>achievement</code> / <code>commission</code> 为汇总展示。业绩不再可编辑；提成编辑写 <code>staffCommissions</code> 并追加 <code>editLogs</code>（操作人 / 时间 / 前后值）。</p>
 <h2>7.5 能力清单（路径【待联调确认】；正式文档暂无交付时间）</h2>
 <table>
@@ -1383,45 +1384,34 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>方案 CRUD</td>
 <td>新建 / 重命名 / 复制 / 删除；校验名称非空 ≤20</td>
-</tr>
-<tr>
+</tr><tr>
 <td>方案默认规则读写</td>
 <td>4 类块：payScope / baseMode / pickMode / rule</td>
-</tr>
-<tr>
+</tr><tr>
 <td>覆盖规则 CRUD</td>
 <td>增删改；目标解析（项目 / 产品 / 会员卡 / 整类分组）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>工位管理</td>
 <td>增删改名；全方案联动；≤5 个；删除连带清理各规则块该工位参数</td>
-</tr>
-<tr>
+</tr><tr>
 <td>员工分配</td>
 <td>方案 ↔ 员工多对多；未分配查询</td>
-</tr>
-<tr>
+</tr><tr>
 <td>价目 / 卡模板桥接</td>
 <td>添加规则项读取项目 / 产品 / 会员卡目录与分组（未隐藏项）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>提成计算</td>
 <td>开单按方案集合逐行计提写入订单行（见 §8 规则 1–8）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>流水提成编辑</td>
 <td>店主 / 合伙人；写订单行 + 修改日志</td>
-</tr>
-<tr>
+</tr><tr>
 <td>业绩展示</td>
-<td>订单行业绩只读（现金 / 卡付 / 团购 / 签单 四部分合计）</td>
-</tr>
-</tbody>
-</table>
+<td>订单行业绩只读（现金 / 卡付 / 团购 四部分合计）</td>
+</tr></tbody></table>
 <h2>7.6 时序（示意）</h2>
 <pre><code>商户保存方案
   → API 写方案（defaults/overrides/assigneeIds/stations）
@@ -1429,45 +1419,52 @@ flowchart LR
 
 开单结算（员工 A 属方案 S1、S2）
   → 对每订单行：S1、S2 各自解析覆盖/默认块 → 按支付范围过滤 → 计算金额
-  → 按该员工全部方案分别解析并计算金额，按行取金额最大者（并列按列表顺序），写入该行 staffCommissions[staffId]（建议含 winnerSchemeId）
+  → 按该员工全部方案分别解析并计算金额，按行取金额最大者写入 staffCommissions[staffId]（建议含 winnerSchemeId）
   → 流水详情展示；店主/合伙人可修正并写修改日志
 
 添加规则项
   → 读价目项目/产品（未隐藏）、会员卡模板及分组
   → 多选目标 → 设置 → 写 overrides → 回编辑页
 </code></pre>
-<hr />
+<hr>
 <h1>模块 8　业务规则</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 <strong>必看</strong> · 测试 <strong>必看</strong></p>
 </blockquote>
 <ol>
 <li><strong>多方案可并存</strong>：一个员工可同时属于多个方案；开单计提时读取其所属<strong>全部方案</strong>。</li>
-<li><strong>按行过滤</strong>：每笔订单行先按<strong>支付方式</strong>对照命中块的「提成范围」；不在范围则本行不计提成。</li>
-<li><strong>重叠取最高（按行 · 比金额）</strong>：同一员工、同一订单行，对各所属方案分别算出提成金额后取金额最大者；并列按方案列表顺序先出现者胜出。多方案不加总。建议落库 <code>winnerSchemeId</code>。</li>
-<li><strong>不同行可相加</strong>：不同业务行、或互不覆盖的计算项，可分别计入后相加。</li>
-<li><strong>覆盖优先于默认</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快速消费 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），未命中回落到分类默认块（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快速消费行（<code>kind=quick</code> / 名称「快速消费」）<strong>只命中系统覆盖</strong>，不吃项目默认。</li>
-<li><strong>计算基数</strong>：<code>baseMode=list</code> 用该行<strong>原价</strong>加总；<code>baseMode=paid</code> 用该行<strong>实收</strong>加总（§6.9 帮助口径）。签单（经理签单 / 记为欠款）订单行若规则范围含「签单」，<strong>照常参与计提</strong>，基数口径同上。</li>
-<li><strong>分配取值</strong>：<code>pickMode=avg</code>（UI「不分工位」）用规则级点客 / 散客；<code>pickMode=station</code> 用订单行工位对应工位的点客 / 散客；工位缺失时回退规则级点客 / 散客。</li>
+<li><strong>按行过滤</strong>：对每个候选方案，每笔订单行先按<strong>支付方式</strong>对照该方案命中块的「提成范围」；不在范围则该方案本行<strong>不计</strong>、不参与取高。<strong>经理签单行（<code>sign=true</code>）不参与支付范围过滤</strong>，由方案级 <code>signComm</code> 开关控制（规则 29）。</li>
+<li><strong>重叠取最高（按行 · 比金额）</strong>：同一员工、同一订单行，对各所属方案分别解析块并算出提成金额后，取 <strong>金额最大</strong> 者写入本行；多方案<strong>不加总</strong>。比较单位为最终金额（<code>pct</code> 与 <code>amount</code>、原价与实收均先算完再比）。金额并列时按方案在列表中的顺序，<strong>先出现的方案胜出</strong>。建议落库字段含 <code>winnerSchemeId</code>（原型试算已带；正式流水 UI 本期可不强调展示）。</li>
+<li><strong>不同行可相加</strong>：不同业务行各自取高后，行与行之间可相加汇总。</li>
+<li><strong>覆盖优先于默认（方案内）</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快速消费 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），未命中回落到分类默认块（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快速消费行（<code>kind=quick</code> / 名称「快速消费」）<strong>只命中系统覆盖</strong>，不吃项目默认。方案之间再执行规则 3。</li>
+<li><strong>计算基数</strong>：<code>baseMode=list</code> 用该行<strong>原价</strong>加总；<code>baseMode=paid</code> 用该行<strong>实收</strong>加总（§6.9 帮助口径）。<code>valueMode=amount</code>（固定金额）时<strong>不乘基数</strong>，直接取点客/散客固定额（按工位时取对应工位固定额）。</li>
+<li><strong>分配取值</strong>：<code>pickMode=avg</code>（UI「不分工位」）用规则级点客 / 散客；<code>pickMode=station</code> 用订单行 <code>station</code> 对应工位参数；<strong>工位缺失或已删</strong>：用方案 <code>stationIds[0]</code> 对应参数，若无则 <code>defaultPair()</code>（与原型 <code>schemeLineAmount</code> 一致）。</li>
 <li><strong>金额计算</strong>：<code>pct</code> → <code>round(base × rate / 100)</code>；<code>amount</code> → 固定金额（点客用 <code>designatedAmt</code> / 散客用 <code>nonDesignatedAmt</code>）。</li>
 <li><strong>范围合法性</strong>：任一默认块 / 覆盖块的 <code>payScope</code> 至少 1 类；保存时全校验。</li>
-<li><strong>已配置防重</strong>：目标已被覆盖（含被整类分组覆盖、含系统快速消费）→ 添加规则项列表<strong>灰底白勾禁用</strong>，不可重复添加。</li>
+<li><strong>已配置防重</strong>：目标已被覆盖（含被整类分组覆盖、含系统快速消费）→ 添加规则项列表<strong>灰底白勾禁用</strong>，不可重复添加。（防重范围仍为<strong>方案内</strong>。）</li>
 <li><strong>整类与单项互斥</strong>：添加规则项勾选整类组会清掉组内单项勾选；勾选单项会清掉涵盖它的整类勾选。</li>
 <li><strong>工位</strong>：可改名 / 删除（至少 1 个）；<strong>不可新增</strong>；删除工位同时清除各规则块该工位参数。</li>
-<li><strong>未分配提示</strong>：员工池中存在不属于任何方案的员工 → 列表提示「还有 N 人未分配任何提成方案」；全部有方案则隐藏。</li>
+<li><strong>未分配提示</strong>：员工池中存在不属于<strong>任何</strong>方案的员工 → 列表提示「还有 N 人未分配任何提成方案」；全部至少有一个方案则隐藏。</li>
 <li><strong>复制语义</strong>：复制方案清空分配（<code>assigneeIds=[]</code>），规则与工位原样（含系统快速消费）。</li>
-<li><strong>支付范围四类</strong>：现金、卡付、团购、签单（= 经理签单 + 记为欠款）；原型 <code>COMM2_PAY_SCOPE</code> 以本期扩展为准（现金 / 卡付 / 团购 / 签单）。</li>
+<li><strong>支付范围三类</strong>：现金、卡付、团购；原型 <code>COMM2_PAY_SCOPE</code> 与此一致。<strong>经理签单为独立支付方式（相当于免单），不进入三类多选</strong>，由方案级 <code>signComm</code> 控制计提（规则 29）。</li>
 <li><strong>业绩与提成解耦</strong>：业绩<strong>不参与提成计算</strong>、<strong>不可人工编辑</strong>；金额口径为对应项<strong>开单原价加总</strong>（见 §6.10.0）。展示分列：流水与「员工业绩提成明细」的业绩可按支付方式分列；「员工薪资明细 · 业绩统计」按提成设置 5 类分列。提成在薪资侧按 5 类分列，且「项目」列扣减快速消费提成（§6.10）。</li>
 <li><strong>旧「业绩设置」移除</strong>：工作台「业绩设置」入口删除；旧口径（按业绩算提成）一律不再使用。</li>
 <li><strong>流水提成编辑权限</strong>：仅<strong>店主 / 合伙人</strong>；其余角色点击提成编辑被 toast 拦截。</li>
 <li><strong>流水修改日志</strong>：提成每次人工改动写 <code>editLogs</code>（复用现有修改记录，结构 <code>{id, time, operator, summary}</code>），<code>summary</code> 记录前后值（如「修改提成：8.00→10.00」），详情「修改记录」可查。</li>
 <li><strong>本期仅单店</strong>；方案数据不跨店同步。</li>
 <li><strong>快速消费系统卡</strong>：UI 为第 5 张默认卡；数据为 <code>overrides</code> 中 <code>id=ov_sys_quick</code>、<code>system:true</code>、<code>targets=[{kind:'project', refId:'quick'}]</code>；初始参数与「项目」默认相同；<strong>不可删除</strong>。</li>
-<li><strong>关联页字段对齐</strong>：员工薪资明细 / 员工业绩提成明细的提成分列、员工薪资明细的业绩统计分列，必须与提成设置 5 类一致；流水三页业绩只读去编辑 icon（§6.8、§6.10）。</li>
+<li><strong>关联页字段对齐</strong>（本系统现有页面）：员工薪资明细 / 员工业绩提成明细的提成分列、员工薪资明细的业绩统计分列，必须与提成设置 5 类一致；流水三页业绩只读去编辑 icon（§6.8、§6.10）。</li>
+<li><strong>卡面直改置脏</strong>：在规则卡上切换 <code>baseMode</code> / <code>payScope</code> 立即写入内存并 <code>markDirty</code>，无需打开 Sheet 点确定；与 Sheet 内修改等价。</li>
+<li><strong>多覆盖冲突（方案内）</strong>：同一订单行可被多条 <code>overrides</code> 匹配时，取 <strong>数组顺序第一个</strong>命中块；再与默认比较（覆盖优先）。跨方案仍按规则 3 取高。</li>
+<li><strong>金额为 0 仍参与取高</strong>：支付范围命中后算出 0 元，仍作为候选；仅范围未命中才 <code>skipped</code>、不参与比较。</li>
+<li><strong>固定金额与 baseMode</strong>：<code>valueMode=amount</code> 时卡上显示「固定」；<code>baseMode</code> 仍可保存在块上且 Sheet 可改，但 <strong><code>schemeLineAmount</code> 不使用基数</strong>。按工位时取对应工位 <code>designatedAmt</code> / <code>nonDesignatedAmt</code>。</li>
+<li><strong>员工 0 方案或全被滤掉</strong>：该行提成金额为 0，<code>winnerSchemeId</code> 为空 / 不写入胜出方案。</li>
+<li><strong>删除撤销</strong>：见 §5.5；超时或离页后不可撤销。</li>
+<li><strong>经理签单开关</strong>：方案级 <code>signComm</code> 控制经理签单订单行（<code>sign=true</code>，相当于免单）是否计提，默认<strong>关闭</strong>。开启后按常规口径计提（命中覆盖/默认块、按基数与参数计算，<strong>不受三类 <code>payScope</code> 限制</strong>）；关闭则整行 <code>skipped='sign'</code>、无 <code>winnerSchemeId</code>。复制方案原样保留；老数据兜底 <code>false</code>。</li>
 </ol>
 <h2>8.1 试算口径（原型试算引擎）</h2>
-<p>原型内置 8 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快速消费</strong>。</p>
-<p>计提验证步骤：取员工所属全部方案（列表顺序）→ 每行对每个方案解析覆盖/默认块 → 支付范围过滤 → 计算金额 → 取金额最大者（并列保留列表更靠前方案）→ 汇总。结果行带 winnerSchemeId。此口径与 §8 一致，作为联调参考样例（非正式接口）。</p>
+<p>原型内置 9 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快速消费</strong>、<strong>经理签单·深层补水护理</strong>（原价 268 / 实收 0，<code>sign=true</code>）。</p>
+<p>计提验证步骤：取员工所属<strong>全部</strong>方案（列表顺序）→ 每行对每个方案解析覆盖/默认块 → 非经理签单行按支付范围过滤，经理签单行按方案 <code>signComm</code> 开关过滤 → 计算金额 → <strong>取金额最大者</strong>（并列保留列表更靠前方案）→ 汇总。结果行带 <code>winnerSchemeId</code>。此口径与 §8 一致，作为联调参考样例（非正式接口）。</p>
 <h2>8.2 演示数据（造数参考）</h2>
 <p>原型内置 3 个演示方案：</p>
 <table>
@@ -1477,32 +1474,28 @@ flowchart LR
 <th>要点</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>顾问标准提成</td>
 <td>项目 / 产品默认 12%/10% 等；办卡 / 充卡 0；分配给 st1、st2</td>
-</tr>
-<tr>
+</tr><tr>
 <td>卡付劳动专项</td>
 <td>项目 / 产品范围仅「卡付」3%；办卡 / 充卡全范围 0；分配给 <strong>st1、st3</strong>（st1 多方案演示）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>资深技师综合方案</td>
-<td>项目按工位（大工 15/12、中工 12/10、小工 8/8）；产品实收模式；办卡 15/12、充卡 8/8；5 条覆盖（深层补水 18/15、染烫+精华液 20/15、尊享组合卡办卡 12/10、团购体验固定 ¥5、烫染整类按工位）；分配给 st4</td>
-</tr>
-</tbody>
-</table>
+<td>项目按工位（大工 15/12、中工 12/10、小工 8/8）；产品实收模式；办卡 15/12、充卡 8/8；5 条覆盖（深层补水 18/15、染烫+精华液 20/15、尊享组合卡办卡 12/10、洗头固定 ¥5、烫染整类按工位）；分配给 st4</td>
+</tr></tbody></table>
+<p>3 个演示方案 <code>signComm</code> 默认<strong>关闭</strong>；开启「资深技师综合方案」后，经理签单·深层补水护理行按深层补水覆盖 18% × 原价 268 计提 ¥48.24。</p>
 <p>正式环境自备等价数据；演示开关不进产品。</p>
-<hr />
+<hr>
 <h1>模块 9　文案清单与权限</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 部分 · 测试 ✓</p>
 </blockquote>
 <h2>9.1 文案清单（须与原型一致）</h2>
-<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、恢复为默认、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配任何提成方案、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、选择员工（3工位）、选择员工（2工位）、选择员工（1工位）</strong>。</p>
-<p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、点客、散客、提成范围、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、签单、提成参数。</p>
-<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、删除后不可恢复。、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配提成、暂无在岗员工、<strong>选择员工、点客、散客、大工、中工、小工</strong>。</p>
-<p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的散客比例/金额、比例需在 0–100%、名称不能为空、最多 5 个工位、已删除工位。</p>
+<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、恢复为默认、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配任何提成方案、<strong>经理签单计算提成</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、选择员工（3工位）、选择员工（2工位）、选择员工（1工位）</strong>。</p>
+<p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、点客、散客、提成范围、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
+<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、点客、散客、大工、中工、小工</strong>。</p>
+<p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、撤销、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的散客比例/金额、比例需在 0–100%、名称不能为空、已删除工位、不可新增工位、<strong>经理签单已计入提成、经理签单不计入提成</strong>。</p>
 <p><strong>流水</strong>：业绩（只读）、提成、修改提成、当前为「{角色}」，无法修改提成（以原型为准）。</p>
 <p><strong>空态</strong>：还没有提成方案、点下方按钮添加、该分类下暂无内容。</p>
 <h2>9.2 权限</h2>
@@ -1510,47 +1503,40 @@ flowchart LR
 <thead>
 <tr>
 <th>角色</th>
-<th style="text-align: center;">提成设置（新版）</th>
-<th style="text-align: center;">流水提成编辑</th>
-<th style="text-align: center;">流水业绩</th>
+<th>提成设置（新版）</th>
+<th>流水提成编辑</th>
+<th>流水业绩</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>店主</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">只读</td>
-</tr>
-<tr>
+<td>✓</td>
+<td>✓</td>
+<td>只读</td>
+</tr><tr>
 <td>合伙人</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">✓</td>
-<td style="text-align: center;">只读</td>
-</tr>
-<tr>
+<td>✓</td>
+<td>✓</td>
+<td>只读</td>
+</tr><tr>
 <td>店长</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">只读</td>
-</tr>
-<tr>
+<td>✗</td>
+<td>✗</td>
+<td>只读</td>
+</tr><tr>
 <td>高级店员</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">只读</td>
-</tr>
-<tr>
+<td>✗</td>
+<td>✗</td>
+<td>只读</td>
+</tr><tr>
 <td>店员</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">✗</td>
-<td style="text-align: center;">只读</td>
-</tr>
-</tbody>
-</table>
+<td>✗</td>
+<td>✗</td>
+<td>只读</td>
+</tr></tbody></table>
 <p>权限点：<code>achCommSet</code>（业绩/提成设置）——店主 / 合伙人；流水提成编辑复用该权限口径（按本期确认）。入口处（工作台「提成设置」）无权限则拦截。</p>
 <p>本期交互原型按 <strong>店主</strong> 路径演示。</p>
-<hr />
+<hr>
 <h1>模块 10　验收 P0 + 造数场景</h1>
 <blockquote>
 <p>读者：测试 <strong>必看</strong></p>
@@ -1563,22 +1549,18 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>空数据</td>
 <td>无任何方案（原型「无数据」）</td>
-</tr>
-<tr>
+</tr><tr>
 <td>有数据</td>
 <td>3 个演示方案（§8.2）+ 员工池含未分配员工</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <p>正式环境自备等价数据；演示开关不进产品。</p>
 <h2>10.2 Given → When → Then（P0）</h2>
 <ol>
 <li><strong>Given</strong> 方案列表为空，<strong>When</strong> 添加提成方案并命名「测试方案」，<strong>Then</strong> 进入编辑页，5 项默认规则卡齐全；保存后列表出现方案卡、摘要「5 项默认」。</li>
-<li><strong>Given</strong> 编辑「测试方案」，<strong>When</strong> 改项目类范围去掉「现金」只剩「卡付、团购、签单」，<strong>Then</strong> 卡片<strong>第二行</strong>提成范围胶囊同步；保存成功。</li>
+<li><strong>Given</strong> 编辑「测试方案」，<strong>When</strong> 改项目类范围去掉「现金」只剩「卡付、团购」，<strong>Then</strong> 卡片<strong>第二行</strong>提成范围胶囊同步；保存成功。</li>
 <li><strong>Given</strong> 项目类规则，<strong>When</strong> 点散客比例输入 120，<strong>Then</strong> toast「比例需在 0–100%」，不写入。</li>
 <li><strong>Given</strong> 项目类范围仅剩 1 类，<strong>When</strong> 再取消该类，<strong>Then</strong> toast「至少选一种支付方式」，范围仍保留该类。</li>
 <li><strong>Given</strong> 项目类固定金额模式，<strong>When</strong> 输入点客 ¥5、散客 ¥3 保存，<strong>Then</strong> 规则卡摘要「点客¥5·散客¥3」。</li>
@@ -1589,29 +1571,30 @@ flowchart LR
 <li><strong>Given</strong> 添加规则项（项目 Tab），<strong>When</strong> 勾选项目 A 与项目 B 下一步并确定，<strong>Then</strong> 新增覆盖规则卡「A、B」；再进添加规则项，A、B 显示灰底白勾禁用。</li>
 <li><strong>Given</strong> 分组轨选择自定义组 G，<strong>When</strong> 勾选「整类 · G」，<strong>Then</strong> 组内单项勾选被清空；下一步确定后生成整类覆盖；组内未覆盖单项在列表中禁用。</li>
 <li><strong>Given</strong> 会员卡 Tab，<strong>When</strong> 勾选某卡下一步，<strong>Then</strong> 设置 Sheet 出现「办卡 / 充卡」分段；切「充卡」确定后覆盖卡归属充卡类（图标为充卡）。</li>
-<li><strong>Given</strong> 方案 S 已分配员工 A，<strong>When</strong> 打开方案 S2 的分配 Sheet，<strong>Then</strong> A <strong>可勾选</strong>，副文显示「也在：S」（或含 S）；全选会选中 A。</li>
-<li><strong>Given</strong> 员工 A 同时属于方案 S1 与 S2，<strong>When</strong> 开单同一行两方案均有效，<strong>Then</strong> 取金额更高者；金额并列时取列表更靠前方案（<code>winnerSchemeId</code>）。</li>
+<li><strong>Given</strong> 方案 S 已分配员工 A，<strong>When</strong> 打开方案 S2 的分配 Sheet，<strong>Then</strong> A <strong>可勾选</strong>，副文显示图标 +「S」（或含多个方案名）；全选会选中 A。</li>
+<li><strong>Given</strong> 员工 A 同时属于方案 S1（项目默认 12%）与 S2（项目仅卡付 3%），<strong>When</strong> 开单一行卡付劳动，<strong>Then</strong> 两方案均算出金额后取较高者写入该行；现金劳动行仅 S1 有效则用 S1。</li>
+<li><strong>Given</strong> 员工 A 两方案对同一行算出金额相等，<strong>When</strong> 计提，<strong>Then</strong> 胜出方案为列表中更靠前的方案（<code>winnerSchemeId</code> 对应该方案）。</li>
 <li><strong>Given</strong> 编辑页 5 张默认卡含「快速消费」，<strong>When</strong> 试图删除快速消费，<strong>Then</strong> 无删除按钮 / toast「系统规则不可删除」；快消行命中系统覆盖而非项目默认。</li>
-<li><strong>Given</strong> 覆盖规则优先于默认，<strong>When</strong> 同一项目有默认 10% 与覆盖 20%，<strong>Then</strong> 计提用 20%。</li>
+<li><strong>Given</strong> 覆盖规则优先于默认，<strong>When</strong> 同一项目有默认 10% 与覆盖 20%，<strong>Then</strong> 方案内计提用 20%；若另有方案更高金额，再取跨方案更高者。</li>
 <li><strong>Given</strong> 编辑页有改动，<strong>When</strong> 返回，<strong>Then</strong> Dialog「尚未保存」；「不保存」丢弃改动并回列表。</li>
 <li><strong>Given</strong> 已保存方案，<strong>When</strong> 重命名、复制、删除，<strong>Then</strong> 分别 toast「方案已重命名 / 已复制 / 已删除」；副本分配清空。</li>
 <li><strong>Given</strong> 流水详情，<strong>When</strong> 查看业绩字段，<strong>Then</strong> 只读展示，不可点、不可编辑。</li>
 <li><strong>Given</strong> 店主 / 合伙人，<strong>When</strong> 点击流水提成并输入新值，<strong>Then</strong> 提成更新且「修改记录」出现该次改动（操作人 / 时间 / 前后值）。</li>
 <li><strong>Given</strong> 店员 / 店长，<strong>When</strong> 点击流水提成，<strong>Then</strong> toast 权限拦截，值不变。</li>
-<li><strong>Given</strong> 流水订单行支付方式为「经理签单」且规则范围含「签单」，<strong>When</strong> 计提，<strong>Then</strong> 按该行原价 / 实收照常计提。</li>
+<li><strong>Given</strong> 方案 <code>signComm</code> 关闭，<strong>When</strong> 计提经理签单订单行（支付方式不在现金/卡付/团购三类），<strong>Then</strong> 该行不计提成（<code>skipped='sign'</code>）、无 <code>winnerSchemeId</code>。</li>
 <li><strong>Given</strong> 工作台，<strong>When</strong> 查看入口，<strong>Then</strong> <strong>无</strong>「业绩设置」；新版「提成设置」与旧「提成设置」（阶梯）并存。</li>
 <li><strong>Given</strong> 店员 / 店长 / 高级店员，<strong>When</strong> 点击工作台「提成设置」，<strong>Then</strong> 权限拦截（toast），不进入。</li>
-<li><strong>Given</strong> 方案列表有未分配员工，<strong>When</strong> 查看列表顶部，<strong>Then</strong> 提示「还有 N 人未分配任何提成方案」；点击弹名单；全部分配后提示消失。</li>
+<li><strong>Given</strong> 方案列表有未分配员工，<strong>When</strong> 查看列表顶部，<strong>Then</strong> 提示「还有 N 人未分配任何提成方案」；点击弹名单；每人至少进一个方案后提示消失。</li>
 <li><strong>Given</strong> 门店有阶梯提成方案，<strong>When</strong> 执行单项迁移 Job，<strong>Then</strong> 阶梯配置 hash 不变、阶梯员工结算仍走旧阶梯引擎。</li>
 <li><strong>Given</strong> 单项提成 + 业绩设置已折叠且层 A–D 校验全过，<strong>When</strong> 切换读路径，<strong>Then</strong> 仅已迁单项员工走新引擎；样本提成与旧单项引擎分位全等。</li>
 <li><strong>Given</strong> 某项目 cost&gt;0 已按快照价折叠，<strong>When</strong> 查看迁移报告，<strong>Then</strong> 该项出现在「改价敏感」清单。</li>
 <li><strong>Given</strong> 同卡充值/续次/续费提成参数不一致且订单难区分，<strong>When</strong> 迁移，<strong>Then</strong> 状态 <code>needs_review</code>，该方案不自动发布。</li>
 <li><strong>Given</strong> 员工同时绑定阶梯与单项（脏数据），<strong>When</strong> 迁移门禁，<strong>Then</strong> 阻断该员工切换，默认优先阶梯直至人工处理。</li>
-<li><strong>Given</strong> 覆盖规则标题「染发、烫发、剑琅玻尿酸精华液」，<strong>When</strong> 卡片横向空间不足，<strong>Then</strong> 第一行标题至少显示 6 字并以 … 截断；<code>title</code> 属性含全文；第一行右侧提成参数完整可见。</li>
-<li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 第一行宽度仅容两个工位段，<strong>Then</strong> 放不下的工位段（如「小工 …」）<strong>整段</strong>换至参数第二行且右对齐；chevron 不与参数重叠。</li>
-<li><strong>Given</strong> 任意规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 第一行 = 标题 + 提成参数（同行）；第二行 = 计算基数标签 + 提成范围胶囊；chevron 相对整卡垂直居中。</li>
-<li><strong>Given</strong> 不分工位规则，<strong>When</strong> 参数区极窄，<strong>Then</strong> 「点客X·散客Y」整段换行，不在「点客」「散客」之间拆开。</li>
-<li><strong>Given</strong> 规则卡列表，<strong>When</strong> 查看卡片，<strong>Then</strong> 无「比例 / 固定」切换控件；点击卡片打开规则设置 Sheet。</li>
+<li><strong>Given</strong> 覆盖规则标题「染发、烫发、剑琅玻尿酸精华液」，<strong>When</strong> 卡片横向空间不足，<strong>Then</strong> 第一行标题至少显示 6 字并以 <code>…</code> 截断；<code>title</code> 属性含全文；第一行右侧提成参数完整可见。</li>
+<li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 参数区宽度不足，<strong>Then</strong> 放不下的工位短标段整段换行；数值完整可见。</li>
+<li><strong>Given</strong> 任意规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 左列标题+参数、右列基数段控+支付段控；无整卡 chevron 主路径。</li>
+<li><strong>Given</strong> 不分工位规则，<strong>When</strong> 查看参数，<strong>Then</strong> 展示「点」「散」短标 + 数值。</li>
+<li><strong>Given</strong> 规则卡，<strong>When</strong> 点击右列「实收」或「卡付」，<strong>Then</strong> 即时切换并置脏；点标题打开 Sheet；点参数区打开 Sheet 并锚定参数。</li>
 <li><strong>Given</strong> 员工薪资明细 · 业绩统计，<strong>When</strong> 查看圆环图例，<strong>Then</strong> 字段为项目 / 产品 / 办卡 / 充卡 / 快速消费；项目不含快速消费；金额为各类原价加总；五列之和 = 总计。</li>
 <li><strong>Given</strong> 员工薪资明细 · 提成统计，<strong>When</strong> 查看圆环图例，<strong>Then</strong> 字段为项目 / 产品 / 办卡 / 充卡 / 快速消费；项目列 = 项目类提成 − 快速消费提成；五列之和 = 总计。</li>
 <li><strong>Given</strong> 员工业绩提成明细 · 月合计，<strong>When</strong> 查看业绩分列，<strong>Then</strong> 仍为现金类 / 卡付 / 团购 / 经理签单 / 记为欠款，但金额为对应项原价加总。</li>
@@ -1619,8 +1602,19 @@ flowchart LR
 <li><strong>Given</strong> 开单流水详情展开员工行，<strong>When</strong> 查看业绩 / 提成，<strong>Then</strong> 业绩只读、无编辑 icon；提成可点（店主 / 合伙人）。</li>
 <li><strong>Given</strong> 流水订单修改卡片，<strong>When</strong> 点击「编辑」进入项目流水修改，<strong>Then</strong> 业绩行无铅笔且不可改；提成行保留铅笔可改。</li>
 <li><strong>Given</strong> 项目流水修改，<strong>When</strong> 试图修改业绩，<strong>Then</strong> 无输入入口 / 无响应；修改提成成功并写修改日志。</li>
+<li><strong>Given</strong> 用户覆盖规则卡，<strong>When</strong> 左滑超过删除阈值，<strong>Then</strong> 卡片飞出删除并出现带「撤销」的 toast；2.5s 内点撤销则恢复。</li>
+<li><strong>Given</strong> 用户覆盖规则卡，<strong>When</strong> 长按弹出菜单点「删除」，<strong>Then</strong> 立即删除并可撤销（同 44）。</li>
+<li><strong>Given</strong> 员工已在方案 S，<strong>When</strong> 打开 S2 分配 Sheet，<strong>Then</strong> 副文为 file-multiple 图标 +「S」（可多方案名），仍可勾选。</li>
+<li><strong>Given</strong> 员工不属于任何方案，<strong>When</strong> 开单计提试算，<strong>Then</strong> 各行提成 0 且无 winnerSchemeId。</li>
+<li><strong>Given</strong> 固定金额 + 按工位，<strong>When</strong> 计提，<strong>Then</strong> 取对应工位固定额，不乘原价/实收。</li>
+<li><strong>Given</strong> 同方案两条覆盖均可命中一行，<strong>When</strong> 解析，<strong>Then</strong> 使用 overrides 数组中更靠前的一条。</li>
+<li><strong>Given</strong> 两方案算出金额均为 0 且均范围命中，<strong>When</strong> 取高，<strong>Then</strong> 列表更靠前的方案胜出（金额相等规则）。</li>
+<li><strong>Given</strong> 方案列表任一张方案卡，<strong>When</strong> 查看第二行，<strong>Then</strong> 显示「经理签单计算提成」+ 右侧 switch；默认关闭（灰）。点击切换立即生效并 toast（无需进编辑页）。</li>
+<li><strong>Given</strong> 方案 <code>signComm</code> 开启，<strong>When</strong> 计提「经理签单 · 深层补水护理」（原价 268 / 实收 0），<strong>Then</strong> 按命中块计提：资深技师方案深层补水覆盖 18% → ¥48.24；不受三类支付范围限制。</li>
+<li><strong>Given</strong> 方案 <code>signComm</code> 关闭，<strong>When</strong> 查看试算，<strong>Then</strong> 经理签单行金额 0、note「经理签单不计提成」；其余 8 行不变。</li>
+<li><strong>Given</strong> 复制已开启 <code>signComm</code> 的方案，<strong>When</strong> 查看副本，<strong>Then</strong> <code>signComm</code> 保留开启；分配清空。</li>
 </ol>
-<hr />
+<hr>
 <h1>模块 11　非功能（极简）</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 ✓ · 测试 ✓</p>
@@ -1633,7 +1627,7 @@ flowchart LR
 <li>金额精度：提成金额建议保留两位小数（round2）；比例 0–100；<strong>迁移与新旧引擎必须共用同一 <code>moneyRound</code></strong>（见 §13.6.0）。</li>
 <li><strong>本期仅单店</strong>。</li>
 </ul>
-<hr />
+<hr>
 <h1>模块 12　交付物</h1>
 <table>
 <thead>
@@ -1642,280 +1636,323 @@ flowchart LR
 <th>说明</th>
 </tr>
 </thead>
-<tbody>
-<tr>
+<tbody><tr>
 <td>本文 <code>PRD-提成设置.md</code></td>
-<td>开发与测试准稿（含模块 13 迁移）</td>
-</tr>
-<tr>
-<td>交互原型 <code>demo.html</code> / 独立原型 <code>提成设置/</code></td>
-<td>唯一可视依据；功能链路「提成设置」（<code>commission2</code>）+ 流水详情</td>
-</tr>
-<tr>
+<td>开发与测试准稿（含模块 13 迁移；§6.10 关联页）</td>
+</tr><tr>
+<td>独立原型本目录 <code>index.html</code></td>
+<td>唯一可视依据（配置链路）；关联流水/薪资见 §6.8/§6.10（本系统现有页面）</td>
+</tr><tr>
+<td>关联页配图 <code>assets/related/</code></td>
+<td>薪资明细 / 业绩提成明细 / 流水三页现状截图（源：<code>提成关联页面/</code>）</td>
+</tr><tr>
 <td>迁移 Job + 等价校验器</td>
 <td>后端交付；门禁报告见 §13.6–13.8</td>
-</tr>
-</tbody>
-</table>
+</tr></tbody></table>
 <p>开发与测试只需 <strong>PRD + 原型</strong>（迁移实现另附 Job/校验器）。与价目 / 会员卡交叉时，覆盖规则目标数据以 <code>PRD-项目创建与管理.md</code>、<code>PRD-会员卡管理.md</code> 为准，提成逻辑以本文为准。冲突时以原型界面为准修正 PRD。</p>
-<hr />
+<hr>
 <h1>模块 13　历史数据迁移（业绩设置 + 单项提成 → 新提成设置）</h1>
 <blockquote>
-<p>读者：前端 了解 · 后端 <strong>必看</strong> · 测试 <strong>必看</strong><br />文档版本自 v1.3 起纳入；目标：<strong>迁移不改变提成计算结果</strong>。</p>
+<p>读者：前端 了解 · 后端 <strong>必看</strong> · 测试 <strong>必看</strong><br>文档版本自 v1.3 起纳入；目标：<strong>迁移不改变提成计算结果</strong>。</p>
 </blockquote>
 <h2>13.1 目标与边界</h2>
 <p><strong>目标</strong>：迁移后，对同一笔订单行，<strong>每位员工提成金额与迁移前逐分一致</strong>（同一 round 规则）。</p>
 <table>
 <thead>
-<tr><th>范围</th><th>处理</th></tr>
+<tr>
+<th>范围</th>
+<th>处理</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>业绩设置（高级设置 + 按项业绩% + 按项手填成本）+ <strong>单项提成</strong></td><td><strong>转换</strong>为新 <code>Scheme</code>（defaults + overrides + assigneeIds）</td></tr>
-<tr><td><strong>阶梯提成</strong></td><td><strong>不转换</strong>；配置完整保留并<strong>继续生效</strong>（旧阶梯引擎）</td></tr>
-<tr><td>新「业绩」四部分统计</td><td>与提成解耦，不参与提成</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>业绩设置（高级设置 + 按项业绩% + 按项手填成本）+ <strong>单项提成</strong></td>
+<td><strong>转换</strong>为新 <code>Scheme</code>（defaults + overrides + assigneeIds）</td>
+</tr><tr>
+<td><strong>阶梯提成</strong></td>
+<td><strong>不转换</strong>；配置完整保留并<strong>继续生效</strong>（旧阶梯引擎）</td>
+</tr><tr>
+<td>新「业绩」四部分统计</td>
+<td>与提成解耦，不参与提成</td>
+</tr></tbody></table>
 <h3>13.1.1 阶梯提成「保留并继续生效」硬性约束</h3>
 <table>
 <thead>
-<tr><th>层级</th><th>要求</th></tr>
+<tr>
+<th>层级</th>
+<th>要求</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>数据</td><td>阶梯方案表/字段 <strong>只读保留</strong>；迁移 Job <strong>禁止</strong>写入、覆盖、归档删除阶梯配置</td></tr>
-<tr><td>路由</td><td>结算：员工若绑定阶梯方案 → <strong>必须</strong>走旧阶梯引擎；仅已迁单项/新方案员工走新引擎</td></tr>
-<tr><td>阶梯与新方案互斥</td><td>不得同时生效「阶梯 + 新单项」；历史双绑 → <code>needs_review</code> 并 <strong>阻断</strong> 该员工切换，默认 <strong>优先阶梯</strong> 直至人工处理</td></tr>
-<tr><td>UI</td><td>新列表可展示阶梯方案（只读标签「阶梯·沿用旧版」）；编辑进旧阶梯页；不可被「保存新方案」误覆盖</td></tr>
-<tr><td>入口</td><td>下线业绩设置、旧单项配置；<strong>阶梯配置入口保留</strong>至二期</td></tr>
-<tr><td>回归</td><td>每门店层 D：阶梯配置 hash + 历史回放金额不变 + 路由探针（§13.6.4）</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>数据</td>
+<td>阶梯方案表/字段 <strong>只读保留</strong>；迁移 Job <strong>禁止</strong>写入、覆盖、归档删除阶梯配置</td>
+</tr><tr>
+<td>路由</td>
+<td>结算：员工若绑定阶梯方案 → <strong>必须</strong>走旧阶梯引擎；仅已迁单项/新方案员工走新引擎</td>
+</tr><tr>
+<td>阶梯与新方案互斥</td>
+<td>不得同时生效「阶梯 + 新单项」；历史双绑 → <code>needs_review</code> 并 <strong>阻断</strong> 该员工切换，默认 <strong>优先阶梯</strong> 直至人工处理</td>
+</tr><tr>
+<td>UI</td>
+<td>新列表可展示阶梯方案（只读标签「阶梯·沿用旧版」）；编辑进旧阶梯页；不可被「保存新方案」误覆盖</td>
+</tr><tr>
+<td>入口</td>
+<td>下线业绩设置、旧单项配置；<strong>阶梯配置入口保留</strong>至二期</td>
+</tr><tr>
+<td>回归</td>
+<td>每门店层 D：阶梯配置 hash + 历史回放金额不变 + 路由探针（§13.6.4）</td>
+</tr></tbody></table>
 <h3>13.1.2 已确认业务口径</h3>
 <table>
 <thead>
-<tr><th>项</th><th>结论</th></tr>
+<tr>
+<th>项</th>
+<th>结论</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>旧单项提成公式</td><td><code>提成 = 业绩额 × 提成比例</code>；固定金额则直接取 ¥</td></tr>
-<tr><td>业绩额</td><td><code>max(0, (售价或实收 − 成本) × 业绩%)</code>；成本在业绩按项里手填</td></tr>
-<tr><td>高级设置「按售价 / 按实收 / 不计算」</td><td>直接决定提成基数口径；不计算 → 该口径提成基数为 0</td></tr>
-<tr><td>会员卡</td><td><code>开卡 → 办卡</code>；<code>充值 + 续次 + 续费(延期) → 充卡</code></td></tr>
-<tr><td>签单</td><td>实收 = 0，按此逻辑计算（实收模式下提成自然为 0）</td></tr>
-<tr><td>赠金耗卡 / 赠送服务 / 商城 / 抵用券</td><td>M1：并入最接近分类并折算；无法精确等价则 <code>needs_review</code></td></tr>
-<tr><td>分配</td><td>业绩「平均/按工位」影响分业绩；提成是否按工位以<strong>单项提成配置</strong>为准</td></tr>
-<tr><td>方案归属</td><td>多套单项提成 → 多个新方案，保留员工归属</td></tr>
-</tbody>
-</table>
-<hr />
+<tbody><tr>
+<td>旧单项提成公式</td>
+<td><code>提成 = 业绩额 × 提成比例</code>；固定金额则直接取 ¥</td>
+</tr><tr>
+<td>业绩额</td>
+<td><code>max(0, (售价或实收 − 成本) × 业绩%)</code>；成本在业绩按项里手填</td>
+</tr><tr>
+<td>高级设置「按售价 / 按实收 / 不计算」</td>
+<td>直接决定提成基数口径；不计算 → 该口径提成基数为 0</td>
+</tr><tr>
+<td>会员卡</td>
+<td><code>开卡 → 办卡</code>；<code>充值 + 续次 + 续费(延期) → 充卡</code></td>
+</tr><tr>
+<td>签单（经理签单）</td>
+<td>原系统实收 = 0，按此逻辑计算（实收模式下提成自然为 0）；新模型由方案级 <code>signComm</code> 控制：原系统 <code>payScope.sign=true</code>（参与计提）→ 迁移为 <code>signComm=true</code>，否则 <code>false</code></td>
+</tr><tr>
+<td>赠金耗卡 / 赠送服务 / 商城 / 抵用券</td>
+<td>M1：并入最接近分类并折算；无法精确等价则 <code>needs_review</code></td>
+</tr><tr>
+<td>分配</td>
+<td>业绩「平均/按工位」影响分业绩；提成是否按工位以<strong>单项提成配置</strong>为准</td>
+</tr><tr>
+<td>方案归属</td>
+<td>多套单项提成 → 多个新方案，保留员工归属</td>
+</tr></tbody></table>
+<hr>
 <h2>13.2 新旧公式对齐</h2>
 <h3>13.2.1 旧引擎（单项）</h3>
-<pre><code>
-price  = 售价(原价) 或 实收    // 由该分类高级设置决定
-
+<pre><code>price  = 售价(原价) 或 实收    // 由该分类高级设置决定
 cost   = 按项手填成本（无则 0）
-
 achPct = 按项业绩%（默认 100%）
-
 comm   = 点客或散客提成比例；或固定金额
 
-
-
 若「不计算」: 提成 = 0
-
 若固定金额:   提成 = 点客/散客（及工位）对应固定 ¥
-
 若比例:       业绩额 = max(0, (price − cost) × achPct)
-
               提成   = moneyRound(业绩额 × comm)
-
 </code></pre>
 <h3>13.2.2 新引擎</h3>
-<pre><code>
-base = line.list | line.paid     // RuleBlock.baseMode
-
+<pre><code>base = line.list | line.paid     // RuleBlock.baseMode
 若 payScope 不含该支付方式: 0
-
 若 valueMode=amount: 固定 ¥
-
 若 valueMode=pct:    moneyRound(base × rate / 100)
-
 </code></pre>
 <p>新模型无「成本」「业绩%」字段：迁移时将旧参数<strong>折叠</strong>进 <code>baseMode + rate/amount</code>（必要时写入按项 <code>overrides</code>）。</p>
 <h3>13.2.3 比例折叠恒等式</h3>
 <p>对快照价 <code>P</code>（<code>list</code>→资料原价；<code>paid</code>→资料价或近 90 天实收中位数，见 §13.5）：</p>
-<pre><code>
-旧: moneyRound( max(0,(P−cost)×achPct) × comm )
-
+<pre><code>旧: moneyRound( max(0,(P−cost)×achPct) × comm )
 新: moneyRound( P × newRate / 100 )
 
-
-
 当 P&gt;0:
-
   newRate = comm × achPct × max(0, P − cost) / P
-
   （旧 comm 若已是百分数，按同一百分数语义换算，禁止混用 0–1 与 0–100）
-
 </code></pre>
 <table>
 <thead>
-<tr><th>情形</th><th>处理</th></tr>
+<tr>
+<th>情形</th>
+<th>处理</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>cost=0 且 achPct=100%</td><td><code>newRate = comm</code>，可进分类默认，与价无关</td></tr>
-<tr><td>cost&gt;0 或 achPct≠100%</td><td><strong>必须</strong>按项覆盖；依赖快照 P；列入「改价敏感」报告</td></tr>
-<tr><td>固定金额</td><td>直写 <code>valueMode=amount</code>，不折叠</td></tr>
-</tbody>
-</table>
-<hr />
+<tbody><tr>
+<td>cost=0 且 achPct=100%</td>
+<td><code>newRate = comm</code>，可进分类默认，与价无关</td>
+</tr><tr>
+<td>cost&gt;0 或 achPct≠100%</td>
+<td><strong>必须</strong>按项覆盖；依赖快照 P；列入「改价敏感」报告</td>
+</tr><tr>
+<td>固定金额</td>
+<td>直写 <code>valueMode=amount</code>，不折叠</td>
+</tr></tbody></table>
+<hr>
 <h2>13.3 数据结构映射</h2>
 <p>目标结构见 §7（<code>Scheme</code> / <code>RuleBlock</code> / <code>CatRule</code> / <code>overrides</code>）。</p>
 <h3>13.3.1 分类</h3>
 <table>
 <thead>
-<tr><th>旧</th><th>新</th></tr>
+<tr>
+<th>旧</th>
+<th>新</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>劳动 / 服务 / 项目</td><td><code>defaults.labor</code></td></tr>
-<tr><td>产品</td><td><code>defaults.sales</code></td></tr>
-<tr><td>开卡</td><td><code>defaults.issue</code></td></tr>
-<tr><td>充值 / 续次 / 续费(延期)</td><td><code>defaults.card</code>（合并，见 §13.3.4）</td></tr>
-<tr><td>快速消费</td><td>系统覆盖 <code>ov_sys_quick</code></td></tr>
-<tr><td>商城订单</td><td>并入 <code>sales</code>（M1）</td></tr>
-<tr><td>赠金耗卡 / 赠送服务 / 抵用券</td><td>并入 labor 或覆盖（M1，§13.4）</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>劳动 / 服务 / 项目</td>
+<td><code>defaults.labor</code></td>
+</tr><tr>
+<td>产品</td>
+<td><code>defaults.sales</code></td>
+</tr><tr>
+<td>开卡</td>
+<td><code>defaults.issue</code></td>
+</tr><tr>
+<td>充值 / 续次 / 续费(延期)</td>
+<td><code>defaults.card</code>（合并，见 §13.3.4）</td>
+</tr><tr>
+<td>快速消费</td>
+<td>系统覆盖 <code>ov_sys_quick</code></td>
+</tr><tr>
+<td>商城订单</td>
+<td>并入 <code>sales</code>（M1）</td>
+</tr><tr>
+<td>赠金耗卡 / 赠送服务 / 抵用券</td>
+<td>并入 labor 或覆盖（M1，§13.4）</td>
+</tr></tbody></table>
 <h3>13.3.2 高级设置 → RuleBlock</h3>
 <table>
 <thead>
-<tr><th>旧</th><th>新</th></tr>
+<tr>
+<th>旧</th>
+<th>新</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>按售价</td><td><code>baseMode='list'</code></td></tr>
-<tr><td>按实收</td><td><code>baseMode='paid'</code></td></tr>
-<tr><td>不计算</td><td>该分类默认比例/金额全 0</td></tr>
-<tr><td>工位改名</td><td><code>stationLabels</code>；<code>stationIds</code> 默认 senior/mid/junior</td></tr>
-<tr><td>经理签单</td><td>不单独开关；实收=0。<code>payScope.sign</code> 默认 true（按售价店仍可按原价计提）</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>按售价</td>
+<td><code>baseMode='list'</code></td>
+</tr><tr>
+<td>按实收</td>
+<td><code>baseMode='paid'</code></td>
+</tr><tr>
+<td>不计算</td>
+<td>该分类默认比例/金额全 0</td>
+</tr><tr>
+<td>工位改名</td>
+<td><code>stationLabels</code>；<code>stationIds</code> 默认 senior/mid/junior</td>
+</tr><tr>
+<td>经理签单 / 记为欠款</td>
+<td>新模型 <code>payScope</code> <strong>无</strong> <code>sign</code> 键（仅现金/卡付/团购三类）；经理签单由方案级 <code>signComm</code> 控制（默认 false）。迁移时勿再写 <code>payScope.sign</code></td>
+</tr></tbody></table>
 <p><code>pickMode</code>：<strong>以单项提成是否分工位为准</strong>；业绩高级设置的平均/按工位不强制改写提成 <code>pickMode</code>。</p>
 <h3>13.3.3 单项提成 → CatRule / overrides</h3>
 <table>
 <thead>
-<tr><th>旧</th><th>新</th></tr>
+<tr>
+<th>旧</th>
+<th>新</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>点客/散客比例</td><td><code>designated</code> / <code>nonDesignated</code></td></tr>
-<tr><td>点客/散客固定金额</td><td><code>valueMode='amount'</code> + Amt 字段</td></tr>
-<tr><td>分大/中/小工</td><td><code>pickMode='station'</code> + <code>rule.stations[id]</code></td></tr>
-<tr><td>逐项不同比例</td><td><code>overrides[]</code>（project / product / card）</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>点客/散客比例</td>
+<td><code>designated</code> / <code>nonDesignated</code></td>
+</tr><tr>
+<td>点客/散客固定金额</td>
+<td><code>valueMode='amount'</code> + Amt 字段</td>
+</tr><tr>
+<td>分大/中/小工</td>
+<td><code>pickMode='station'</code> + <code>rule.stations[id]</code></td>
+</tr><tr>
+<td>逐项不同比例</td>
+<td><code>overrides[]</code>（project / product / card）</td>
+</tr></tbody></table>
 <h3>13.3.4 充值 / 续次 / 续费合并</h3>
 <ol>
 <li>三类参数<strong>完全相同</strong> → 一条充卡规则  </li>
-<li><strong>存在差异</strong> → <strong>禁止静默平均</strong>  </li>
-</ol>
-<p>   - 能区分订单行：分别覆盖  </p>
-<p>   - 不能区分：<code>needs_review</code>，<strong>阻断自动发布</strong>直至运营确认  </p>
+<li><strong>存在差异</strong> → <strong>禁止静默平均</strong>  
+<ul>
+<li>能区分订单行：分别覆盖  </li>
+<li>不能区分：<code>needs_review</code>，<strong>阻断自动发布</strong>直至运营确认  </li>
+</ul></ol>
 <h3>13.3.5 多方案与员工</h3>
-<pre><code>
-每套旧单项提成方案 → 1 个新 Scheme
-
+<pre><code>每套旧单项提成方案 → 1 个新 Scheme
 assigneeIds = 原绑定员工
-
 阶梯方案 → 不生成新 Scheme；保留旧表 + 旧计算入口
-
 </code></pre>
 <h3>13.3.6 payScope</h3>
-<p>默认 <code>cash / memberCard / groupBuy / sign = true</code>。  </p>
-<p>「不计算」用比例/金额 0 表达，不靠关闭 payScope。</p>
-<hr />
+<p>新模型仅三类：默认 <code>cash / memberCard / groupBuy</code>（<strong>无 <code>sign</code></strong>）。<br>原系统 <code>payScope.sign=true</code>（经理签单参与计提）→ 迁移为方案级 <code>signComm=true</code>（否则 <code>false</code>），保证迁移前后一致。<br> 「不计算」用比例/金额 0 表达，不靠关闭 payScope。</p>
+<hr>
 <h2>13.4 特殊项（M1）</h2>
 <table>
 <thead>
-<tr><th>项</th><th>策略</th></tr>
+<tr>
+<th>项</th>
+<th>策略</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>商城订单</td><td>归入产品；<code>baseMode</code> 取旧「商城订单」高级设置</td></tr>
-<tr><td>赠金耗卡</td><td>卡付耗卡行 + 折算覆盖；无稳定标签 → <code>needs_review</code></td></tr>
-<tr><td>赠送服务 / 抵用券</td><td>并入项目；实收常为 0 时 <code>paid</code> 下提成为 0；旧按售价则 <code>list</code> + 折叠率</td></tr>
-<tr><td>无法识别类型</td><td>报告 + <code>needs_review</code>，不猜测</td></tr>
-</tbody>
-</table>
-<hr />
+<tbody><tr>
+<td>商城订单</td>
+<td>归入产品；<code>baseMode</code> 取旧「商城订单」高级设置</td>
+</tr><tr>
+<td>赠金耗卡</td>
+<td>卡付耗卡行 + 折算覆盖；无稳定标签 → <code>needs_review</code></td>
+</tr><tr>
+<td>赠送服务 / 抵用券</td>
+<td>并入项目；实收常为 0 时 <code>paid</code> 下提成为 0；旧按售价则 <code>list</code> + 折叠率</td>
+</tr><tr>
+<td>无法识别类型</td>
+<td>报告 + <code>needs_review</code>，不猜测</td>
+</tr></tbody></table>
+<hr>
 <h2>13.5 迁移算法</h2>
-<pre><code>
-读取门店旧配置
-
+<pre><code>读取门店旧配置
 ├─ 阶梯 → 原样保留并继续生效（层 D 回归）
-
 └─ 单项 → 生成 Scheme 壳
-
          → 工位名映射
-
          → 高级设置写 defaults.baseMode
-
          → 单项提成写默认 CatRule
-
          → 按项折叠 achPct/cost → overrides
-
          → 会员卡三类合并检测
-
          → 写入 assigneeIds
-
          → 多层等价校验（§13.6）
-
               ├─ 全通过 → 仅切换「已迁单项员工」读新引擎
-
               └─ 失败 / needs_review → 阻断切换并出报告
-
 </code></pre>
 <p><strong>按项折叠伪代码</strong></p>
-<pre><code>
-for each 项目/产品/卡规则:
-
+<pre><code>for each 项目/产品/卡规则:
   if 固定金额: 直写 amount; continue
-
   if 分类不计算: rate=0; continue
-
   P = snapshotPrice(item, baseMode)
-
   if P&lt;=0: needs_review; continue
-
   newRate = comm * achPct * max(0, P - cost) / P
-
   if cost==0 and achPct==1 and 与分类默认相同: 可省略覆盖
-
   else: 写入 override
-
 </code></pre>
 <p><strong>幂等</strong>：<code>Scheme._v3</code> + <code>migrationBatchId</code>。阶梯数据 <strong>永不</strong> 被 batch 覆盖。</p>
-<hr />
+<hr>
 <h2>13.6 等价校验（迁移不改数的硬门槛）</h2>
 <p>原则：切换前证明「配置折叠正确」+「引擎结果一致」+「阶梯未受影响」。任一层失败则门店不切换。</p>
 <h3>13.6.0 Round 与金额单位（Day0 锁定）</h3>
-<p>从旧源码锁定并单测固化：金额单位（分/元）、舍入函数与乘除顺序。  </p>
-<p>新引擎与迁移折叠 <strong>必须调用同一 `moneyRound`</strong>。</p>
+<p>从旧源码锁定并单测固化：金额单位（分/元）、舍入函数与乘除顺序。<br>新引擎与迁移折叠 <strong>必须调用同一 <code>moneyRound</code></strong>。</p>
 <h3>13.6.1 层 A · 配置折叠自洽</h3>
 <table>
 <thead>
-<tr><th>检查</th><th>通过条件</th></tr>
+<tr>
+<th>检查</th>
+<th>通过条件</th>
+</tr>
 </thead>
-<tbody>
-<tr><td>固定金额</td><td>点客/散客（及工位）金额逐项相等</td></tr>
-<tr><td>比例且 cost=0、achPct=100%</td><td><code>newRate == 旧 comm</code></td></tr>
-<tr><td>比例需折叠</td><td>快照 P 上旧(P)=新(P)；并对 <strong>P±1 分</strong> 邻域探测</td></tr>
-<tr><td>不计算</td><td>新 rate/amount 全 0</td></tr>
-</tbody>
-</table>
+<tbody><tr>
+<td>固定金额</td>
+<td>点客/散客（及工位）金额逐项相等</td>
+</tr><tr>
+<td>比例且 cost=0、achPct=100%</td>
+<td><code>newRate == 旧 comm</code></td>
+</tr><tr>
+<td>比例需折叠</td>
+<td>快照 P 上旧(P)=新(P)；并对 <strong>P±1 分</strong> 邻域探测</td>
+</tr><tr>
+<td>不计算</td>
+<td>新 rate/amount 全 0</td>
+</tr></tbody></table>
 <h3>13.6.2 层 B · 合成订单双跑</h3>
-<p>每门店 ≥ <strong>300</strong> 条样本（不足则补齐笛卡尔积）：  </p>
-<p>分类 × 点客/散客 × 三工位 × 四支付；每个实际 override 至少命中 1 行；含 cost&gt;0、achPct≠100%、不计算、固定金额、快消、商城、实收=0 签单。  </p>
+<p>每门店 ≥ <strong>300</strong> 条样本（不足则补齐笛卡尔积）：<br>分类 × 点客/散客 × 三工位 × 四支付；每个实际 override 至少命中 1 行；含 cost&gt;0、achPct≠100%、不计算、固定金额、快消、商城、实收=0 签单。  </p>
 <p><code>旧单项引擎(line)</code> vs <code>新引擎(scheme, line)</code> → <strong>分位全等</strong>。</p>
 <h3>13.6.3 层 C · 历史流水回放</h3>
-<p>近 <strong>90 天</strong>（或至少 50 单）已结账流水：  </p>
-<p>仅单项员工重算；与旧引擎（或可复算存档）一致。  </p>
-<p><code>manual_edited</code> 人工改提成 <strong>不纳入门禁</strong>，单独报告。</p>
+<p>近 <strong>90 天</strong>（或至少 50 单）已结账流水：<br>仅单项员工重算；与旧引擎（或可复算存档）一致。<br> <code>manual_edited</code> 人工改提成 <strong>不纳入门禁</strong>，单独报告。</p>
 <h3>13.6.4 层 D · 阶梯未受损回归（强制）</h3>
 <ol>
 <li>阶梯配置迁移前后 hash 一致  </li>
@@ -1929,9 +1966,7 @@ for each 项目/产品/卡规则:
 <li>cost&gt;0：仅保证快照 P；报告「改价敏感」</li>
 </ul>
 <h3>13.6.6 门禁与发布</h3>
-<pre><code>
-通过 = A ∧ B ∧ C(非人工) ∧ D ∧ needs_review 为空
-
+<pre><code>通过 = A ∧ B ∧ C(非人工) ∧ D ∧ needs_review 为空
 </code></pre>
 <ul>
 <li>不通过 → 不切换；出 diff / 改价敏感 / 卡冲突 / 双绑报告  </li>
@@ -1940,7 +1975,7 @@ for each 项目/产品/卡规则:
 </ul>
 <h3>13.6.7 上线后观察</h3>
 <p>灰度双写 ≥7 天（仅单项员工）；阶梯监控「是否误入新引擎」告警。再关旧单项配置入口。</p>
-<hr />
+<hr>
 <h2>13.7 已知非恒等风险（须产品接受）</h2>
 <ol>
 <li><strong>扣成本 + 日后改价</strong>：快照折叠；改价后可能漂移 → 报告改价敏感；二期可加 <code>deductCost</code>  </li>
@@ -1949,7 +1984,7 @@ for each 项目/产品/卡规则:
 <li><strong>赠金/赠送/抵用券</strong> 标签不全 → 复核，禁止静默  </li>
 <li><strong>阶梯</strong> 不迁入新模型；用层 D 保证继续生效且金额不变  </li>
 </ol>
-<hr />
+<hr>
 <h2>13.8 迁移交付物</h2>
 <ol>
 <li>字段级映射 + 折叠公式 + 统一 <code>moneyRound</code>（本文）  </li>
@@ -1967,7 +2002,8 @@ for each 项目/产品/卡规则:
 <li>灰度切单项读路径；确认阶梯不变  </li>
 <li>下线业绩设置与旧单项入口；保留阶梯入口  </li>
 </ol>
-<p class="foot-note">给 AI / 研发请使用同目录 <code>PRD-提成设置.md</code>；本页仅作阅读预览。交互以 <code>demo.html</code> 为准。</p>
+
+<p class="foot-note">给 AI / 研发请使用同目录 <code>PRD-提成设置.md</code>；本页仅作阅读预览。交互以本目录 <code>index.html</code> 为准。</p>
 </article></div>
 <script src="assets/vendor/mermaid.min.js"></script>
 <script>

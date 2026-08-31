@@ -237,6 +237,7 @@
       sch.stationIds = COMM2_STATIONS.map(function (s) { return s.id; });
     }
     if (!sch.stationLabels) sch.stationLabels = defaultStationLabels();
+    if (sch.signComm == null) sch.signComm = false;
     ensureSystemQuickOverride(sch);
     return sch;
   }
@@ -326,7 +327,7 @@
       overrideRow({
         id: 'ov_flagship_vip_issue',
         belongCat: 'issue',
-        title: '尊享组合卡 · 办卡',
+        title: '尊享组合卡',
         payScope: ['cash', 'groupBuy'],
         rule: catRulePct(12, 10),
         targets: [{ kind: 'card', refId: 'demo_vip_combo', name: '尊享组合卡', cardRole: 'issue' }]
@@ -334,7 +335,7 @@
       overrideRow({
         id: 'ov_flagship_groupbuy',
         belongCat: 'labor',
-        title: '团购体验',
+        title: '洗头',
         payScope: ['groupBuy'],
         rule: catRuleAmt(5, 5),
         targets: [{ kind: 'project', refId: 'p19', name: '洗头' }]
@@ -424,6 +425,7 @@
       defaults: defaults,
       overrides: [],
       assigneeIds: [],
+      signComm: false,
       _v3: true
     }, partial || {});
     if (!sch.defaults) sch.defaults = defaults;
@@ -597,7 +599,11 @@
     }
     tip.classList.remove('hidden');
     tip.setAttribute('aria-hidden', 'false');
-    tip.innerHTML = '<span class="comm2-unassigned__text">还有 <strong>' + ids.length + '</strong> 人未分配任何提成方案</span>' +
+    tip.innerHTML =
+      '<span class="comm2-unassigned__lead">' +
+        '<span class="comm2-unassigned__ico" aria-hidden="true"></span>' +
+        '<span class="comm2-unassigned__text">还有 <strong>' + ids.length + '</strong> 人未分配任何提成方案</span>' +
+      '</span>' +
       '<span class="comm2-unassigned__chev" aria-hidden="true">' +
       '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span>';
   }
@@ -634,6 +640,9 @@
         '<span class="emp-comm-card__title-wrap">' +
         '<span class="emp-comm-card__name">' + esc(s.name) + '</span>' +
         '</span></div></div></button>' +
+        '<button type="button" class="comm2-signcomm" data-comm2-signcomm="' + esc(s.id) + '" aria-pressed="' + (s.signComm ? 'true' : 'false') + '" aria-label="经理签单计算提成">' +
+        '<span class="comm2-signcomm__label">经理签单计算提成</span>' +
+        '<span class="comm2-signcomm__switch' + (s.signComm ? ' on' : '') + '" aria-hidden="true"></span></button>' +
         '<button type="button" class="emp-comm-card__assign" data-comm2-assign="' + esc(s.id) + '">' +
         '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + '</span></button>' +
         '<button type="button" class="emp-comm-card__menu" data-comm2-menu="' + esc(s.id) + '" aria-label="更多">' + menuSvg + '</button></div>';
@@ -983,7 +992,8 @@
     { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, designated: true },
     { id: 'tl6', name: '团购体验 · 洗头', cat: 'labor', kind: 'project', refId: 'p19', pay: 'groupBuy', list: 28, paid: 28, designated: false },
     { id: 'tl7', name: '卡付 · 时尚洗吹', cat: 'labor', kind: 'project', refId: 'p1', pay: 'memberCard', list: 58, paid: 58, designated: false },
-    { id: 'tl8', name: '快速消费', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true }
+    { id: 'tl8', name: '快速消费', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true },
+    { id: 'tl9', name: '经理签单 · 深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', sign: true, list: 268, paid: 0, designated: true }
   ];
 
   function schemesForStaff(staffId) {
@@ -1033,9 +1043,14 @@
 
   function schemeLineAmount(sch, line) {
     normalizeScheme(sch);
+    /* 经理签单（支付方式之一，相当于免单）：由方案级 signComm 开关控制，不走支付范围过滤 */
+    if (line.sign && !sch.signComm) {
+      return { amount: 0, skipped: 'sign', rateLabel: '' };
+    }
     var block = resolveLineBlock(sch, line);
     ensurePayScopeBlock(block);
-    if (!block.payScope[line.pay]) return { amount: 0, skipped: 'scope', rateLabel: '' };
+    /* 经理签单行不参与支付范围过滤（由 signComm 开关控制）；其余行按 payScope 三类过滤 */
+    if (!line.sign && !block.payScope[line.pay]) return { amount: 0, skipped: 'scope', rateLabel: '' };
     var rule = ensureCat(block.rule, getStationIds(sch));
     var isAmt = rule.valueMode === 'amount';
     var pair = rule;
@@ -1066,7 +1081,7 @@
         if (r.skipped) {
           cands.push({
             schemeId: sch.id, schemeName: sch.name, schemeIndex: schIdx,
-            amount: 0, skipped: r.skipped, rateLabel: '—', note: '支付方式不在范围'
+            amount: 0, skipped: r.skipped, rateLabel: '—', note: r.skipped === 'sign' ? '经理签单不计提成' : '支付方式不在范围'
           });
           return;
         }
@@ -1155,6 +1170,14 @@
     copy.assigneeIds = [];
     store.schemes.push(copy);
     toast('方案已复制');
+    renderList();
+  }
+
+  function toggleSchemeSignComm(id) {
+    var sch = schemeById(id);
+    if (!sch) return;
+    sch.signComm = !sch.signComm;
+    toast(sch.signComm ? '经理签单已计入提成' : '经理签单不计入提成');
     renderList();
   }
 
@@ -2213,6 +2236,8 @@
     $('comm2BtnAddRule') && $('comm2BtnAddRule').addEventListener('click', openRulePick);
 
     $('comm2List') && $('comm2List').addEventListener('click', function (e) {
+      var signComm = e.target.closest('[data-comm2-signcomm]');
+      if (signComm) { toggleSchemeSignComm(signComm.getAttribute('data-comm2-signcomm')); return; }
       var open = e.target.closest('[data-comm2-open]');
       if (open) { openEdit(open.getAttribute('data-comm2-open')); return; }
       var assign = e.target.closest('[data-comm2-assign]');
