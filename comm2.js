@@ -237,8 +237,8 @@
       sch.stationIds = COMM2_STATIONS.map(function (s) { return s.id; });
     }
     if (!sch.stationLabels) sch.stationLabels = defaultStationLabels();
-    if (sch.signComm == null) sch.signComm = false;
     ensureSystemQuickOverride(sch);
+    delete sch.signComm;
     return sch;
   }
   function catRulePct(des, non, stationMap) {
@@ -425,7 +425,6 @@
       defaults: defaults,
       overrides: [],
       assigneeIds: [],
-      signComm: false,
       _v3: true
     }, partial || {});
     if (!sch.defaults) sch.defaults = defaults;
@@ -640,9 +639,6 @@
         '<span class="emp-comm-card__title-wrap">' +
         '<span class="emp-comm-card__name">' + esc(s.name) + '</span>' +
         '</span></div></div></button>' +
-        '<button type="button" class="comm2-signcomm" data-comm2-signcomm="' + esc(s.id) + '" aria-pressed="' + (s.signComm ? 'true' : 'false') + '" aria-label="经理签单计算提成">' +
-        '<span class="comm2-signcomm__label">经理签单计算提成</span>' +
-        '<span class="comm2-signcomm__switch' + (s.signComm ? ' on' : '') + '" aria-hidden="true"></span></button>' +
         '<button type="button" class="emp-comm-card__assign" data-comm2-assign="' + esc(s.id) + '">' +
         '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + '</span></button>' +
         '<button type="button" class="emp-comm-card__menu" data-comm2-menu="' + esc(s.id) + '" aria-label="更多">' + menuSvg + '</button></div>';
@@ -726,32 +722,37 @@
     return block.baseMode === 'paid' ? '实收' : '原价';
   }
 
-  /** 卡上：原价/实收单选；固定金额时只读「固定」 */
+  /** 卡上：原价/实收整段点击切换；固定金额时只读「固定」 */
   function barBaseCtrlHtml(block, target) {
     var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
     if (isAmt) {
       return '<span class="comm2-rule-bar__base is-fixed" aria-label="固定金额">固定</span>';
     }
     var isPaid = block.baseMode === 'paid';
-    return '<div class="comm2-rule-bar__seg" role="radiogroup" aria-label="计算基数">' +
-      '<button type="button" class="comm2-rule-bar__chip' + (!isPaid ? ' on' : '') +
-      (!isPaid ? ' comm2-rule-bar__base is-list' : '') +
-      '" data-comm2-bar-base="list" data-comm2-bar-target="' + esc(target) + '">原价</button>' +
-      '<button type="button" class="comm2-rule-bar__chip' + (isPaid ? ' on' : '') +
-      (isPaid ? ' comm2-rule-bar__base is-paid' : '') +
-      '" data-comm2-bar-base="paid" data-comm2-bar-target="' + esc(target) + '">实收</button></div>';
+    return '<button type="button" class="comm2-rule-bar__seg" role="switch" aria-checked="' +
+      (isPaid ? 'true' : 'false') + '" aria-label="计算基数，点击切换原价/实收" data-comm2-bar-base-toggle="' +
+      esc(target) + '">' +
+      '<span class="comm2-rule-bar__chip' + (!isPaid ? ' on' : '') +
+      (!isPaid ? ' comm2-rule-bar__base is-list' : '') + '" aria-hidden="true">原价</span>' +
+      '<span class="comm2-rule-bar__chip' + (isPaid ? ' on' : '') +
+      (isPaid ? ' comm2-rule-bar__base is-paid' : '') + '" aria-hidden="true">实收</span></button>';
   }
 
-  /** 卡上：现金/卡付/团购多选 */
+  /** 卡上：现金/卡付/团购 · 独立 chip 多选（与基数段控区分） */
   function barPayCtrlHtml(block, target) {
     ensurePayScopeBlock(block);
-    return '<div class="comm2-rule-bar__seg comm2-rule-bar__seg--pay" role="group" aria-label="提成范围">' +
+    return '<div class="comm2-rule-bar__scope-chips" role="group" aria-label="提成范围">' +
       COMM2_PAY_SCOPE.map(function (d) {
         var on = !!block.payScope[d.key];
-        return '<button type="button" class="comm2-rule-bar__chip' + (on ? ' on' : '') +
+        return '<button type="button" class="comm2-scope-chip' + (on ? ' on' : '') +
           '" data-comm2-bar-scope="' + esc(d.key) + '" data-comm2-bar-target="' + esc(target) +
           '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(d.label) + '</button>';
       }).join('') + '</div>';
+  }
+
+  /** 卡面右侧控件容器（无「基数」「范围」文字标签，靠控件形态区分） */
+  function barFieldHtml(ctrlHtml) {
+    return '<div class="comm2-rule-bar__field">' + ctrlHtml + '</div>';
   }
 
   function sheetScopeChipsHtml(block) {
@@ -803,6 +804,10 @@
     return barParamSegHtml('点', esc(fmtVal(des, isAmt))) + barParamSegHtml('散', esc(fmtVal(non, isAmt)));
   }
 
+  function titleCharCount(s) {
+    return Array.from(String(s || '')).length;
+  }
+
   function renderRuleCard(sch, opts) {
     var block = opts.block;
     var target = opts.target;
@@ -811,27 +816,27 @@
     var isOv = !!opts.deletable;
     var isStation = block.pickMode === 'station';
     var ovId = opts.ovId || '';
+    var titleEllipsis = titleCharCount(title) > 6;
     var menuHtml = isOv
       ? '<div class="comm2-rule-bar__menu" role="menu">' +
         '<button type="button" class="comm2-rule-bar__menu-item" role="menuitem" data-comm2-override-del="' + esc(ovId) + '">删除</button>' +
         '</div>'
       : '';
+    /* 两行：①标题+基数 ②参数+范围；按工位时参数竖排三行 */
     var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') + '" data-comm2-rule-card="' + esc(target) + '"' +
       (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
-      '<div class="comm2-rule-bar__grid">' +
-      '<div class="comm2-rule-bar__left">' +
+      '<div class="comm2-rule-bar__row comm2-rule-bar__row--1">' +
       '<button type="button" class="comm2-rule-bar__title-hit" data-comm2-card-open="' + esc(target) + '">' +
       '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
-      '<span class="comm2-rule-bar__title-txt" title="' + esc(title) + '">' + esc(title) + '</span></h2></button>' +
-      '<div class="comm2-rule-bar__hair" data-comm2-card-open="' + esc(target) + '" role="presentation"></div>' +
+      '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></button>' +
+      barFieldHtml(barBaseCtrlHtml(block, target)) +
+      '</div>' +
+      '<div class="comm2-rule-bar__row comm2-rule-bar__row--2">' +
       '<button type="button" class="comm2-rule-bar__params" data-comm2-card-open-params="' + esc(target) + '" aria-label="编辑提成参数">' +
       barParamsHtml(sch, block) + '</button>' +
-      '<button type="button" class="comm2-rule-bar__left-pad" data-comm2-card-open="' + esc(target) + '" aria-label="打开规则设置"></button>' +
+      barFieldHtml(barPayCtrlHtml(block, target)) +
       '</div>' +
-      '<div class="comm2-rule-bar__right">' +
-      barBaseCtrlHtml(block, target) +
-      barPayCtrlHtml(block, target) +
-      '</div></div>' + menuHtml + '</article>';
+      menuHtml + '</article>';
     if (!isOv) return card;
     return '<div class="comm2-rule-swipe" data-comm2-swipe-ov="' + esc(ovId) + '">' + card + '</div>';
   }
@@ -942,6 +947,15 @@
     renderList();
     show('screen-comm2-list');
     goNav('comm2-list');
+    maybeShowMigrationDialog();
+  }
+
+  function maybeShowMigrationDialog() {
+    var q = new URLSearchParams(location.search).get('migrationResult');
+    if (!q || store._migrationDialogShown) return;
+    store._migrationDialogShown = true;
+    if (q === 'match') openDialog('comm2MigrateMatchMask');
+    else if (q === 'diff') openDialog('comm2MigrateDiffMask');
   }
 
   function openEdit(id) {
@@ -1043,14 +1057,12 @@
 
   function schemeLineAmount(sch, line) {
     normalizeScheme(sch);
-    /* 经理签单（支付方式之一，相当于免单）：由方案级 signComm 开关控制，不走支付范围过滤 */
-    if (line.sign && !sch.signComm) {
-      return { amount: 0, skipped: 'sign', rateLabel: '' };
-    }
     var block = resolveLineBlock(sch, line);
     ensurePayScopeBlock(block);
-    /* 经理签单行不参与支付范围过滤（由 signComm 开关控制）；其余行按 payScope 三类过滤 */
-    if (!line.sign && !block.payScope[line.pay]) return { amount: 0, skipped: 'scope', rateLabel: '' };
+    /* 经理签单（实收=0）：不走 payScope 三类；是否计提由命中块 baseMode 决定 */
+    if (!line.sign && !block.payScope[line.pay]) {
+      return { amount: 0, skipped: 'scope', rateLabel: '' };
+    }
     var rule = ensureCat(block.rule, getStationIds(sch));
     var isAmt = rule.valueMode === 'amount';
     var pair = rule;
@@ -1063,6 +1075,9 @@
       : pairVal(pair, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     var base = lineBaseAmount(block, line);
     var amount = isAmt ? rate : Math.round(base * rate) / 100;
+    if (line.sign && !isAmt && base <= 0) {
+      return { amount: 0, skipped: 'sign', rateLabel: rate + '%', base: 0 };
+    }
     return {
       amount: amount,
       skipped: '',
@@ -1081,7 +1096,7 @@
         if (r.skipped) {
           cands.push({
             schemeId: sch.id, schemeName: sch.name, schemeIndex: schIdx,
-            amount: 0, skipped: r.skipped, rateLabel: '—', note: r.skipped === 'sign' ? '经理签单不计提成' : '支付方式不在范围'
+            amount: 0, skipped: r.skipped, rateLabel: '—', note: r.skipped === 'sign' ? '实收模式下经理签单不计提成' : '支付方式不在范围'
           });
           return;
         }
@@ -1170,14 +1185,6 @@
     copy.assigneeIds = [];
     store.schemes.push(copy);
     toast('方案已复制');
-    renderList();
-  }
-
-  function toggleSchemeSignComm(id) {
-    var sch = schemeById(id);
-    if (!sch) return;
-    sch.signComm = !sch.signComm;
-    toast(sch.signComm ? '经理签单已计入提成' : '经理签单不计入提成');
     renderList();
   }
 
@@ -1345,11 +1352,15 @@
 
   function renderCardSheetBody(sch, block, opts) {
     opts = opts || {};
+    var variant = opts.variant || store._sheetVariant || 'full';
     ensurePayScopeBlock(block);
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var html = sheetRowHtml('提成范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
-      sheetRowHtml('计算基数', sheetSegHtml('base', block)) +
-      sheetRowHtml('分配模式', sheetSegHtml('pick', block));
+    var html = '';
+    if (variant === 'full') {
+      html += sheetRowHtml('提成范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
+        sheetRowHtml('计算基数', sheetSegHtml('base', block));
+    }
+    html += sheetRowHtml('分配模式', sheetSegHtml('pick', block));
     if (opts.showCardRole) {
       html += sheetRowHtml('会员卡', sheetCardRoleHtml(block));
     }
@@ -1362,13 +1373,14 @@
     var block = sch ? getSheetBlock(sch) : null;
     var body = $('comm2CatSheetBody');
     if (!sch || !block || !body) return;
-    var opts = {};
+    var opts = { variant: store._sheetVariant || 'full' };
     if (store._sheetContext === 'pick' && store._pickType === 'card') opts.showCardRole = true;
     body.innerHTML = renderCardSheetBody(sch, block, opts);
     if (typeof wireAmountKeypadInputs === 'function') wireAmountKeypadInputs(body);
   }
 
-  function openCardSheet(target, focus) {
+  function openCardSheet(target, opts) {
+    opts = opts || {};
     var sch = editing();
     if (!sch) return;
     var block = getCardBlock(sch, target);
@@ -1376,18 +1388,21 @@
     block.rule = ensureCat(block.rule, getStationIds(sch));
     store._sheetContext = 'edit';
     store._cardTarget = target;
+    store._sheetVariant = opts.variant === 'params' ? 'params' : 'full';
     var p = parseCardTarget(target);
     var title = p.type === 'default'
       ? ((COMM2_CATS.find(function (c) { return c.key === p.id; }) || {}).label || '')
       : (block.title || '覆盖');
     store._sheetMode = block.rule.valueMode === 'amount' ? 'amount' : 'pct';
     var titleEl = $('comm2CatSheetTitle');
-    var body = $('comm2CatSheetBody');
-    if (titleEl) titleEl.textContent = title;
+    if (titleEl) titleEl.textContent = store._sheetVariant === 'params' ? (title + ' · 提成参数') : title;
     refreshCardSheetBody();
     var mask = $('comm2CatSheetMask');
     if (mask) mask.classList.add('open');
-    if (focus === 'params' && body) {
+    if (store._sheetVariant === 'params') return;
+    if (opts.focus === 'params') {
+      var body = $('comm2CatSheetBody');
+      if (!body) return;
       requestAnimationFrame(function () {
         var el = body.querySelector('[data-comm2-sheet-anchor="params"]') ||
           body.querySelector('.comm2-sheet-row--params-head');
@@ -1399,12 +1414,13 @@
     }
   }
 
-  function setBarBase(target, mode) {
+  /** 整段点击：原价 ↔ 实收 */
+  function toggleBarBase(target) {
     var sch = editing();
     var block = sch ? getCardBlock(sch, target) : null;
     if (!sch || !block) return;
     if (block.rule && block.rule.valueMode === 'amount') return;
-    block.baseMode = mode === 'paid' ? 'paid' : 'list';
+    block.baseMode = block.baseMode === 'paid' ? 'list' : 'paid';
     markDirty();
     renderEditCards(sch);
   }
@@ -1424,6 +1440,7 @@
     if (!sch || !b || !b.targets.length) { toast('请先选择规则项', true); return; }
     store._sheetContext = 'pick';
     store._cardTarget = null;
+    store._sheetVariant = 'full';
     b.rule = ensureCat(b.rule, getStationIds(sch));
     store._sheetMode = b.rule.valueMode === 'amount' ? 'amount' : 'pct';
     var titleEl = $('comm2CatSheetTitle');
@@ -1436,6 +1453,7 @@
   function closeCatSheet() {
     var mask = $('comm2CatSheetMask');
     if (mask) mask.classList.remove('open');
+    store._sheetVariant = 'full';
     if (store._sheetContext === 'pick') return;
     store._cardTarget = null;
     store._sheetContext = null;
@@ -1995,7 +2013,7 @@
 
     root.addEventListener('pointerdown', function (e) {
       if (e.button != null && e.button !== 0) return;
-      if (e.target.closest('[data-comm2-bar-base], [data-comm2-bar-scope], [data-comm2-override-del], .comm2-rule-bar__menu')) {
+      if (e.target.closest('[data-comm2-bar-base-toggle], [data-comm2-bar-scope], [data-comm2-override-del], .comm2-rule-bar__menu')) {
         return;
       }
       var swipe = e.target.closest('.comm2-rule-swipe');
@@ -2167,6 +2185,12 @@
     });
     $('comm2HelpBtn') && $('comm2HelpBtn').addEventListener('click', function () { openDialog('comm2HelpMask'); });
     $('comm2HelpOk') && $('comm2HelpOk').addEventListener('click', function () { closeDialog('comm2HelpMask'); });
+    $('comm2MigrateMatchOk') && $('comm2MigrateMatchOk').addEventListener('click', function () { closeDialog('comm2MigrateMatchMask'); });
+    $('comm2MigrateDiffLater') && $('comm2MigrateDiffLater').addEventListener('click', function () { closeDialog('comm2MigrateDiffMask'); });
+    $('comm2MigrateDiffRecreate') && $('comm2MigrateDiffRecreate').addEventListener('click', function () {
+      closeDialog('comm2MigrateDiffMask');
+      openComm2NameDialog('create');
+    });
     $('comm2HelpMask') && $('comm2HelpMask').addEventListener('click', function (e) {
       if (e.target === $('comm2HelpMask')) closeDialog('comm2HelpMask');
     });
@@ -2206,10 +2230,10 @@
         e.preventDefault(); e.stopPropagation();
         return;
       }
-      var baseBtn = e.target.closest('[data-comm2-bar-base]');
-      if (baseBtn) {
+      var baseToggle = e.target.closest('[data-comm2-bar-base-toggle]');
+      if (baseToggle) {
         e.preventDefault(); e.stopPropagation();
-        setBarBase(baseBtn.getAttribute('data-comm2-bar-target'), baseBtn.getAttribute('data-comm2-bar-base'));
+        toggleBarBase(baseToggle.getAttribute('data-comm2-bar-base-toggle'));
         return;
       }
       var scopeBtn = e.target.closest('[data-comm2-bar-scope]');
@@ -2221,13 +2245,13 @@
       var paramsBtn = e.target.closest('[data-comm2-card-open-params]');
       if (paramsBtn) {
         e.preventDefault(); e.stopPropagation();
-        openCardSheet(paramsBtn.getAttribute('data-comm2-card-open-params'), 'params');
+        openCardSheet(paramsBtn.getAttribute('data-comm2-card-open-params'), { variant: 'params' });
         return;
       }
       var openBtn = e.target.closest('[data-comm2-card-open]');
       if (openBtn) {
         e.preventDefault(); e.stopPropagation();
-        openCardSheet(openBtn.getAttribute('data-comm2-card-open'));
+        openCardSheet(openBtn.getAttribute('data-comm2-card-open'), { variant: 'full' });
       }
     });
 
@@ -2236,8 +2260,6 @@
     $('comm2BtnAddRule') && $('comm2BtnAddRule').addEventListener('click', openRulePick);
 
     $('comm2List') && $('comm2List').addEventListener('click', function (e) {
-      var signComm = e.target.closest('[data-comm2-signcomm]');
-      if (signComm) { toggleSchemeSignComm(signComm.getAttribute('data-comm2-signcomm')); return; }
       var open = e.target.closest('[data-comm2-open]');
       if (open) { openEdit(open.getAttribute('data-comm2-open')); return; }
       var assign = e.target.closest('[data-comm2-assign]');

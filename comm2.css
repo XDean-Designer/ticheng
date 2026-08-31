@@ -102,33 +102,6 @@
   flex-wrap: wrap; white-space: normal; line-height: 18px; text-align: right;
 }
 
-/* 方案卡 · 经理签单计算提成行（开关独立于支付范围） */
-.comm2-signcomm {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  width: 100%; min-height: 44px; margin-top: 8px; padding: 12px 0 0;
-  border: none; background: transparent; position: relative;
-  font-size: 13px; color: var(--text-sec); line-height: 1.35;
-  font-family: inherit; cursor: pointer; text-align: left; box-sizing: border-box;
-}
-.comm2-signcomm::before {
-  content: ''; position: absolute; left: 0; right: 0; top: 0;
-  height: 1px; background: var(--card-divider);
-  transform: scaleY(0.5); transform-origin: center top; pointer-events: none;
-}
-.comm2-signcomm:active { opacity: .85; }
-.comm2-signcomm__label { flex: 1; min-width: 0; }
-.comm2-signcomm__switch {
-  width: 44px; height: 26px; border-radius: 13px; background: var(--disabled, #EDEDED);
-  position: relative; flex-shrink: 0; display: block;
-  transition: background .2s;
-}
-.comm2-signcomm__switch::after {
-  content: ''; position: absolute; width: 22px; height: 22px; border-radius: 50%;
-  background: #fff; top: 2px; left: 2px; transition: transform .2s;
-}
-.comm2-signcomm__switch.on { background: var(--brand); }
-.comm2-signcomm__switch.on::after { transform: translateX(18px); }
-
 /* 分配员工 sheet：列表滚动区 */
 .comm2-assign-scroll { max-height: 42vh; overflow-y: auto; }
 
@@ -490,25 +463,15 @@
 .comm2-rule-bar.is-flash { animation: comm2Flash .7s ease; }
 @keyframes comm2Flash { 0%,100%{background:#fff} 40%{background:var(--brand-soft,#FFF2EE)} }
 
-.comm2-rule-bar__grid {
-  display: flex; align-items: stretch; gap: 12px; min-width: 0;
+.comm2-rule-bar__row {
+  display: flex; align-items: flex-start; gap: 10px; min-width: 0;
 }
-.comm2-rule-bar__left {
-  flex: 1; min-width: 0; display: flex; flex-direction: column;
-}
-.comm2-rule-bar__left-pad {
-  flex: 1 1 auto; min-height: 4px; border: none; background: transparent;
-  padding: 0; margin: 0; cursor: pointer; width: 100%;
-}
-.comm2-rule-bar__right {
-  flex: 0 0 auto; display: flex; flex-direction: column; justify-content: center;
-  gap: 6px; align-items: flex-end;
-}
-
+.comm2-rule-bar__row--1 { align-items: center; }
+.comm2-rule-bar__row--2 { margin-top: 8px; align-items: flex-start; }
 .comm2-rule-bar__title-hit {
+  flex: 1; min-width: 0;
   border: none; background: transparent; padding: 0; margin: 0;
   text-align: left; cursor: pointer; font-family: inherit; color: inherit;
-  width: 100%; min-width: 0;
 }
 .comm2-rule-bar__title-hit:active { opacity: .85; }
 .comm2-rule-bar__title {
@@ -516,20 +479,58 @@
   display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden;
 }
 .comm2-rule-bar__title .comm2-cat__ico { flex-shrink: 0; width: 14px; height: 14px; }
+/* ≤6 字：min-width:6em 保证完整；>6 字才加 is-ellipsis */
 .comm2-rule-bar__title-txt {
-  flex: 1 1 auto; min-width: 6em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  flex: 0 1 auto; min-width: 6em; max-width: 100%;
+  white-space: nowrap; overflow: visible;
+}
+.comm2-rule-bar__title-txt.is-ellipsis {
+  flex: 1 1 auto; min-width: 6em; overflow: hidden; text-overflow: ellipsis;
 }
 
-.comm2-rule-bar__hair {
-  height: 0; border: none; border-top: 1px solid #EBEBEB;
-  margin: 8px 0; padding: 0; cursor: pointer;
+.comm2-rule-bar__row .comm2-rule-bar__field {
+  flex: 0 0 120px;
+  width: 120px;
+  max-width: 120px;
+  box-sizing: border-box;
+}
+.comm2-rule-bar__field {
+  display: flex; flex-direction: row; align-items: center;
+  justify-content: flex-end;
 }
 
+/* 范围：定宽 120、三 chip 均分单行；与参数 gap 分隔，禁止重叠 */
+.comm2-rule-bar__scope-chips {
+  display: flex; flex-wrap: nowrap; gap: 4px; justify-content: stretch;
+  width: 100%; min-width: 0; box-sizing: border-box;
+}
+.comm2-rule-bar .comm2-scope-chip {
+  border: 1px solid #E0E0E0; background: #FAFAFA; color: #929292;
+  font-size: 11px; font-weight: 500; font-family: inherit;
+  height: 26px; min-height: 26px; padding: 0 4px; border-radius: 8px;
+  cursor: pointer; white-space: nowrap; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
+  flex: 1 1 0; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis;
+  transition: border-color .14s ease, background .14s ease, color .14s ease, box-shadow .14s ease;
+}
+.comm2-rule-bar .comm2-scope-chip.on {
+  border-color: var(--brand); background: var(--brand-soft, #FFF2F2);
+  color: var(--brand); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(243, 47, 65, .12);
+}
+.comm2-rule-bar .comm2-scope-chip:active { opacity: .88; }
+
+/* 行2 左：提成参数 */
 .comm2-rule-bar__params {
+  flex: 1; min-width: 0; overflow: hidden;
   border: none; background: transparent; padding: 0; margin: 0;
-  display: flex; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start;
-  gap: 6px 12px; width: 100%; min-width: 0; box-sizing: border-box;
+  display: flex; flex-wrap: nowrap; justify-content: flex-start; align-items: center;
+  gap: 12px; box-sizing: border-box;
   text-align: left; cursor: pointer; font-family: inherit; color: inherit;
+  /* 与标题文字左缘对齐（图标 14 + gap 5） */
+  padding-left: 19px;
 }
 .comm2-rule-bar__params:active { opacity: .85; }
 .comm2-rule-bar__param-seg {
@@ -542,34 +543,50 @@
 .comm2-rule-bar__p-val {
   font-size: 15px; font-weight: 600; color: #1A1A1A; line-height: 1.3;
 }
+/* 按工位：参数竖排三行，范围贴行2顶 */
+.comm2-rule-bar.is-station .comm2-rule-bar__params {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  align-self: flex-start;
+  gap: 4px;
+}
+.comm2-rule-bar.is-station .comm2-rule-bar__param-seg {
+  display: flex;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.comm2-rule-bar.is-station .comm2-rule-bar__p-lbl {
+  flex: 0 0 1.2em;
+  width: 1.2em;
+}
 
-/* 右列 · 轻微：选中白底 + 莫兰迪字色；未选浅灰底淡字 */
+/* 右列 · 基数段控（整段可点切换）· 在 120 槽内右对齐 */
 .comm2-rule-bar__seg {
   display: inline-flex; gap: 0; padding: 2px; border-radius: 999px;
-  background: #F0F0F0; flex-shrink: 0;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .05);
+  background: #F0F0F0; flex-shrink: 0; border: none; cursor: pointer;
+  font-family: inherit; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .05);
+  -webkit-tap-highlight-color: transparent;
+  max-width: 100%;
 }
+.comm2-rule-bar__seg:active { opacity: .92; }
 .comm2-rule-bar__seg--pay { max-width: 100%; }
 .comm2-rule-bar__chip {
   border: none; background: transparent; color: #B0B0B0;
   font-size: 11px; font-weight: 500; font-family: inherit;
   height: 26px; padding: 0 10px; border-radius: 999px;
-  cursor: pointer; white-space: nowrap; line-height: 1;
+  white-space: nowrap; line-height: 26px; pointer-events: none;
   transition: background .14s ease, color .14s ease, box-shadow .14s ease;
+  display: inline-flex; align-items: center; justify-content: center;
 }
 .comm2-rule-bar__chip.on {
-  background: #FFFFFF; font-weight: 600;
+  background: #FFFFFF; font-weight: 600; color: #E89D64;
   box-shadow: 0 1px 2px rgba(0, 0, 0, .1), 0 0 0 0.5px rgba(0, 0, 0, .04);
 }
-/* 第一行 原价/实收 · 莫兰迪橙 */
-.comm2-rule-bar__seg:not(.comm2-rule-bar__seg--pay) .comm2-rule-bar__chip.on {
-  color: #E89D64;
-}
-/* 第二行 现金/卡付/团购 · 莫兰迪红 */
 .comm2-rule-bar__seg--pay .comm2-rule-bar__chip.on {
   color: #E06767;
 }
-.comm2-rule-bar__chip:active { opacity: .92; }
 
 /* 固定金额 · 只读灰标 */
 .comm2-rule-bar__base.is-fixed {
