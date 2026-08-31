@@ -59,16 +59,11 @@ g.getShelvedTemplates = getShelvedTemplates;
 g.getCustomCatalogGroups = getCustomCatalogGroups;
 g.ensureCardGroups = ensureCardGroups;
 g.EmployeeStore = { staff: [
+  { id:'st0', name:'顾清扬', short:'顾', status:'在岗', role:'店主', avatar:'assets/emp-avatars/man-e.jpg' },
   { id:'st1', name:'林屿森', short:'森', status:'在岗', role:'美容师', avatar:'assets/emp-avatars/man-a.jpg' },
   { id:'st2', name:'何苏叶', short:'叶', status:'在岗', role:'店长', avatar:'assets/emp-avatars/woman-a.jpg' },
   { id:'st3', name:'阿Ken', short:'Ken', status:'在岗', role:'美容师', avatar:'assets/emp-avatars/man-b.jpg' },
   { id:'st4', name:'Lisa', short:'Lisa', status:'在岗', role:'美甲师', avatar:'assets/emp-avatars/woman-b.jpg' },
-  { id:'st5', name:'张明', short:'张', status:'在岗', role:'美发师', avatar:'assets/emp-avatars/man-c.jpg' },
-  { id:'st6', name:'李华', short:'李', status:'在岗', role:'美发师', avatar:'assets/emp-avatars/man-a.jpg' },
-  { id:'st7', name:'王芳', short:'王', status:'在岗', role:'美甲师', avatar:'assets/emp-avatars/woman-b.jpg' },
-  { id:'st8', name:'陈强', short:'陈', status:'在岗', role:'美发师', avatar:'assets/emp-avatars/man-c.jpg' },
-  { id:'st9', name:'赵敏', short:'赵', status:'休假', role:'前台', avatar:'assets/emp-avatars/woman-a.jpg' },
-  { id:'st10', name:'周杰', short:'周', status:'在岗', role:'美发师', avatar:'assets/emp-avatars/man-b.jpg' },
 ]};
 g.EmployeeDemo = { getBillingStaffPool: function () {
   return g.EmployeeStore.staff.filter(function (s) { return s.status === '在岗'; })

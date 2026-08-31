@@ -28,9 +28,9 @@
   };
   var COMM2_QUICK_OV_ID = 'ov_sys_quick';
   var COMM2_QUICK_REF = 'quick';
-  var COMM2_STAFF_IDS = ['st1', 'st2', 'st3', 'st4', 'st5'];
+  var COMM2_STAFF_IDS = ['st0', 'st1', 'st2', 'st3', 'st4'];
   var COMM2_STAFF_FALLBACK = {
-    st1: '林屿森', st2: '何苏叶', st3: '阿Ken', st4: 'Lisa', st5: '张明'
+    st0: '顾清扬', st1: '林屿森', st2: '何苏叶', st3: '阿Ken', st4: 'Lisa'
   };
 
   function $(id) { return document.getElementById(id); }
@@ -357,11 +357,11 @@
         defaults: buildDefaults({
           labor: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(12, 10) },
           sales: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(10, 10) },
-          issue: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0, 0) },
-          card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0, 0) }
+          issue: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(5, 5) },
+          card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(3, 3) }
         }),
         overrides: [],
-        assigneeIds: ['st1', 'st2']
+        assigneeIds: ['st0', 'st1', 'st2', 'st3']
       }),
       defaultScheme({
         id: 'c2_cardpay',
@@ -808,6 +808,12 @@
     return Array.from(String(s || '')).length;
   }
 
+  /* Stratis UI Icons · 线性：edit-02（提成参数可编辑） */
+  function editIconSvg() {
+    return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+      '<path d="M13.4486 6.9516L17.0486 10.5516M4.44868 19.5516L8.81467 18.6719C9.04644 18.6252 9.25926 18.511 9.4264 18.3438L19.2001 8.56478C19.6687 8.09592 19.6684 7.33593 19.1994 6.86747L17.1289 4.7994C16.6601 4.33113 15.9005 4.33145 15.4321 4.80011L5.65745 14.5802C5.49063 14.7471 5.37673 14.9594 5.32999 15.1907L4.44868 19.5516Z"/></svg>';
+  }
+
   function renderRuleCard(sch, opts) {
     var block = opts.block;
     var target = opts.target;
@@ -833,7 +839,7 @@
       '</div>' +
       '<div class="comm2-rule-bar__row comm2-rule-bar__row--2">' +
       '<button type="button" class="comm2-rule-bar__params" data-comm2-card-open-params="' + esc(target) + '" aria-label="编辑提成参数">' +
-      barParamsHtml(sch, block) + '</button>' +
+      barParamsHtml(sch, block) + '<span class="comm2-rule-bar__p-edit" aria-hidden="true">' + editIconSvg() + '</span></button>' +
       barFieldHtml(barPayCtrlHtml(block, target)) +
       '</div>' +
       menuHtml + '</article>';
@@ -1305,6 +1311,7 @@
     closeSheet('comm2AssignMask');
     toast(ids.length ? ('已分配 ' + ids.length + ' 人') : '已清空分配');
     renderList();
+    if (window.Comm2Demo && window.Comm2Demo.notifySalarySync) window.Comm2Demo.notifySalarySync();
   }
 
   function gearSvg() {
@@ -2214,6 +2221,7 @@
         store._dirty = false;
       }
       toast('提成方案已保存');
+      if (window.Comm2Demo && window.Comm2Demo.notifySalarySync) window.Comm2Demo.notifySalarySync();
       openList();
     });
 
@@ -2484,7 +2492,21 @@
     });
   }
 
-  window.Comm2Demo = { openList: openList, openEdit: openEdit, wire: wire, calcStaffTrial: calcStaffTrial };
+  window.Comm2Demo = {
+    openList: openList,
+    openEdit: openEdit,
+    wire: wire,
+    closeCatSheet: closeCatSheet,
+    calcStaffTrial: calcStaffTrial,
+    getSchemes: function () { return store.schemes; },
+    getTrialLines: function () { return COMM2_TRIAL_LINES; },
+    schemesForStaff: schemesForStaff,
+    notifySalarySync: function () {
+      if (window.EmployeeDemo && typeof window.EmployeeDemo.invalidateCommLineCache === 'function') {
+        window.EmployeeDemo.invalidateCommLineCache();
+      }
+    }
+  };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
   else wire();
 })();

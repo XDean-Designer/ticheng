@@ -518,7 +518,6 @@
 .comm2-rule-bar .comm2-scope-chip.on {
   border-color: var(--brand); background: var(--brand-soft, #FFF2F2);
   color: var(--brand); font-weight: 600;
-  box-shadow: 0 1px 2px rgba(243, 47, 65, .12);
 }
 .comm2-rule-bar .comm2-scope-chip:active { opacity: .88; }
 
@@ -527,12 +526,21 @@
   flex: 1; min-width: 0; overflow: hidden;
   border: none; background: transparent; padding: 0; margin: 0;
   display: flex; flex-wrap: nowrap; justify-content: flex-start; align-items: center;
-  gap: 12px; box-sizing: border-box;
+  gap: 0; box-sizing: border-box;
   text-align: left; cursor: pointer; font-family: inherit; color: inherit;
   /* 与标题文字左缘对齐（图标 14 + gap 5） */
   padding-left: 19px;
 }
 .comm2-rule-bar__params:active { opacity: .85; }
+.comm2-rule-bar__param-seg + .comm2-rule-bar__param-seg {
+  margin-left: 12px;
+}
+.comm2-rule-bar__p-edit {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  margin-left: 6px; color: #929292; transition: color .14s ease;
+}
+.comm2-rule-bar__p-edit svg { display: block; width: 14px; height: 14px; }
+.comm2-rule-bar__params:active .comm2-rule-bar__p-edit { color: var(--brand); }
 .comm2-rule-bar__param-seg {
   display: inline-flex; align-items: baseline; gap: 3px;
   white-space: nowrap; flex-shrink: 0;
@@ -543,18 +551,28 @@
 .comm2-rule-bar__p-val {
   font-size: 15px; font-weight: 600; color: #1A1A1A; line-height: 1.3;
 }
-/* 按工位：参数竖排三行，范围 chip 相对整体中轴对齐 */
+/* 按工位：参数竖排；铅笔贴末行右侧，间距 6px */
 .comm2-rule-bar.is-station .comm2-rule-bar__params {
-  flex-direction: column;
-  flex-wrap: nowrap;
-  align-items: flex-start;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: max-content max-content;
+  column-gap: 6px;
+  row-gap: 4px;
+  justify-content: start;
+  align-items: center;
 }
 .comm2-rule-bar.is-station .comm2-rule-bar__param-seg {
+  grid-column: 1;
   display: flex;
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
+  margin-left: 0;
+}
+.comm2-rule-bar.is-station .comm2-rule-bar__p-edit {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  align-self: end;
+  margin-left: 0;
 }
 .comm2-rule-bar.is-station .comm2-rule-bar__p-lbl {
   flex: 0 0 1.2em;
@@ -587,13 +605,13 @@
   color: #E06767;
 }
 
-/* 固定金额 · 只读灰标 */
+/* 固定金额 · 只读灰标 → 选中态（与「原价/实收」选中 chip 同款：白底暖色字） */
 .comm2-rule-bar__base.is-fixed {
   display: inline-flex; align-items: center; justify-content: center;
   height: 30px; padding: 0 14px; border-radius: 999px;
-  background: #EFEFEF; color: #B0B0B0; font-size: 11px; font-weight: 600;
+  background: #FFFFFF; color: #E89D64; font-size: 11px; font-weight: 600;
   line-height: 1; white-space: nowrap;
-  box-shadow: inset 0 1px 1px rgba(0, 0, 0, .04);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, .05);
 }
 
 /* 左滑飞出删除（无右侧按钮） */
@@ -635,19 +653,23 @@
 .comm2-toast-undo:active { opacity: .75; }
 
 /* 分配员工 Sheet · 头像与行布局修复 */
-#comm2AssignMask .picker-sheet.tall {
+#comm2AssignMask .picker-sheet.tall,
+#empRewardStaffMask .picker-sheet.tall {
   display: flex; flex-direction: column; max-height: 85%;
   overflow: hidden;
 }
-#comm2AssignMask .emp-assign-tools {
+#comm2AssignMask .emp-assign-tools,
+#empRewardStaffMask .emp-assign-tools {
   display: flex; align-items: center; justify-content: space-between;
   gap: 12px; padding: 8px 16px 4px; flex-shrink: 0;
 }
-#comm2AssignMask .comm2-assign-scroll {
+#comm2AssignMask .comm2-assign-scroll,
+#empRewardStaffMask .comm2-assign-scroll {
   flex: 1 1 auto; min-height: 0; max-height: none; overflow-x: hidden; overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
-#comm2AssignMask .emp-assign-list {
+#comm2AssignMask .emp-assign-list,
+#empRewardStaffMask .emp-assign-list {
   padding: 8px 16px 16px;
   display: flex; flex-direction: column; gap: 8px;
 }

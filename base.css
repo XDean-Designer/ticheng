@@ -39,7 +39,7 @@
   --info-bg: #E7F1FF; --info-text: #1A70FE;
   --warn-bg: #FFF8E6; --warn-text: #E37318;
   --neutral-bg: #EDEDED; --neutral-text: #929292;
-  --font-data: "TCloudNumber", "DIN Alternate", "Helvetica Neue", monospace;
+  --font-data: "Source Han Sans SC", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   /* 文案/占位（如金额「请输入」）；有数字后金额栏切回 --font-data */
   --font-text: "Source Han Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
   --phone-w: 390px; --phone-h: 844px; --phone-scale: 1.5;
@@ -253,7 +253,7 @@
 .member-card-compact__vip {
   flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; border-radius: 8px;
-  font-family: "DingTalk JinBuTi", "STSong", "Songti SC", serif;
+  font-family: var(--font-text);
   font-size: 12px; font-weight: 400; line-height: 1; letter-spacing: 0;
   background: #E2D0C6; color: #694E42;
 }

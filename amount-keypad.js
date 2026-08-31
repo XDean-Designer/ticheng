@@ -188,12 +188,16 @@
     var mask = document.getElementById('amountKeypadMask');
     if (cancel) cancel.addEventListener('click', closeAmountKeypad);
     if (ok) ok.addEventListener('click', confirmAmountKeypad);
-    if (mask) mask.addEventListener('click', function (e) {
-      if (e.target === mask) closeAmountKeypad();
-    });
+    if (mask) {
+      mask.dataset.outsideClose = '1';
+      mask.addEventListener('click', function (e) {
+        if (e.target === mask) closeAmountKeypad();
+      });
+    }
   }
 
   g.openAmountKeypad = openAmountKeypad;
+  g.closeAmountKeypad = closeAmountKeypad;
   g.wireAmountKeypadInputs = wireAmountKeypadInputs;
   g.wireAmountKeypadControls = wireAmountKeypadControls;
 

@@ -6,6 +6,7 @@
 <title>剑琅联盟 · 提成设置</title>
 <link rel="stylesheet" href="comm2.css">
 <link rel="stylesheet" href="base.css">
+<link rel="stylesheet" href="salary.css">
 <link rel="stylesheet" href="shell.css">
 <script>
 /* 尽早切壳，避免闪一下桌面导航：手机全屏 / 电脑完整壳 */
@@ -55,15 +56,32 @@
 <aside class="site-nav">
   <div class="nav-brand">
     <div class="t">提成设置</div>
-    <div class="s">独立原型</div>
+    <div class="s">独立原型 · 含员工薪资</div>
   </div>
   <div class="nav-group">
-    <div class="g-t">页面链路</div>
+    <div class="g-t">入口</div>
+    <button type="button" class="nav-item" data-flow="hub"><span class="idx">⌂</span>功能入口</button>
+  </div>
+  <div class="nav-group">
+    <div class="g-t">提成设置</div>
     <button type="button" class="nav-item on" data-flow="comm2-list"><span class="idx">1</span>方案列表</button>
     <div class="nav-arrow">↓</div>
     <button type="button" class="nav-item" data-flow="comm2-edit"><span class="idx">2</span>编辑方案</button>
     <div class="nav-arrow">↓</div>
     <button type="button" class="nav-item" data-flow="comm2-pick"><span class="idx">3</span>添加规则项</button>
+  </div>
+  <div class="nav-group">
+    <div class="g-t">员工薪资</div>
+    <button type="button" class="nav-item" data-flow="staff-salary"><span class="idx">1</span>员工薪资</button>
+    <div class="nav-arrow">↓</div>
+    <button type="button" class="nav-item" data-flow="staff-pay-detail"><span class="idx">2</span>员工薪资明细</button>
+    <div class="nav-arrow">↓</div>
+    <button type="button" class="nav-item" data-flow="staff-pay-cycle"><span class="idx">3</span>结算周期</button>
+    <div class="nav-arrow">↓</div>
+    <button type="button" class="nav-item" data-flow="staff-salary-detail"><span class="idx">4</span>业绩提成明细</button>
+    <div class="nav-arrow">↓</div>
+    <button type="button" class="nav-item" data-flow="staff-rewards"><span class="idx">5</span>设奖惩</button>
+    <button type="button" class="nav-item" data-flow="staff-reward-detail"><span class="idx">6</span>奖惩明细</button>
   </div>
   <div class="nav-group">
     <div class="g-t">关联页面</div>
@@ -90,6 +108,39 @@
       </div>
     </div>
 <!-- ==== COMM2 提成设置（可整段删除；不改动旧提成/业绩） ==== -->
+<div class="screen hidden" id="screen-hub">
+  <div class="page-title-bar">
+    <span class="title">功能入口</span>
+  </div>
+  <div class="page-body hub-body">
+    <p class="hub-lead">选择要进入的功能链路</p>
+    <button type="button" class="hub-card" id="hubGoComm2" data-hub-go="comm2">
+      <span class="hub-card__ico" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.4 7.2h7.2M8.4 10.8h7.2M8.4 14.4H12M6.6 2.4h10.8A2.4 2.4 0 0 1 19.8 4.8v14.4a2.4 2.4 0 0 1-2.4 2.4H6.6a2.4 2.4 0 0 1-2.4-2.4V4.8A2.4 2.4 0 0 1 6.6 2.4Z"/></svg>
+      </span>
+      <span class="hub-card__main">
+        <span class="hub-card__title">提成设置</span>
+        <span class="hub-card__desc">方案列表、规则编辑与员工分配</span>
+      </span>
+      <span class="hub-card__chev" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </span>
+    </button>
+    <button type="button" class="hub-card" id="hubGoSalary" data-hub-go="salary">
+      <span class="hub-card__ico" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </span>
+      <span class="hub-card__main">
+        <span class="hub-card__title">员工薪资</span>
+        <span class="hub-card__desc">合计薪酬、明细、结算周期与奖惩</span>
+      </span>
+      <span class="hub-card__chev" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </span>
+    </button>
+  </div>
+</div>
+
 <div class="screen hidden" id="screen-comm2-list">
   <div class="page-title-bar">
     <button type="button" class="back" id="comm2ListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -353,6 +404,200 @@
 </div>
 <!-- ==== /COMM2 ==== -->
 
+<!-- ==== SALARY MODULE (from card employee) ==== -->
+
+<div class="screen hidden" id="screen-emp-salary">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="empSalaryListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">员工薪资</span>
+    <button type="button" class="action emp-title-link" id="empBtnRewardsSet">设奖惩</button>
+  </div>
+  <div class="page-body">
+    <div class="emp-salary-summary" id="empSalarySummary">
+      <div class="emp-salary-summary__main">
+        <div class="emp-salary-summary__lbl" id="empSalaryStoreTotalLbl">合计薪酬</div>
+        <div class="emp-salary-summary__amt-row">
+          <div class="emp-salary-summary__amt emp-num" id="empSalaryStoreTotal">0</div>
+          <button type="button" class="emp-month-pill" id="empMonthLabel">2026年07月<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button>
+        </div>
+        <button type="button" class="emp-salary-summary__days" id="empPayCycleEntry" aria-label="结算周期设置">
+          <span class="emp-salary-summary__day">
+            <span class="emp-salary-summary__day-lbl">结算日</span>
+            <b class="emp-salary-summary__day-val emp-num" id="empSettleDaySummaryVal">25日</b>
+          </span>
+          <span class="emp-salary-summary__day">
+            <span class="emp-salary-summary__day-lbl">发薪日</span>
+            <b class="emp-salary-summary__day-val emp-num" id="empPayDaySummaryVal">每月7日</b>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div class="emp-salary-list" id="empSalaryList"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-emp-pay-cycle">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="empPayCycleBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">结算周期</span>
+    <button type="button" class="action emp-title-link" id="empPayCycleSave">保存</button>
+  </div>
+  <div class="page-body" id="empPayCycleBody" style="padding:12px 16px 24px;background:#F7F7F7;"></div>
+</div>
+
+<div class="screen hidden" id="screen-emp-pay-detail">
+  <div class="page-title-bar">
+    <button type="button" class="back" data-emp-back-salary aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">员工薪资明细</span>
+    <button type="button" class="action emp-title-link" id="empPayDetailToComm">业绩提成明细</button>
+  </div>
+  <div class="page-body" id="empPayDetailBody" style="padding:0 0 24px;background:#F7F7F7;"></div>
+</div>
+
+<div class="screen hidden" id="screen-emp-salary-detail">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="empCommDetailBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="empSalaryDetailTitle">员工业绩提成明细</span>
+    <button type="button" class="action emp-title-link" id="empCommViewerToggle">员工视角</button>
+  </div>
+  <div class="page-body" id="empSalaryDetailBody" style="padding:0;background:#F7F7F7;"></div>
+</div>
+
+<div class="screen hidden" id="screen-emp-rewards">
+  <div class="page-title-bar">
+    <button type="button" class="back" data-emp-back-salary aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="empRewardsTitle">设奖惩</span>
+    <button type="button" class="action emp-title-link" id="empBtnRewardSave">保存</button>
+  </div>
+  <div class="page-body" style="padding:0;background:#F7F7F7;">
+    <div class="emp-reward-form" id="empRewardForm"></div>
+    <div class="emp-reward-recent" id="empRewardRecent"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-emp-reward-detail">
+  <div class="page-title-bar">
+    <button type="button" class="back" data-emp-back-salary aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">奖惩明细</span>
+  </div>
+  <div class="page-body" style="padding:0;background:#F7F7F7;" id="empRewardDetailBody"></div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empMonthMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">选择月份</div>
+    <div class="emp-month-list" id="empMonthList"></div>
+    <div class="picker-foot"><button type="button" class="btn-main secondary" id="empMonthCancel">取消</button></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empCommDateMask">
+  <div class="picker-sheet flow-balance-date-sheet">
+    <div class="picker-head"><span class="picker-head__title-main">选择查询日期</span></div>
+    <div class="bill-date-quick" id="empCommDateQuick">
+      <button type="button" class="bill-date-quick__btn" data-emp-comm-quick="month">本月全部</button>
+      <button type="button" class="bill-date-quick__btn" data-emp-comm-quick="today">今天</button>
+      <button type="button" class="bill-date-quick__btn" data-emp-comm-quick="yesterday">昨天</button>
+    </div>
+    <div class="flow-balance-cal" id="empCommDateCal"></div>
+    <div class="flow-balance-cal__hint" id="empCommDateHint">仅可查本结算周期内日期</div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main secondary" id="empCommDateCancel">取消</button>
+      <button type="button" class="btn-main" id="empCommDateOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empCommLineEditMask">
+  <div class="picker-sheet emp-comm-edit-sheet">
+    <div class="picker-head"><span class="picker-head__title-main">调整业绩/提成</span></div>
+    <div style="padding:0 16px 8px;max-height:min(62vh,520px);overflow:auto;">
+      <div class="emp-comm-edit-meta" id="empCommLineEditMeta"></div>
+      <div class="emp-comm-edit-fields">
+        <label><span>业绩 (元，只读)</span><input type="number" id="empCommLineEditAch" class="input-amount" inputmode="decimal" min="0" max="999999.99" step="0.01" autocomplete="off" readonly /></label>
+        <label><span>提成 (元)</span><input type="number" id="empCommLineEditComm" class="input-amount" inputmode="decimal" min="0" max="999999.99" step="0.01" autocomplete="off" /></label>
+        <label><span>调整原因（选填）</span><textarea class="emp-comm-edit-reason" id="empCommLineEditReason" placeholder="选填，员工可在修改记录中查看" maxlength="80"></textarea></label>
+      </div>
+      <p class="emp-comm-edit-hint" id="empCommLineEditHint">保存后提成立即生效，并留下修改记录。业绩不可修改。</p>
+    </div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main secondary" id="empCommLineEditCancel">取消</button>
+      <button type="button" class="btn-main" id="empCommLineEditOk">保存生效</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empCommEditLogMask">
+  <div class="picker-sheet">
+    <div class="picker-head"><span class="picker-head__title-main">提成修改记录</span></div>
+    <div style="padding:0 16px 8px;max-height:min(56vh,480px);overflow:auto;" id="empCommEditLogBody"></div>
+    <div class="picker-foot">
+      <button type="button" class="btn-main secondary" id="empCommEditLogClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empCommLineConsentMask">
+  <div class="picker-sheet">
+    <div class="picker-head"><span class="picker-head__title-main" id="empCommLineConsentTitle">确认调整</span></div>
+    <div style="padding:0 16px 8px;" id="empCommLineConsentBody"></div>
+    <div class="picker-foot picker-foot--row" id="empCommLineConsentFoot">
+      <button type="button" class="btn-main secondary" id="empCommLineConsentReject">驳回</button>
+      <button type="button" class="btn-main" id="empCommLineConsentOk">同意生效</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empCommLineActMask">
+  <div class="picker-sheet picker-sheet--menu">
+    <div class="catalog-action-card">
+      <div class="picker-head picker-head--stack">
+        <div class="picker-head__title">待确认调整</div>
+        <div class="picker-head__sub" id="empCommLineActSub">确认前不生效，可修改草稿或撤回</div>
+      </div>
+      <div class="catalog-action-list">
+        <button type="button" class="catalog-action-item" id="empCommLineActEdit">修改草稿</button>
+        <button type="button" class="catalog-action-item catalog-action-item--danger" id="empCommLineActWithdraw">撤回调整</button>
+      </div>
+    </div>
+    <div class="catalog-action-foot">
+      <button type="button" class="catalog-action-item catalog-action-item--cancel" id="empCommLineActCancel">取消</button>
+    </div>
+    <div class="catalog-action-safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empSchemePickMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">选择提成方案</div>
+    <div class="emp-picker-list" id="empSchemePickList"></div>
+    <div class="picker-foot picker-foot--row" style="gap:12px">
+      <button type="button" class="btn-main secondary" id="empSchemePickCancel">取消</button>
+      <button type="button" class="btn-main secondary" id="empSchemePickGoto">管理方案</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empRewardStaffMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">选择员工</div>
+    <div class="emp-assign-tools">
+      <button type="button" id="empRewardStaffSelectAll">全选</button>
+      <span class="emp-assign-tools__count" id="empRewardStaffCount">已选 0 人</span>
+      <button type="button" id="empRewardStaffClear">清空</button>
+    </div>
+    <div class="comm2-assign-scroll">
+      <div class="emp-assign-list" id="empRewardStaffList"></div>
+    </div>
+    <div class="picker-foot picker-foot--row">
+      <button type="button" class="btn-main secondary" id="empRewardStaffCancel">取消</button>
+      <button type="button" class="btn-main" id="empRewardStaffOk">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==== /SALARY MODULE ==== -->
+
         <div class="picker-mask picker-mask--bottom" id="amountKeypadMask">
           <div class="picker-sheet">
             <div class="picker-head" id="amountKeypadTitle">输入金额</div>
@@ -372,6 +617,7 @@
 <script src="amount-keypad.js"></script>
 <script src="comm2.js"></script>
 <script src="staff-picker.js"></script>
+<script src="employee.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
