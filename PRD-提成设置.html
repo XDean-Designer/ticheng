@@ -782,13 +782,13 @@ flowchart LR
 </ul>
 <h3>6.2.1 规则卡布局总则（对齐原型 · v2.0）</h3>
 <p>规则卡为<strong>两行结构</strong>（默认左竖条品牌色；覆盖 <code>#FF8A3D</code>；用户覆盖外包左滑容器）：</p>
-<pre><code>┌─▌ 标题（≤6 字完整）                 基数 [原价|实收] 或「固定」 ┐
-│   点 10%  散 10%                    范围 [现金][卡付][团购]   │
+<pre><code>┌─▌ 标题（≤6 字完整）                      [原价|实收] 或「固定」 ┐
+│   点 10%  散 10%                    [现金][卡付][团购]（单行） │
 └─▌                                                              ┘
 
 按工位时参数竖排三行：
-┌─▌ 标题                              基数 [原价|实收]
-│   大 15%·12%                        范围 [现金][卡付][团购]
+┌─▌ 标题                                   [原价|实收]
+│   大 15%·12%                        [现金][卡付][团购]
 │   中 12%·10%
 │   小 8%·8%
 └─▌
@@ -804,11 +804,11 @@ flowchart LR
 <tbody><tr>
 <td><strong>行1</strong></td>
 <td>标题（图标+文案）</td>
-<td>「基数」标签 + 原价/实收连体段控（或「固定」灰标）</td>
+<td>右侧定宽 <strong>120px</strong> 内：原价/实收连体段控（或「固定」）；<strong>无</strong>「基数」文字标签</td>
 </tr><tr>
 <td><strong>行2</strong></td>
-<td>提成参数；按工位时大/中/小各占一行</td>
-<td>「范围」标签 + 独立 chip 多选（圆角 8px、高 26px，与基数视觉体量对齐）</td>
+<td>提成参数；按工位时大/中/小各占一行；<code>flex:1</code> 不压右侧</td>
+<td>右侧定宽 <strong>120px</strong>；三 chip 均分单行；与参数间距 ≥10px，<strong>禁止重叠</strong></td>
 </tr></tbody></table>
 <table>
 <thead>
@@ -824,11 +824,11 @@ flowchart LR
 <td>提成参数区</td>
 <td>打开<strong>参数精简</strong> Sheet（<strong>无</strong>范围、基数；含分配模式 + 提成取值 + 点客/散客等）</td>
 </tr><tr>
-<td>「基数」段控</td>
+<td>基数段控</td>
 <td><strong>整段任意点击</strong>切换 <code>list</code> ↔ <code>paid</code>（置脏）；固定金额时只读「固定」</td>
 </tr><tr>
-<td>「范围」chip</td>
-<td>卡面多选切换 <code>payScope</code>（至少 1 类，否则 toast）</td>
+<td>范围 chip</td>
+<td>卡面多选切换 <code>payScope</code>（至少 1 类，否则 toast）；三 chip <strong>同一行</strong></td>
 </tr><tr>
 <td>比例/固定</td>
 <td><strong>仅在 Sheet</strong>「提成取值」切换</td>
@@ -870,7 +870,7 @@ flowchart LR
 <td>字号加大、主文字色；比例带 <code>%</code>，固定带 <code>¥</code>；工位段为 <code>值·值</code></td>
 </tr><tr>
 <td>按工位</td>
-<td><strong>竖排三行</strong>，与行2「范围」顶对齐；不与范围横向重叠</td>
+<td><strong>竖排三行</strong>；范围 chip 相对参数区整体<strong>中轴对齐</strong>；不与范围横向重叠</td>
 </tr><tr>
 <td>不分工位</td>
 <td>「点」「散」横排于行2左侧</td>
@@ -885,10 +885,10 @@ flowchart LR
 </thead>
 <tbody><tr>
 <td>基数段控</td>
-<td>连体胶囊；选中白底 + 字色 <code>#E89D64</code>；<strong>整段点击切换</strong></td>
+<td>连体胶囊；选中白底 + 字色 <code>#E89D64</code>；<strong>整段点击切换</strong>；卡面<strong>无</strong>「基数」文案</td>
 </tr><tr>
 <td>范围 chip</td>
-<td>独立圆角 <strong>8px</strong>、高 <strong>26px</strong>、字号 11px；未选灰底灰边；选中品牌描边 + 浅粉底 + 品牌字</td>
+<td>独立圆角 <strong>8px</strong>、高 <strong>26px</strong>、字号 11px；卡面<strong>无</strong>「范围」文案；右侧槽 <strong>120px</strong>、三 chip 均分<strong>强制单行</strong>；与参数区有间距、不重叠；未选灰底灰边；选中品牌描边 + 浅粉底 + 品牌字</td>
 </tr><tr>
 <td>固定金额</td>
 <td>基数区只读灰标「固定」</td>
@@ -1627,7 +1627,7 @@ flowchart LR
 <li><strong>Given</strong> 同卡充值/续次/续费提成参数不一致且订单难区分，<strong>When</strong> 迁移，<strong>Then</strong> 状态 <code>needs_review</code>，该方案不自动发布。</li>
 <li><strong>Given</strong> 员工同时绑定阶梯与单项（脏数据），<strong>When</strong> 迁移门禁，<strong>Then</strong> 阻断该员工切换，默认优先阶梯直至人工处理。</li>
 <li><strong>Given</strong> 覆盖规则标题「染发、烫发、剑琅玻尿酸精华液」，<strong>When</strong> 卡片横向空间不足，<strong>Then</strong> 行1 标题 &gt;6 字以 <code>…</code> 截断且至少保留约 6 字宽；<code>title</code> 含全文；行1 右侧基数控件完整可见。</li>
-<li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 查看规则卡，<strong>Then</strong> 大/中/小竖排三行于行2左侧，与范围顶对齐；数值完整可见。</li>
+<li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 查看规则卡，<strong>Then</strong> 大/中/小竖排三行于行2左侧，范围 chip 相对参数区整体中轴对齐；数值完整可见。</li>
 <li><strong>Given</strong> 任意规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 行1=标题+基数、行2=参数+范围；范围独立 chip；无整卡 chevron 主路径。</li>
 <li><strong>Given</strong> 不分工位规则，<strong>When</strong> 查看参数，<strong>Then</strong> 展示「点」「散」短标 + 数值。</li>
 <li><strong>Given</strong> 规则卡，<strong>When</strong> 点击行1「基数」段控或行2「卡付」chip，<strong>Then</strong> 即时切换并置脏；点标题打开全量 Sheet；点参数区打开参数精简 Sheet。</li>
@@ -1645,7 +1645,7 @@ flowchart LR
 <li><strong>Given</strong> 固定金额 + 按工位，<strong>When</strong> 计提，<strong>Then</strong> 取对应工位固定额，不乘原价/实收。</li>
 <li><strong>Given</strong> 同方案两条覆盖均可命中一行，<strong>When</strong> 解析，<strong>Then</strong> 使用 overrides 数组中更靠前的一条。</li>
 <li><strong>Given</strong> 两方案算出金额均为 0 且均范围命中，<strong>When</strong> 取高，<strong>Then</strong> 列表更靠前的方案胜出（金额相等规则）。</li>
-<li><strong>Given</strong> 规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 行1=标题+基数、行2=参数+范围；无发丝线；≤6 字标题完整显示。</li>
+<li><strong>Given</strong> 规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 行1=标题+基数段控、行2=参数+范围 chip；右侧槽宽 120px；三 chip 单行均分；与参数有间距不重叠；卡面无「基数」「范围」文字；≤6 字标题完整显示。</li>
 <li><strong>Given</strong> 规则卡基数段控，<strong>When</strong> 点击已选中的「原价」或整段任意位置，<strong>Then</strong> 切换为实收（反之亦然）。</li>
 <li><strong>Given</strong> 按工位规则卡，<strong>When</strong> 查看参数，<strong>Then</strong> 大/中/小竖排三行，不与范围重叠。</li>
 <li><strong>Given</strong> 点标题打开 Sheet，<strong>When</strong> 查看，<strong>Then</strong> 含提成范围与计算基数；点参数区打开的 Sheet <strong>不含</strong>范围与基数。</li>
