@@ -10,6 +10,7 @@
 <script>
 /* 尽早切壳，避免闪一下桌面导航：手机全屏 / 电脑完整壳 */
 (function () {
+  var root = document.documentElement;
   function preferMobile() {
     var q = new URLSearchParams(location.search).get('view');
     if (q === 'mobile') return true;
@@ -20,13 +21,33 @@
     var shortSide = Math.min(screen.width || 0, screen.height || 0);
     return touch && shortSide > 0 && shortSide <= 500;
   }
+  function syncAppHeight() {
+    if (!root.classList.contains('view-mobile')) {
+      root.style.removeProperty('--app-h');
+      root.style.removeProperty('--app-w');
+      root.style.removeProperty('--app-top');
+      root.style.removeProperty('--app-left');
+      return;
+    }
+    var vv = window.visualViewport;
+    var h = vv && vv.height ? vv.height : (window.innerHeight || 0);
+    var w = vv && vv.width ? vv.width : (window.innerWidth || 0);
+    var top = vv && typeof vv.offsetTop === 'number' ? vv.offsetTop : 0;
+    var left = vv && typeof vv.offsetLeft === 'number' ? vv.offsetLeft : 0;
+    if (h > 0) root.style.setProperty('--app-h', h + 'px');
+    if (w > 0) root.style.setProperty('--app-w', w + 'px');
+    root.style.setProperty('--app-top', top + 'px');
+    root.style.setProperty('--app-left', left + 'px');
+  }
   function apply() {
     var mobile = preferMobile();
-    document.documentElement.classList.toggle('view-mobile', mobile);
-    document.documentElement.classList.toggle('view-desktop', !mobile);
+    root.classList.toggle('view-mobile', mobile);
+    root.classList.toggle('view-desktop', !mobile);
+    syncAppHeight();
   }
   apply();
   window.__comm2ApplyViewShell = apply;
+  window.__comm2SyncAppHeight = syncAppHeight;
 })();
 </script>
 </head>

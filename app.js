@@ -150,15 +150,31 @@
 
   function wireViewShell() {
     var apply = g.__comm2ApplyViewShell;
-    if (typeof apply !== 'function') return;
-    apply();
+    var syncH = g.__comm2SyncAppHeight;
+    if (typeof apply === 'function') apply();
+    else if (typeof syncH === 'function') syncH();
+
     var mq = window.matchMedia('(max-width: 760px)');
-    var onChange = function () { apply(); };
+    var onChange = function () {
+      if (typeof apply === 'function') apply();
+      else if (typeof syncH === 'function') syncH();
+    };
     if (mq.addEventListener) mq.addEventListener('change', onChange);
     else if (mq.addListener) mq.addListener(onChange);
+
+    var onViewport = function () {
+      if (typeof syncH === 'function') syncH();
+      else if (typeof apply === 'function') apply();
+    };
+    window.addEventListener('resize', onViewport);
     window.addEventListener('orientationchange', function () {
-      setTimeout(apply, 50);
+      setTimeout(onViewport, 50);
+      setTimeout(onViewport, 300);
     });
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', onViewport);
+      window.visualViewport.addEventListener('scroll', onViewport);
+    }
   }
 
   function boot() {

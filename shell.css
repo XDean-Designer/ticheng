@@ -83,16 +83,21 @@ body {
 }
 
 /*
- * 手机模式（html.view-mobile）：只显示右侧手机屏，全屏可操作。
+ * 手机模式（html.view-mobile）：只显示手机屏，锁在 visualViewport 可视区内。
  * 桌面模式（html.view-desktop / 默认）：左侧导航 + 390×844 手机框。
  * 强制覆盖：?view=mobile | ?view=desktop
- * 假状态栏（9:41）保留。
+ * 假状态栏在手机模式隐藏；底部安全区仅 env(safe-area-inset-bottom)。
  */
 html.view-mobile,
 html.view-mobile body {
   height: 100%;
+  width: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
   background: var(--bg-page, #F7F7F7);
+  position: fixed;
+  inset: 0;
 }
 
 html.view-mobile .site-nav {
@@ -102,9 +107,13 @@ html.view-mobile .site-nav {
 html.view-mobile .stage {
   margin-left: 0;
   padding: 0;
-  width: 100%;
-  height: 100%;
+  width: var(--app-w, 100%);
+  height: var(--app-h, 100%);
   display: block;
+  position: fixed;
+  top: var(--app-top, 0px);
+  left: var(--app-left, 0px);
+  overflow: hidden;
 }
 
 html.view-mobile #frame {
@@ -114,22 +123,30 @@ html.view-mobile #frame {
 html.view-mobile #frame.phone-shell,
 html.view-mobile .phone-inner.phone {
   width: 100%;
-  width: 100vw;
   height: 100%;
-  height: 100dvh;
   max-width: none;
   border: none;
   border-radius: 0;
 }
 
-/* 真机底部安全区叠在原有 34px 之上 */
+/* 底部仅系统安全区，不再叠桌面原型的 34px */
 html.view-mobile {
-  --safe-bottom: calc(34px + env(safe-area-inset-bottom, 0px));
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* 真机已有系统/浏览器顶栏，隐藏假状态栏（9:41） */
 html.view-mobile .status-bar {
+  display: none !important;
+}
+
+/* 顶栏避开刘海；标题落在 44px 内容区内垂直居中 */
+html.view-mobile .page-title-bar {
+  box-sizing: content-box;
+  height: 44px;
   padding-top: env(safe-area-inset-top, 0px);
-  height: calc(53px + env(safe-area-inset-top, 0px));
+}
+html.view-mobile .page-title-bar .title {
+  top: calc(env(safe-area-inset-top, 0px) + 22px);
 }
 
 /* capture modes */
