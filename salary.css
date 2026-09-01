@@ -1734,6 +1734,13 @@
   cursor: pointer; font-family: inherit;
 }
 .emp-ach-info-btn:active { opacity: .7; }
+.emp-pay-stat__title,
+.emp-pay-detail__card-lbl,
+.emp-pay-svc__title,
+.emp-comm-sum__label {
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.emp-metric-help-btn { vertical-align: middle; }
 .emp-ach-rule-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   width: 100%; padding: 14px 16px; border: none; background: #fff;

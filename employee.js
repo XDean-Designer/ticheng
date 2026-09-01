@@ -180,7 +180,7 @@
     { key: 'viewOthersBill', label: '查看他人开单', hint: '本店全部员工开单/流水只读' },
     { key: 'cashierBill', label: '收银开单', hint: '进入收银台并完成结账' },
     { key: 'debtManage', label: '欠款/还款', hint: '登记欠款与收款还款' },
-    { key: 'viewOthersPerf', label: '查看他人业绩', hint: '关闭后仅可看本人业绩；改提成仍仅店主/合伙人/店长' },
+    { key: 'viewOthersPerf', label: '查看他人业绩', hint: '关闭后仅可看本人业绩；改提成仍仅店主/合伙人/店长（与本 Switch 独立）' },
   ];
   /** 角色管理可编辑的四角色（店主不出现） */
   var ROLE_PERM_MANAGE_ROLES = ['合伙人', '店长', '高级店员', '店员'];
@@ -767,6 +767,37 @@
     if (bodyEl) bodyEl.innerHTML = html || '';
     openEmpDialog('empAchInfoHelpMask');
   }
+
+  /** 薪资/业绩提成明细字段释义（与 PRD §6.12.7 对齐） */
+  var SALARY_METRIC_HELP = {
+    totalPay: {
+      title: '当月合计薪资',
+      html: '<p>当月合计薪资 = <strong>基本薪资 + 提成总计 + 奖惩净额</strong>。</p><p>奖惩净额：奖励为正、扣除为负后的合计。</p>',
+    },
+    ach: {
+      title: '业绩统计',
+      html: '<p>业绩金额为对应项的<strong>开单原价（标价）加总</strong>，不用实收。</p><p>业绩只读、不参与提成计算。</p><p>分列：现金 / 卡付 / 团购 / <strong>签单</strong>（经理签单 + 记为欠款）。</p>',
+    },
+    comm: {
+      title: '提成统计',
+      html: '<p>按提成设置五类分列：项目 / 产品 / 办卡 / 充卡 / 快速消费。</p><p><strong>项目列 = 项目类提成合计 − 快速消费提成</strong>（快速消费另列）；五列之和 = 提成总计。</p>',
+    },
+    svcSales: {
+      title: '服务 / 售卡',
+      html: '<p><strong>服务</strong> = 项目 + 快速消费（人次 / <strong>实收</strong>金额）。</p><p><strong>售卡</strong> = 办卡 + 充卡（数量 / <strong>实收</strong>金额，不含产品）。</p>',
+    },
+  };
+  function metricHelpBtn(key) {
+    var def = SALARY_METRIC_HELP[key];
+    if (!def) return '';
+    return '<button type="button" class="emp-ach-info-btn emp-metric-help-btn" data-metric-help="' + key +
+      '" aria-label="' + esc(def.title) + '说明">?</button>';
+  }
+  function openMetricHelp(key) {
+    var def = SALARY_METRIC_HELP[key];
+    if (!def) return;
+    openEmpAchInfoHelp(def.title, def.html);
+  }
   function openMask(id) { var el = $(id); if (el) el.classList.add('open'); }
   function closeMask(id) {
     var el = $(id);
@@ -868,7 +899,7 @@
 
   function canEditCommission() {
     var n = getSessionPermName();
-    return (n === '店主' || n === '合伙人') && state.commDetailViewer !== 'staff';
+    return (n === '店主' || n === '合伙人' || n === '店长') && state.commDetailViewer !== 'staff';
   }
 
   function mapPayChannelKey(channel) {
@@ -3579,7 +3610,7 @@
     if (!ln) return;
     if (!canEditCommission()) {
       if (ln.commEditLogs && ln.commEditLogs.length) openCommEditLogSheet(lineId);
-      else toast('仅店主/合伙人可调整提成', true);
+      else toast('仅店主/合伙人/店长可调整提成', true);
       return;
     }
     state.commLineEditId = lineId;
@@ -3637,7 +3668,7 @@
     var ln = sid && state.commLineEditId ? findCommLine(sid, state.commLineEditId) : null;
     if (!ln) return;
     if (!canEditCommission()) {
-      toast('仅店主/合伙人可调整提成', true);
+      toast('仅店主/合伙人/店长可调整提成', true);
       return;
     }
     var commRaw = ($('empCommLineEditComm') || {}).value;
@@ -3919,7 +3950,6 @@
     syncCommViewerToggleBtn();
     var data = demoCommDetail(staffId);
     var mk = state.salaryMonth;
-    var prev = empPrevMonthComm(staffId, mk);
     var scopeIsDay = state.commDetailScope === 'day' && state.commDetailDay;
     var days = data.days.slice();
     if (scopeIsDay) {
@@ -3939,8 +3969,8 @@
     var sumTitle = scopeIsDay
       ? (formatCommDayShort(state.commDetailDay) + ' 当日合计')
       : (isCustomPeriodKey(mk) ? '本期汇总' : '本月汇总');
-    var trendAch = scopeIsDay ? '' : empTrendHtml(achTotal, prev.ach);
-    var trendComm = scopeIsDay ? '' : empTrendHtml(commTotal, prev.comm);
+    var trendAch = '';
+    var trendComm = '';
     var achBars = scopeIsDay ? '' : (
       '<div class="emp-pay-stat" style="margin:0;padding:12px 0 0;box-shadow:none">' +
       renderRatioBarsHtml([
@@ -3957,7 +3987,7 @@
         { label: '产品', value: data.comm.sales, color: MORANDI.sales },
         { label: '办卡', value: data.comm.issue, color: MORANDI.issue },
         { label: '充卡', value: data.comm.card, color: MORANDI.card },
-        { label: '快消', value: data.comm.quick, color: MORANDI.quick },
+        { label: '快速消费', value: data.comm.quick, color: MORANDI.quick },
       ]) + '</div>'
     );
     var navState = commDetailNavState(staffId);
@@ -3991,11 +4021,13 @@
       '<div class="emp-comm-sum__head"><span class="emp-comm-sum__title">' + esc(sumTitle) + '</span>' +
       '<span class="emp-comm-sum__unit">(单位：元)</span></div>' +
       '<div class="emp-comm-sum__block"><div class="emp-comm-sum__label-row">' +
-      '<span class="emp-comm-sum__label"><span class="emp-comm-sum__bar emp-comm-sum__bar--ach"></span>业绩</span>' +
+      '<span class="emp-comm-sum__label"><span class="emp-comm-sum__bar emp-comm-sum__bar--ach"></span>业绩' +
+      metricHelpBtn('ach') + '</span>' +
       '<span class="emp-comm-sum__amt-wrap"><span class="emp-comm-sum__amt">' + fmtMoney(achTotal) + '</span>' +
       trendAch + '</span></div>' + achBars + '</div>' +
       '<div class="emp-comm-sum__block"><div class="emp-comm-sum__label-row">' +
-      '<span class="emp-comm-sum__label"><span class="emp-comm-sum__bar emp-comm-sum__bar--comm"></span>提成</span>' +
+      '<span class="emp-comm-sum__label"><span class="emp-comm-sum__bar emp-comm-sum__bar--comm"></span>提成' +
+      metricHelpBtn('comm') + '</span>' +
       '<span class="emp-comm-sum__amt-wrap"><span class="emp-comm-sum__amt">' + fmtMoney(commTotal) + '</span>' +
       trendComm + '</span></div>' + commBars + '</div></div>' +
       daysHtml;
@@ -4053,14 +4085,14 @@
       '<button type="button" class="emp-month-pill" id="empPayDetailMonth">' + periodLabel(mk) +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button></div>' +
       '<div class="emp-pay-detail__card"><div class="emp-pay-detail__card-row">' +
-      '<div class="emp-pay-detail__card-lbl">当月合计薪资</div>' +
+      '<div class="emp-pay-detail__card-lbl">当月合计薪资' + metricHelpBtn('totalPay') + '</div>' +
       '<div class="emp-pay-detail__card-amt emp-num">' + fmtMoney(total) + '</div></div>' +
       '<div class="emp-pay-detail__tri">' +
       '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">基本薪资</div><div class="emp-pay-detail__tri-val emp-num">' + fmtMoney(baseAmt) + '</div></div>' +
       '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">提成总计</div><div class="emp-pay-detail__tri-val emp-num">' + fmtMoney(commission) + '</div></div>' +
       '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">奖惩总计</div><div class="emp-pay-detail__tri-val emp-num' + (rewardNet < 0 ? ' is-neg' : '') + '">' +
       (rewardNet > 0 ? '+' : '') + fmtMoney(rewardNet) + '</div></div></div></div>' +
-      '<div class="emp-pay-stat"><div class="emp-pay-stat__title">业绩统计</div>' +
+      '<div class="emp-pay-stat"><div class="emp-pay-stat__title">业绩统计' + metricHelpBtn('ach') + '</div>' +
       '<div class="emp-pay-stat__total"><span class="emp-pay-stat__total-lbl">总计</span>' +
       '<span class="emp-pay-stat__total-amt emp-num">¥' + fmtMoney(achPay.total) + '</span></div>' +
       renderRatioBarsHtml([
@@ -4069,7 +4101,7 @@
         { label: '团购', value: achPay.group, color: MORANDI.group },
         { label: '签单', value: achPay.sign, color: MORANDI.sign },
       ]) + '</div>' +
-      '<div class="emp-pay-stat"><div class="emp-pay-stat__title">提成统计</div>' +
+      '<div class="emp-pay-stat"><div class="emp-pay-stat__title">提成统计' + metricHelpBtn('comm') + '</div>' +
       '<div class="emp-pay-stat__total"><span class="emp-pay-stat__total-lbl">总计</span>' +
       '<span class="emp-pay-stat__total-amt emp-num">¥' + fmtMoney(split.total) + '</span></div>' +
       renderRatioBarsHtml([
@@ -4080,12 +4112,12 @@
         { label: '快速消费', value: split.quick, color: MORANDI.quick },
       ]) + '</div>' +
       '<div class="emp-pay-svc">' +
-      '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">服务</div>' +
+      '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">服务' + metricHelpBtn('svcSales') + '</div>' +
       '<div class="emp-pay-svc__row"><span>人次</span><strong>' + svc.serviceCount + '</strong></div>' +
-      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.serviceAmt) + '</strong></div></div>' +
+      '<div class="emp-pay-svc__row"><span>金额（实收）</span><strong>¥' + fmtMoney(svc.serviceAmt) + '</strong></div></div>' +
       '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">售卡</div>' +
       '<div class="emp-pay-svc__row"><span>数量</span><strong>' + svc.salesCount + '</strong></div>' +
-      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.salesAmt) + '</strong></div></div></div>' +
+      '<div class="emp-pay-svc__row"><span>金额（实收）</span><strong>¥' + fmtMoney(svc.salesAmt) + '</strong></div></div></div>' +
       '<div class="emp-pay-stat emp-pay-rw-card" data-pay-rewards-card role="button" tabindex="0">' +
       '<div class="emp-pay-rw-head"><span class="emp-pay-rw-head__t">奖惩明细</span></div>' +
       rwHtml + '</div></div>';
@@ -7529,7 +7561,7 @@
         ? (draft.payDayManual
           ? '已手动设置。短月若无该日则发至月末。'
           : '默认按结算日 +12（31 日制）推算；改结算日会自动重算。')
-        : '仅店主/合伙人可修改发薪日。') +
+        : '仅店主/合伙人可修改结算周期（含模式、结算日、发薪日）。') +
       '</p></div>';
     root.innerHTML =
       '<div class="emp-card emp-pay-cycle-card">' +
@@ -8682,6 +8714,11 @@
     });
 
     $('empSalaryDetailBody')?.addEventListener('click', function (e) {
+      var helpBtn = e.target.closest('[data-metric-help]');
+      if (helpBtn) {
+        openMetricHelp(helpBtn.getAttribute('data-metric-help'));
+        return;
+      }
       if (e.target.closest('#empCommEditBannerGo')) {
         commEditBannerGo();
         return;
@@ -8726,6 +8763,11 @@
     });
 
     $('empPayDetailBody')?.addEventListener('click', function (e) {
+      var helpBtn = e.target.closest('[data-metric-help]');
+      if (helpBtn) {
+        openMetricHelp(helpBtn.getAttribute('data-metric-help'));
+        return;
+      }
       if (e.target.closest('#empPayDetailMonth')) {
         renderMonthPicker();
         openMask('empMonthMask');
