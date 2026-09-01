@@ -31,8 +31,9 @@
   box-shadow: none; border: none;
 }
 .emp-card + .emp-card { margin-top: 12px; }
-/* 员工表单卡：内容下边距 16（上边距由首行头像区 16 承担） */
+/* 员工表单卡：内容下边距 16；顶部与标题栏/提示条留 12 间距（编辑/完善两页一致） */
 #screen-emp-form .emp-card {
+  margin-top: 12px;
   padding-bottom: 16px;
 }
 #screen-emp-form .emp-card > .form-row:last-child { padding-bottom: 0; }
@@ -3583,7 +3584,7 @@
   max-width: 16px;
   max-height: 16px;
   color: inherit;
-  fill: currentColor;
+  fill: none;
 }
 /* ==== /EMPLOYEE MODULE CSS ==== */
 
