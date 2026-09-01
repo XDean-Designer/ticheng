@@ -131,6 +131,104 @@
     },
   ];
   var PERMS = PERM_DEFS.map(function (d) { return d.name; });
+  /** 敏感权限：个人级 Switch 覆盖角色默认（改角色时重置为默认） */
+  var SENSITIVE_PERM_DEFS = [
+    { key: 'staffLogin', label: '员工端登录', hint: '关闭后不可登录员工端 App，账号仍可由店主端管理' },
+    { key: 'memberPhoneView', label: '查看顾客手机号', hint: '关闭后手机号中间四位打码' },
+    { key: 'memberStatsView', label: '查看会员数及办卡明细', hint: '含看板统计、办卡/充卡流水与经营报表' },
+    { key: 'customerListView', label: '查看客户列表', hint: '与会员统计独立控制' },
+    { key: 'cardRefund', label: '退卡', hint: '会员卡退卡操作' },
+    { key: 'billVoid', label: '单据作废', hint: '含挂单作废；作废后关联业绩/提成回滚' },
+    { key: 'cardOps', label: '卡相关操作（办卡/充卡）', hint: '办卡、充卡、续次、延期（不含退卡）' },
+    { key: 'orderHold', label: '挂单', hint: '不可创建或操作任何挂单' },
+    { key: 'viewOthersBill', label: '查看他人开单', hint: '本店全部员工开单/流水只读' },
+    { key: 'cashierBill', label: '收银开单', hint: '进入收银台并完成结账' },
+    { key: 'debtManage', label: '欠款/还款', hint: '登记欠款与收款还款' },
+    { key: 'viewOthersPerf', label: '查看他人业绩', hint: '关闭后仅可看本人业绩；改提成仍仅店主/合伙人/店长' },
+  ];
+  function shouldShowSensitivePerms(permName) {
+    var p = normalizePermName(permName || '');
+    if (!p) return false;
+    return p !== '店主';
+  }
+  function sensitivePermsAll(on) {
+    var o = {};
+    SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!on; });
+    return o;
+  }
+  function sensitivePermsExcept(offKeys) {
+    var o = sensitivePermsAll(true);
+    (offKeys || []).forEach(function (k) { if (Object.prototype.hasOwnProperty.call(o, k)) o[k] = false; });
+    return o;
+  }
+  function sensitivePermsOnly(onKeys) {
+    var o = sensitivePermsAll(false);
+    (onKeys || []).forEach(function (k) { if (Object.prototype.hasOwnProperty.call(o, k)) o[k] = true; });
+    return o;
+  }
+  /** 各角色敏感权限 Switch 默认值（改角色时重置为此表；个人覆盖存 staff.sensitivePerms） */
+  var SENSITIVE_PERM_ROLE_DEFAULTS = {
+    '店主': sensitivePermsAll(true),
+    '合伙人': sensitivePermsExcept(['viewOthersPerf']),
+    '店长': sensitivePermsExcept(['memberPhoneView', 'viewOthersPerf']),
+    '高级店员': sensitivePermsExcept(['memberPhoneView', 'memberStatsView', 'viewOthersBill', 'debtManage', 'viewOthersPerf']),
+    '店员': sensitivePermsOnly(['staffLogin', 'customerListView', 'cardOps', 'orderHold', 'cashierBill']),
+  };
+  function defaultSensitivePermsForRole(permName) {
+    var p = normalizePermName(permName);
+    var tpl = SENSITIVE_PERM_ROLE_DEFAULTS[p] || SENSITIVE_PERM_ROLE_DEFAULTS['店员'];
+    var o = {};
+    SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!tpl[d.key]; });
+    return o;
+  }
+  function mergeSensitivePerms(stored, permName) {
+    var base = defaultSensitivePermsForRole(permName);
+    if (!stored || typeof stored !== 'object') return base;
+    SENSITIVE_PERM_DEFS.forEach(function (d) {
+      if (typeof stored[d.key] === 'boolean') base[d.key] = stored[d.key];
+    });
+    return base;
+  }
+  function cloneSensitivePerms(src) {
+    var o = {};
+    SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!(src && src[d.key]); });
+    return o;
+  }
+  function syncSensitiveCollapse(open) {
+    var root = $('empSensitiveCollapse');
+    var body = $('empSensitiveBody');
+    var toggle = $('empSensitiveToggle');
+    if (!root || !body) return;
+    var on = !!open;
+    root.classList.toggle('is-open', on);
+    body.classList.toggle('hidden', !on);
+    if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+  }
+  function renderSensitivePermsSection() {
+    var collapseEl = $('empSensitiveCollapse');
+    var cardEl = $('empSensitivePermsCard');
+    if (!collapseEl || !cardEl) return;
+    var permRaw = $('empFPerm') ? $('empFPerm').textContent : '';
+    var perm = permRaw && permRaw !== '请选择员工角色' ? normalizePermName(permRaw) : '';
+    var show = (state.formMode === 'edit' || state.formMode === 'refine') && perm && shouldShowSensitivePerms(perm);
+    collapseEl.classList.toggle('hidden', !show);
+    if (!show) return;
+    if (!state.formSensitivePerms) {
+      var s = state.currentStaffId ? staffById(state.currentStaffId) : null;
+      state.formSensitivePerms = mergeSensitivePerms(s && s.sensitivePerms, perm);
+    }
+    cardEl.innerHTML = SENSITIVE_PERM_DEFS.map(function (d) {
+      var on = !!state.formSensitivePerms[d.key];
+      return '<div class="emp-sensitive-row">' +
+        '<span class="emp-sensitive-row__lbl">' + esc(d.label) + '</span>' +
+        '<button type="button" class="pay-meta-switch' + (on ? ' on' : '') + '" data-sensitive-key="' + d.key + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(d.label) + '"></button>' +
+        '</div>';
+    }).join('');
+  }
+  function resetSensitivePermsForRole(permName) {
+    state.formSensitivePerms = defaultSensitivePermsForRole(normalizePermName(permName));
+    renderSensitivePermsSection();
+  }
   var sessionPermName = '店主';
   var sessionStaffId = 'st0';
 
@@ -2473,8 +2571,11 @@
     state.formSwordTitle = s && s.swordTitle ? s.swordTitle : '';
     state.formSwordTitleMode = s && s.swordTitle ? (s.swordTitleMode || 'preset') : 'none';
     state.formSwordId = s && s.swordId ? s.swordId : null;
+    state.formSensitivePerms = null;
+    syncSensitiveCollapse(false);
     syncFormAvatarPreview();
     syncFormSwordFields();
+    renderSensitivePermsSection();
     showScreen('screen-emp-form');
     nav(mode === 'create' ? 'staff-create' : (mode === 'refine' ? 'staff-refine' : 'staff-detail'));
   }
@@ -2553,6 +2654,9 @@
       scheme: schemeText || '暂未分配',
       schemeId: schemeId,
     };
+    if (shouldShowSensitivePerms(perm) && state.formSensitivePerms) {
+      payload.sensitivePerms = cloneSensitivePerms(state.formSensitivePerms);
+    }
     function syncSchemeAssigned(staffId) {
       var C = window.Comm2Demo;
       var comm2Schemes = (C && typeof C.getSchemes === 'function') ? (C.getSchemes() || []) : [];
@@ -3248,13 +3352,23 @@
     if (state.currentStaffId) renderSalaryDetail(state.currentStaffId);
   }
 
-  /** 与开单记账 / 流水 flowTypeTag 一致：项红·产橙·卡绿·快蓝 */
+  function rewardTypeBadgeHtml(type) {
+    var isDeduct = type === 'deduct';
+    return '<span class="emp-reward-badge' + (isDeduct ? ' emp-reward-badge--deduct' : ' emp-reward-badge--reward') + '" aria-hidden="true">' +
+      (isDeduct ? '扣' : '奖') + '</span>';
+  }
+
+  /** 与开单记账 / 流水 flowTypeTag 一致：项蓝·产红·卡绿·快=闪电图标 */
   function empTypeTagHtml(kind) {
     var text = '项';
     var cls = 'flow-type-tag';
     if (kind === 'product') { text = '产'; cls += ' flow-type-tag--product'; }
     else if (kind === 'card' || kind === 'issue' || kind === 'recharge') { text = '卡'; cls += ' flow-type-tag--card'; }
-    else if (kind === 'quick') { text = '快'; cls += ' flow-type-tag--quick'; }
+    else if (kind === 'quick') {
+      return '<span class="flow-type-tag--quick-icon" aria-label="快速消费" title="快速消费">' +
+        '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
+        '<path d="M6 1H12.5455L8.54545 6.25H14L5.27273 16L7.09091 8.875H2L6 1Z" fill="#FF8A3D"/></svg></span>';
+    }
     return '<span class="' + cls + '">' + text + '</span>';
   }
 
@@ -3977,8 +4091,10 @@
         (items.length ? items.map(function (r) {
           var ss = staffById(r.staffId);
           var sign = r.amount >= 0 ? '+' : '';
-          return '<div class="emp-reward-item"><span class="emp-reward-item__title">' +
-            esc((ss ? ss.name + ' · ' : '') + r.title) + '</span>' +
+          var rType = r.type || (r.amount < 0 ? 'deduct' : 'reward');
+          return '<div class="emp-reward-item">' +
+            '<span class="emp-reward-item__main">' + rewardTypeBadgeHtml(rType) +
+            '<span class="emp-reward-item__title">' + esc((ss ? ss.name + ' · ' : '') + r.title) + '</span></span>' +
             '<span class="emp-reward-item__amt' + (r.amount < 0 ? ' is-deduct' : '') + '">' +
             sign + fmtMoney(r.amount) + '</span></div>';
         }).join('') : '<div class="emp-reward-item"><span class="emp-reward-item__title" style="color:var(--text-sec)">本月暂无记录</span></div>') +
@@ -7152,12 +7268,13 @@
     nav('staff-salary');
   }
 
-  /** 结算周期设置页：每月结算日/每月发薪日 左侧灰色图标 */
+  /** 结算周期设置页：每月结算日 pie-chart-02 / 每月发薪日钱包图标 */
   function payCycleLabelIco(kind) {
+    if (kind === 'settle') {
+      return '<span class="emp-pay-cycle-day__ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.4353 21.8825C16.4253 21.8825 20.4706 17.8372 20.4706 12.8471H11.4353L11.4353 3.81182C6.44527 3.81179 2.4 7.85706 2.4 12.8471C2.4 17.8372 6.44524 21.8825 11.4353 21.8825Z"/><path d="M15.3882 2.11754V8.80713H21.6V8.3293C21.6 4.89864 18.8189 2.11754 15.3882 2.11754Z"/></svg></span>';
+    }
     var fill = kind === 'pay';
-    var d = kind === 'pay'
-      ? 'M7.72937 19.512C7.20498 19.6853 6.92036 20.2509 7.09367 20.7753C7.26697 21.2997 7.83256 21.5843 8.35695 21.411L8.04316 20.4615L7.72937 19.512ZM13.8622 20.8462L13.7722 19.8502V19.8502L13.8622 20.8462ZM17.3536 20.0769L17.7891 20.9771H17.7891L17.3536 20.0769ZM20.6897 17.0681L19.9153 16.4354V16.4354L20.6897 17.0681ZM18.408 15.1854L19.1121 15.8955V15.8955L18.408 15.1854ZM16.8715 16.7087L17.5756 17.4188V17.4188L16.8715 16.7087ZM12.6984 16.3846C12.1461 16.3846 11.6984 16.8323 11.6984 17.3846C11.6984 17.9369 12.1461 18.3846 12.6984 18.3846V17.3846V16.3846ZM20.335 14.9962L19.7836 15.8305V15.8305L20.335 14.9962ZM9.22402 14.4915L9.66816 15.3875H9.66816L9.22402 14.4915ZM13.4001 14.1128L13.6611 13.1475H13.6611L13.4001 14.1128ZM15.0309 14.5538L14.7699 15.5191H14.7699L15.0309 14.5538ZM15.5476 16.4829L14.8435 15.7727V15.7727L15.5476 16.4829ZM13.934 16.6745C13.5418 17.0633 13.5391 17.6965 13.9279 18.0887C14.3168 18.4809 14.9499 18.4836 15.3421 18.0948L14.6381 17.3846L13.934 16.6745ZM8.04316 20.4615L8.35695 21.411C8.4545 21.3788 8.67974 21.3518 9.10006 21.3815C9.50005 21.4098 9.96832 21.4794 10.5079 21.5634C11.5286 21.7224 12.8321 21.9433 13.9521 21.8421L13.8622 20.8462L13.7722 19.8502C12.9526 19.9242 11.9284 19.7605 10.8156 19.5872C10.2883 19.5051 9.73824 19.4216 9.24113 19.3865C8.76435 19.3528 8.21371 19.352 7.72937 19.512L8.04316 20.4615ZM13.8622 20.8462L13.9521 21.8421C15.4538 21.7065 16.2079 21.7421 17.7891 20.9771L17.3536 20.0769L16.9181 19.1767C15.7223 19.7553 15.3478 19.7079 13.7722 19.8502L13.8622 20.8462ZM17.3536 20.0769L17.7891 20.9771C19.219 20.2853 20.6284 18.7238 21.4642 17.7007L20.6897 17.0681L19.9153 16.4354C19.0698 17.4704 17.9056 18.699 16.9181 19.1767L17.3536 20.0769ZM18.408 15.1854L17.7039 14.4753L16.1675 15.9986L16.8715 16.7087L17.5756 17.4188L19.1121 15.8955L18.408 15.1854ZM15.2257 17.3846V16.3846H12.6984V17.3846V18.3846H15.2257V17.3846ZM16.8715 16.7087L16.1675 15.9986C15.9191 16.2448 15.5805 16.3846 15.2257 16.3846V17.3846V18.3846C16.1054 18.3846 16.9509 18.0382 17.5756 17.4188L16.8715 16.7087ZM20.335 14.9962L20.8864 14.162C19.8866 13.5011 18.5558 13.6307 17.7039 14.4753L18.408 15.1854L19.1121 15.8955C19.2897 15.7194 19.572 15.6906 19.7836 15.8305L20.335 14.9962ZM20.6897 17.0681L21.4642 17.7007C22.4053 16.5487 22.046 14.9284 20.8864 14.162L20.335 14.9962L19.7836 15.8305C20.0394 15.9995 20.0448 16.2769 19.9153 16.4354L20.6897 17.0681ZM3.77587 13.5385V14.5385H6.87935V13.5385V12.5385H3.77587V13.5385ZM7.65522 14.3077H6.65522V21.2308H7.65522H8.65522V14.3077H7.65522ZM6.87935 22V21H3.77587V22V23H6.87935V22ZM3 21.2308H4V14.3077H3H2V21.2308H3ZM3.77587 22V21C3.89153 21 4 21.0952 4 21.2308H3H2C2 22.216 2.80321 23 3.77587 23V22ZM7.65522 21.2308H6.65522C6.65522 21.0952 6.76369 21 6.87935 21V22V23C7.85201 23 8.65522 22.216 8.65522 21.2308H7.65522ZM6.87935 13.5385V14.5385C6.76369 14.5385 6.65522 14.4432 6.65522 14.3077H7.65522H8.65522C8.65522 13.3225 7.85202 12.5385 6.87935 12.5385V13.5385ZM3.77587 13.5385V12.5385C2.8032 12.5385 2 13.3225 2 14.3077H3H4C4 14.4432 3.89153 14.5385 3.77587 14.5385V13.5385ZM8.04316 15.0769L8.4873 15.9729L9.66816 15.3875L9.22402 14.4915L8.77987 13.5956L7.59901 14.181L8.04316 15.0769ZM11.6529 13.9231V14.9231H11.9711V13.9231V12.9231H11.6529V13.9231ZM13.4001 14.1128L13.1391 15.0781L14.7699 15.5191L15.0309 14.5538L15.2919 13.5884L13.6611 13.1475L13.4001 14.1128ZM15.5476 16.4829L14.8435 15.7727L13.934 16.6745L14.6381 17.3846L15.3421 18.0948L16.2517 17.193L15.5476 16.4829ZM15.0309 14.5538L14.7699 15.5191C14.8963 15.5533 14.922 15.6949 14.8435 15.7727L15.5476 16.4829L16.2517 17.193C17.4369 16.0179 16.8897 14.0205 15.2919 13.5884L15.0309 14.5538ZM11.9711 13.9231V14.9231C12.3657 14.9231 12.7585 14.9752 13.1391 15.0781L13.4001 14.1128L13.6611 13.1475C13.1102 12.9985 12.5419 12.9231 11.9711 12.9231V13.9231ZM9.22402 14.4915L9.66816 15.3875C10.284 15.0822 10.9635 14.9231 11.6529 14.9231V13.9231V12.9231C10.6559 12.9231 9.67231 13.1532 8.77987 13.5956L9.22402 14.4915ZM17.7415 8.15385H16.7415C16.7415 9.29281 15.8079 10.2308 14.6381 10.2308V11.2308V12.2308C16.8962 12.2308 18.7415 10.4136 18.7415 8.15385H17.7415ZM14.6381 11.2308V10.2308C13.4682 10.2308 12.5346 9.29281 12.5346 8.15385H11.5346H10.5346C10.5346 10.4136 12.3799 12.2308 14.6381 12.2308V11.2308ZM11.5346 8.15385H12.5346C12.5346 7.01488 13.4682 6.07692 14.6381 6.07692V5.07692V4.07692C12.3799 4.07692 10.5346 5.89414 10.5346 8.15385H11.5346ZM14.6381 5.07692V6.07692C15.8079 6.07692 16.7415 7.01488 16.7415 8.15385H17.7415H18.7415C18.7415 5.89414 16.8962 4.07692 14.6381 4.07692V5.07692ZM11.5346 8.15385V7.15385C10.3647 7.15385 9.43109 6.21589 9.43109 5.07692H8.43109H7.43109C7.43109 7.33663 9.2764 9.15385 11.5346 9.15385V8.15385ZM8.43109 5.07692H9.43109C9.43109 3.93796 10.3647 3 11.5346 3V2V1C9.2764 1 7.43109 2.81722 7.43109 5.07692H8.43109ZM11.5346 2V3C12.7044 3 13.6381 3.93796 13.6381 5.07692H14.6381H15.6381C15.6381 2.81722 13.7927 1 11.5346 1V2Z'
-      : 'M7.14286 7.90176H16.7812M6.48512 2.4375V4.07698M17.3125 2.4375V4.07678M20.5 7.07678L20.5 18.5625C20.5 20.2194 19.1569 21.5625 17.5 21.5625H6.5C4.84315 21.5625 3.5 20.2194 3.5 18.5625V7.07678C3.5 5.41992 4.84315 4.07678 6.5 4.07678H17.5C19.1569 4.07678 20.5 5.41992 20.5 7.07678Z';
+    var d = 'M7.72937 19.512C7.20498 19.6853 6.92036 20.2509 7.09367 20.7753C7.26697 21.2997 7.83256 21.5843 8.35695 21.411L8.04316 20.4615L7.72937 19.512ZM13.8622 20.8462L13.7722 19.8502V19.8502L13.8622 20.8462ZM17.3536 20.0769L17.7891 20.9771H17.7891L17.3536 20.0769ZM20.6897 17.0681L19.9153 16.4354V16.4354L20.6897 17.0681ZM18.408 15.1854L19.1121 15.8955V15.8955L18.408 15.1854ZM16.8715 16.7087L17.5756 17.4188V17.4188L16.8715 16.7087ZM12.6984 16.3846C12.1461 16.3846 11.6984 16.8323 11.6984 17.3846C11.6984 17.9369 12.1461 18.3846 12.6984 18.3846V17.3846V16.3846ZM20.335 14.9962L19.7836 15.8305V15.8305L20.335 14.9962ZM9.22402 14.4915L9.66816 15.3875H9.66816L9.22402 14.4915ZM13.4001 14.1128L13.6611 13.1475H13.6611L13.4001 14.1128ZM15.0309 14.5538L14.7699 15.5191H14.7699L15.0309 14.5538ZM15.5476 16.4829L14.8435 15.7727V15.7727L15.5476 16.4829ZM13.934 16.6745C13.5418 17.0633 13.5391 17.6965 13.9279 18.0887C14.3168 18.4809 14.9499 18.4836 15.3421 18.0948L14.6381 17.3846L13.934 16.6745ZM8.04316 20.4615L8.35695 21.411C8.4545 21.3788 8.67974 21.3518 9.10006 21.3815C9.50005 21.4098 9.96832 21.4794 10.5079 21.5634C11.5286 21.7224 12.8321 21.9433 13.9521 21.8421L13.8622 20.8462L13.7722 19.8502C12.9526 19.9242 11.9284 19.7605 10.8156 19.5872C10.2883 19.5051 9.73824 19.4216 9.24113 19.3865C8.76435 19.3528 8.21371 19.352 7.72937 19.512L8.04316 20.4615ZM13.8622 20.8462L13.9521 21.8421C15.4538 21.7065 16.2079 21.7421 17.7891 20.9771L17.3536 20.0769L16.9181 19.1767C15.7223 19.7553 15.3478 19.7079 13.7722 19.8502L13.8622 20.8462ZM17.3536 20.0769L17.7891 20.9771C19.219 20.2853 20.6284 18.7238 21.4642 17.7007L20.6897 17.0681L19.9153 16.4354C19.0698 17.4704 17.9056 18.699 16.9181 19.1767L17.3536 20.0769ZM18.408 15.1854L17.7039 14.4753L16.1675 15.9986L16.8715 16.7087L17.5756 17.4188L19.1121 15.8955L18.408 15.1854ZM15.2257 17.3846V16.3846H12.6984V17.3846V18.3846H15.2257V17.3846ZM16.8715 16.7087L16.1675 15.9986C15.9191 16.2448 15.5805 16.3846 15.2257 16.3846V17.3846V18.3846C16.1054 18.3846 16.9509 18.0382 17.5756 17.4188L16.8715 16.7087ZM20.335 14.9962L20.8864 14.162C19.8866 13.5011 18.5558 13.6307 17.7039 14.4753L18.408 15.1854L19.1121 15.8955C19.2897 15.7194 19.572 15.6906 19.7836 15.8305L20.335 14.9962ZM20.6897 17.0681L21.4642 17.7007C22.4053 16.5487 22.046 14.9284 20.8864 14.162L20.335 14.9962L19.7836 15.8305C20.0394 15.9995 20.0448 16.2769 19.9153 16.4354L20.6897 17.0681ZM3.77587 13.5385V14.5385H6.87935V13.5385V12.5385H3.77587V13.5385ZM7.65522 14.3077H6.65522V21.2308H7.65522H8.65522V14.3077H7.65522ZM6.87935 22V21H3.77587V22V23H6.87935V22ZM3 21.2308H4V14.3077H3H2V21.2308H3ZM3.77587 22V21C3.89153 21 4 21.0952 4 21.2308H3H2C2 22.216 2.80321 23 3.77587 23V22ZM7.65522 21.2308H6.65522C6.65522 21.0952 6.76369 21 6.87935 21V22V23C7.85201 23 8.65522 22.216 8.65522 21.2308H7.65522ZM6.87935 13.5385V14.5385C6.76369 14.5385 6.65522 14.4432 6.65522 14.3077H7.65522H8.65522C8.65522 13.3225 7.85202 12.5385 6.87935 12.5385V13.5385ZM3.77587 13.5385V12.5385C2.8032 12.5385 2 13.3225 2 14.3077H3H4C4 14.4432 3.89153 14.5385 3.77587 14.5385V13.5385ZM8.04316 15.0769L8.4873 15.9729L9.66816 15.3875L9.22402 14.4915L8.77987 13.5956L7.59901 14.181L8.04316 15.0769ZM11.6529 13.9231V14.9231H11.9711V13.9231V12.9231H11.6529V13.9231ZM13.4001 14.1128L13.1391 15.0781L14.7699 15.5191L15.0309 14.5538L15.2919 13.5884L13.6611 13.1475L13.4001 14.1128ZM15.5476 16.4829L14.8435 15.7727L13.934 16.6745L14.6381 17.3846L15.3421 18.0948L16.2517 17.193L15.5476 16.4829ZM15.0309 14.5538L14.7699 15.5191C14.8963 15.5533 14.922 15.6949 14.8435 15.7727L15.5476 16.4829L16.2517 17.193C17.4369 16.0179 16.8897 14.0205 15.2919 13.5884L15.0309 14.5538ZM11.9711 13.9231V14.9231C12.3657 14.9231 12.7585 14.9752 13.1391 15.0781L13.4001 14.1128L13.6611 13.1475C13.1102 12.9985 12.5419 12.9231 11.9711 12.9231V13.9231ZM9.22402 14.4915L9.66816 15.3875C10.284 15.0822 10.9635 14.9231 11.6529 14.9231V13.9231V12.9231C10.6559 12.9231 9.67231 13.1532 8.77987 13.5956L9.22402 14.4915ZM17.7415 8.15385H16.7415C16.7415 9.29281 15.8079 10.2308 14.6381 10.2308V11.2308V12.2308C16.8962 12.2308 18.7415 10.4136 18.7415 8.15385H17.7415ZM14.6381 11.2308V10.2308C13.4682 10.2308 12.5346 9.29281 12.5346 8.15385H11.5346H10.5346C10.5346 10.4136 12.3799 12.2308 14.6381 12.2308V11.2308ZM11.5346 8.15385H12.5346C12.5346 7.01488 13.4682 6.07692 14.6381 6.07692V5.07692V4.07692C12.3799 4.07692 10.5346 5.89414 10.5346 8.15385H11.5346ZM14.6381 5.07692V6.07692C15.8079 6.07692 16.7415 7.01488 16.7415 8.15385H17.7415H18.7415C18.7415 5.89414 16.8962 4.07692 14.6381 4.07692V5.07692ZM11.5346 8.15385V7.15385C10.3647 7.15385 9.43109 6.21589 9.43109 5.07692H8.43109H7.43109C7.43109 7.33663 9.2764 9.15385 11.5346 9.15385V8.15385ZM8.43109 5.07692H9.43109C9.43109 3.93796 10.3647 3 11.5346 3V2V1C9.2764 1 7.43109 2.81722 7.43109 5.07692H8.43109ZM11.5346 2V3C12.7044 3 13.6381 3.93796 13.6381 5.07692H14.6381H15.6381C15.6381 2.81722 13.7927 1 11.5346 1V2Z';
     return '<span class="emp-pay-cycle-day__ico" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" ' + (fill ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round') + '><path d="' + d + '"/></svg></span>';
   }
 
@@ -8100,6 +8217,21 @@
       renderPermPickerList(cur);
       openMask('empPermMask');
     });
+    $('empSensitiveToggle')?.addEventListener('click', function () {
+      var body = $('empSensitiveBody');
+      if (!body) return;
+      syncSensitiveCollapse(body.classList.contains('hidden'));
+    });
+    $('empSensitivePermsCard')?.addEventListener('click', function (e) {
+      var sw = e.target.closest('[data-sensitive-key]');
+      if (!sw || !state.formSensitivePerms) return;
+      var key = sw.dataset.sensitiveKey;
+      if (!key || !state.formSensitivePerms.hasOwnProperty(key)) return;
+      var on = !state.formSensitivePerms[key];
+      state.formSensitivePerms[key] = on;
+      sw.classList.toggle('on', on);
+      sw.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
     $('empRowStatus')?.addEventListener('click', function () {
       renderStatusPickerList($('empFStatus').textContent);
       openMask('empStatusMask');
@@ -8128,7 +8260,12 @@
         }
         var btn = e.target.closest('button');
         if (!btn) return;
-        if (listId === 'empPermList') { $('empFPerm').textContent = btn.dataset.permVal; $('empFPerm').classList.add('has-val'); closeMask('empPermMask'); }
+        if (listId === 'empPermList') {
+          $('empFPerm').textContent = btn.dataset.permVal;
+          $('empFPerm').classList.add('has-val');
+          resetSensitivePermsForRole(btn.dataset.permVal);
+          closeMask('empPermMask');
+        }
         if (listId === 'empGenderList') {
           $('empFGender').textContent = btn.dataset.genderVal;
           $('empFGender').classList.add('has-val');

@@ -478,7 +478,6 @@
     <svg class="page-top-hint__icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 14.5C9.433 14.5 11.183 13.7165 12.45 12.4497C13.7165 11.183 14.5 9.433 14.5 7.5C14.5 5.567 13.7165 3.817 12.45 2.5503C11.183 1.2835 9.433 0.5 7.5 0.5C5.567 0.5 3.817 1.2835 2.5503 2.5503C1.2835 3.817 0.5 5.567 0.5 7.5C0.5 9.433 1.2835 11.183 2.5503 12.4497C3.817 13.7165 5.567 14.5 7.5 14.5Z" stroke="currentColor" stroke-linejoin="round"/><path d="M7.5 10.55a0.625 0.625 0 1 1 0 1.25 0.625 0.625 0 0 1 0-1.25Z" fill="currentColor" stroke="currentColor" stroke-width="0.5"/><path d="M7.5 3.3v5.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
     <p class="page-top-hint__text">请完善员工信息，以便正常开单与业绩统计</p>
   </div>
-  <p class="emp-form-sec-title">基础信息</p>
   <div class="page-body" style="padding-top:0;">
     <div class="emp-card emp-detail-card">
       <div class="emp-form-row-avatar" id="empRowAvatar" role="button" tabindex="0" aria-label="添加头像">
@@ -509,6 +508,15 @@
       <div class="form-row emp-form-row--stack"><span class="label">基本工资<span class="req">*</span></span><input class="value input-amount" id="empFBase" type="number" min="0" max="999999.99" step="0.01" placeholder="请输入员工基本工资" inputmode="decimal" /></div>
       <p class="emp-form-note">注：当修改基本工资后，当月的薪资统计以最新的为准。</p>
       <div class="form-row clickable" id="empRowStatus"><span class="label">状态</span><span class="form-row__trail"><span class="value has-val" id="empFStatus">在岗</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="emp-form-collapse hidden" id="empSensitiveCollapse">
+        <button type="button" class="emp-form-collapse__head" id="empSensitiveToggle" aria-expanded="false">
+          <span class="emp-form-collapse__label">敏感权限</span>
+          <span class="emp-form-collapse__chev" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span>
+        </button>
+        <div class="emp-form-collapse__body hidden" id="empSensitiveBody">
+          <div id="empSensitivePermsCard"></div>
+        </div>
+      </div>
     </div>
   </div>
   <div class="bottom-bar">

@@ -39,7 +39,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </head>
 <body>
   <div class="topbar">
-    <div class="topbar__title">PRD-提成设置<span class="topbar__hint">阅读预览 · v2.1 · 表格与标题已排版</span></div>
+    <div class="topbar__title">PRD · 三链路<span class="topbar__hint">阅读预览</span></div>
     <div class="topbar__actions">
       <a class="ghost" href="index.html">打开交互原型</a>
       <a class="ghost" href="PRD-提成设置.md" download>下载 Markdown</a>
@@ -47,7 +47,7 @@ tr:nth-child(even) td{background:#fafbfc}
     </div>
   </div>
   <div class="wrap"><article class="article">
-<h1>PRD：提成设置（商户端 · 多方案版）</h1>
+<h1>PRD：提成设置 · 员工管理 · 员工薪资（独立原型 · 三链路）</h1>
 <table>
 <thead>
 <tr>
@@ -56,14 +56,8 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 </thead>
 <tbody><tr>
-<td>文档版本</td>
-<td>v2.1</td>
-</tr><tr>
-<td>日期</td>
-<td>2026-08-31</td>
-</tr><tr>
 <td>交互原型（唯一可视依据）</td>
-<td>本目录 <code>index.html</code>（独立原型）</td>
+<td>本目录 <code>index.html</code>（独立原型 · hub 三链路）</td>
 </tr><tr>
 <td>画布</td>
 <td>390 × 844</td>
@@ -180,19 +174,6 @@ tr:nth-child(even) td{background:#fafbfc}
 <td><strong>必看</strong></td>
 <td>结构必迁、不保证金额一致；阶梯暂不迁；结果弹窗</td>
 </tr></tbody></table>
-<blockquote>
-<p><strong>v1.7（2026-08-31）审计对齐</strong>：支付范围改为三类；规则卡以原型「卡面可点」为准；覆盖删除改为左滑/长按+撤销；工位缺失兜底对齐原型；分配副文为图标+方案名；并补边界规则。§6.8 / §6.10 等关联页<strong>保留</strong>，标注「本系统现有页面」。</p>
-</blockquote>
-<blockquote>
-<p><strong>v1.8（2026-08-31）经理签单开关</strong>：方案卡新增「经理签单计算提成」switch（默认关闭）。经理签单为<strong>支付方式之一（相当于免单）</strong>，订单行不计入现金/卡付/团购三类支付范围，由方案级 <code>signComm</code> 开关决定是否计提。试算新增经理签单演示行。</p>
-</blockquote>
-<blockquote>
-<p><strong>v1.9（2026-08-31）去大原型引用</strong>：本原型与 <code>demo.html</code> / <code>剑琅联盟-RTB重构.html</code>（<code>commission2</code>）<strong>非同一系统</strong>，删除全部大原型文件 / 页面引用；流水 / 薪资关联页为本系统现有页面（§6.8 / §6.10 保留）；模块 13 迁移口径修正：原系统 <code>payScope.sign</code> 迁移为方案级 <code>signComm</code>。</p>
-</blockquote>
-<blockquote>
-<p><strong>v2.0（2026-08-31）规则卡与迁移重写</strong>：删除方案列表「经理签单计算提成」开关与 <code>signComm</code> 字段；经理签单（实收=0）按命中块 <code>baseMode</code> 计提（原价计 / 实收不计）；规则卡改为两行布局（标题+基数 / 参数+范围）、独立 chip 范围控件、Sheet 拆分（标题全量 / 参数精简）；模块 13 改为结构必迁、不保证金额一致，迁移结果弹窗（一致/差异）+ 差异时引导重新创建；阶梯暂不迁入；无回滚开关。</p>
-<p><strong>v2.1（2026-08-31）员工薪资改版</strong>：删列表「生效中」；结算周期增发薪日（店主/合伙人；默认=结算日+12·30日制）；列表卡「合计」+ 提成 2×2；新页「员工薪资明细」（业绩支付四格含签单=经理签单+欠款、提成五类、服务=项目+快消实收、售卡=办卡+充卡实收）；取消提成待确认全流程，店主改提成直接生效+留痕；业绩只读；业绩提成明细月合计与上对齐。</p>
-</blockquote>
 <p><strong>先读这几条（贯穿全文）</strong></p>
 <ol>
 <li>本期为<strong>新版提成设置</strong>（原型「提成设置」），采用 <strong>多方案</strong> 模型：每个提成方案可整体分配给若干员工，方案内按「项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>」<strong>5 项默认</strong> + N 条<strong>覆盖规则项</strong>配置提成。<strong>每人可分配多个提成方案</strong>；开单计提时对该员工所属全部方案按<strong>订单行</strong>分别计算，<strong>计算项重叠时取提成金额更高者</strong>（并列按方案列表顺序先出现者胜出；见 §8）。不同行分别取高后可相加。<strong>快速消费</strong>在 UI 为第 5 张默认卡，数据上是系统项目覆盖项（<code>system: true</code>，<code>refId=quick</code>），不可删除。</li>
@@ -781,7 +762,7 @@ flowchart LR
 <li>交互分区见下；覆盖删除见 §5.5。</li>
 <li>底部「保存」：校验全部默认 / 覆盖范围 ≥1 类 → toast「提成方案已保存」→ 回列表。</li>
 </ul>
-<h3>6.2.1 规则卡布局总则（对齐原型 · v2.0）</h3>
+<h3>6.2.1 规则卡布局总则（对齐原型）</h3>
 <p>规则卡为<strong>两行结构</strong>（默认左竖条品牌色；覆盖 <code>#FF8A3D</code>；用户覆盖外包左滑容器）：</p>
 <pre><code>┌─▌ 标题（≤6 字完整）                      [原价|实收] 或「固定」 ┐
 │   点 10%  散 10%                    [现金][卡付][团购]（单行） │
@@ -1181,6 +1162,11 @@ flowchart LR
 </tr></tbody></table>
 <p>行为细则与权限、修改日志同 §6.8。</p>
 <hr>
+<hr>
+<h2>6.11 员工管理（hub 链路二）</h2>
+<p>详见 Markdown 源文件完整表格。要点：头衔/角色分离；编辑·完善页敏感权限 12 项 Switch（非店主、默认折叠、同页滚动）；改角色重置默认；<code>staff.sensitivePerms</code> 持久化。</p>
+<h2>6.12 员工薪资（hub 链路三）</h2>
+<p>详见 Markdown 源文件。要点：列表删生效中、卡面 2×2；新页员工薪资明细；结算日 pie-chart / 发薪日；业绩提成明细闪电标签与调整提成 Sheet；设奖惩奖/扣徽章；口径与 §6.10.0 一致。</p>
 <h1>模块 7　数据模型与接口约定</h1>
 <blockquote>
 <p>读者：前端 ✓ · 后端 <strong>必看</strong> · 测试 ✓</p>
@@ -1669,7 +1655,7 @@ flowchart LR
 <hr>
 <h1>模块 13　历史数据迁移（业绩设置 + 单项提成 → 新提成设置）</h1>
 <blockquote>
-<p>读者：前端 了解 · 后端 <strong>必看</strong> · 测试 <strong>必看</strong><br>文档版本自 v2.0 起：<strong>结构必迁、不保证金额一致</strong>；迁移完成后弹窗告知结果。</p>
+<p>读者：前端 了解 · 后端 <strong>必看</strong> · 测试 <strong>必看</strong><br><strong>结构必迁、不保证金额一致</strong>；迁移完成后弹窗告知结果。</p>
 </blockquote>
 <h2>13.1 目标与边界</h2>
 <p><strong>目标</strong>：把旧「业绩设置 + 单项提成」<strong>全部落成</strong>新模型方案卡（<code>defaults</code> + <code>overrides</code> + <code>assigneeIds</code>）。<strong>不追求</strong>迁移前后提成金额逐分一致；差异写入报告，<strong>不阻断上线</strong>。</p>
@@ -1697,7 +1683,7 @@ flowchart LR
 <li>新列表可只读展示阶梯标签（「阶梯·沿用旧版」）；编辑进旧阶梯页</li>
 <li>后续将在原型中制作阶梯提成功能，实现全面更新迭代</li>
 </ul>
-<h3>13.1.2 已确认业务口径（v2.0）</h3>
+<h3>13.1.2 已确认业务口径</h3>
 <table>
 <thead>
 <tr>
@@ -1735,7 +1721,7 @@ flowchart LR
 </code></pre>
 <hr>
 <h2>13.3 数据结构映射</h2>
-<p>分类 / 高级设置 / 单项提成 → <code>defaults</code> / <code>overrides</code> 同 v1.x 字段表（见 §7），但：</p>
+<p>分类 / 高级设置 / 单项提成 → <code>defaults</code> / <code>overrides</code> 同 §7 字段表，但：</p>
 <ul>
 <li><strong>勿</strong>再写 <code>payScope.sign</code> 或方案级 <code>signComm</code></li>
 <li>payScope 默认仅 <code>cash / memberCard / groupBuy</code></li>
