@@ -552,6 +552,8 @@
     scopePurpose: 'ladder',
     itemCommEdit: null,
     formAvatar: '',
+    pickerCtx: 'form',
+    staffFieldKey: null,
     formSwordTitle: '',
     leaveConfirmSource: 'form',
     formSwordTitleMode: 'none',
@@ -760,6 +762,149 @@
   }
   function openEmpDialog(id) { var el = $(id); if (el) el.classList.add('show'); }
   function closeEmpDialog(id) { var el = $(id); if (el) el.classList.remove('show'); }
+  function canEditStaffProfile() {
+    return hasPerm('staffCreate');
+  }
+  function isDetailPickerCtx() {
+    return state.pickerCtx === 'detail';
+  }
+  function seedFormStateFromStaff(s) {
+    if (!s) return;
+    state.formAvatar = s.avatar || '';
+    state.formSwordTitle = s.swordTitle || '';
+    state.formSwordTitleMode = s.swordTitle ? (s.swordTitleMode || 'preset') : 'none';
+    state.formSwordId = s.swordId || null;
+    state.formSchemeId = s.schemeId || null;
+    syncStaffSchemeFields(s);
+  }
+  function beginDetailPicker() {
+    var s = staffById(state.currentStaffId);
+    if (!s) return null;
+    if (!canEditStaffProfile()) return null;
+    state.pickerCtx = 'detail';
+    state.formMode = 'edit';
+    seedFormStateFromStaff(s);
+    return s;
+  }
+  function clearPickerCtx() {
+    state.pickerCtx = 'form';
+  }
+  function syncSchemeAssignedForStaff(staffId, schemeId) {
+    var C = window.Comm2Demo;
+    var comm2Schemes = (C && typeof C.getSchemes === 'function') ? (C.getSchemes() || []) : [];
+    comm2Schemes.forEach(function (sch) {
+      if (!sch.assigneeIds) sch.assigneeIds = [];
+      var idx = sch.assigneeIds.indexOf(staffId);
+      if (!schemeId) {
+        if (idx >= 0) sch.assigneeIds.splice(idx, 1);
+      } else if (sch.id === schemeId && idx < 0) {
+        sch.assigneeIds.push(staffId);
+      }
+    });
+    (window.EmployeeStore.schemes || []).forEach(function (sch) {
+      if (!sch.assigned) sch.assigned = [];
+      var idx = sch.assigned.indexOf(staffId);
+      if (!schemeId) {
+        if (idx >= 0) sch.assigned.splice(idx, 1);
+      } else if (sch.id === schemeId && idx < 0) {
+        sch.assigned.push(staffId);
+      }
+    });
+    syncStaffSchemeFromComm2();
+    syncStaffSchemeFields(staffById(staffId));
+  }
+  function patchStaffAndRefresh(partial, toastMsg) {
+    var s = staffById(state.currentStaffId);
+    if (!s) return false;
+    Object.assign(s, partial || {});
+    if (Object.prototype.hasOwnProperty.call(partial || {}, 'schemeId') ||
+        Object.prototype.hasOwnProperty.call(partial || {}, 'scheme')) {
+      syncSchemeAssignedForStaff(s.id, s.schemeId || null);
+    }
+    renderStaffDetail(s.id);
+    renderStaffList();
+    if (toastMsg) toast(toastMsg);
+    return true;
+  }
+  function detailClickRow(key, label, val) {
+    if (!canEditStaffProfile()) {
+      return row(label, val, true);
+    }
+    return '<button type="button" class="form-row clickable" data-detail-edit="' + esc(key) + '">' +
+      '<span class="label">' + esc(label) + '</span>' +
+      '<span class="form-row__trail"><span class="value has-val">' + esc(String(val)) + '</span>' +
+      navChevHtml() + '</span></button>';
+  }
+  function detailSwordRow(sw) {
+    var thumb = (sw && sw.src)
+      ? '<span class="emp-form-sword-thumb"><img src="' + esc(sw.src) + '" alt="" loading="lazy"></span>'
+      : '<span class="value has-val">暂未选择</span>';
+    if (!canEditStaffProfile()) {
+      return '<div class="form-row is-readonly"><span class="label">宝剑</span>' +
+        '<span class="form-row__trail">' + thumb + '</span></div>';
+    }
+    return '<button type="button" class="form-row clickable" data-detail-edit="sword">' +
+      '<span class="label">宝剑</span><span class="form-row__trail">' + thumb + navChevHtml() + '</span></button>';
+  }
+
+  function openStaffFieldDialog(key) {
+    var s = staffById(state.currentStaffId);
+    if (!s || !canEditStaffProfile()) return;
+    var map = {
+      name: { title: '员工姓名', value: s.name || '', max: INPUT_LIMITS.PERSON_NAME, inputMode: 'text' },
+      phone: { title: '员工手机号', value: s.phone || '', max: INPUT_LIMITS.PHONE, inputMode: 'tel' },
+      years: { title: '从业年限', value: s.yearsExp != null ? String(s.yearsExp) : '', max: 3, inputMode: 'numeric' },
+      base: { title: '基本工资', value: s.baseSalary != null ? String(s.baseSalary) : '', max: 12, inputMode: 'decimal' },
+    };
+    var cfg = map[key];
+    if (!cfg) return;
+    state.staffFieldKey = key;
+    var title = $('empStaffFieldTitle');
+    var input = $('empStaffFieldInput');
+    if (title) title.textContent = cfg.title;
+    if (input) {
+      input.value = cfg.value;
+      input.setAttribute('maxlength', String(cfg.max));
+      input.setAttribute('inputmode', cfg.inputMode);
+      input.placeholder = '请输入' + cfg.title;
+    }
+    openEmpDialog('empStaffFieldMask');
+    setTimeout(function () { input && input.focus(); }, 50);
+  }
+  function commitStaffFieldDialog() {
+    var key = state.staffFieldKey;
+    var s = staffById(state.currentStaffId);
+    var input = $('empStaffFieldInput');
+    if (!key || !s || !input) return;
+    var raw = input.value.trim();
+    if (key === 'name') {
+      if (!raw) { toast('请输入员工姓名'); return; }
+      if (raw.length > INPUT_LIMITS.PERSON_NAME) { toast('员工姓名最多 ' + INPUT_LIMITS.PERSON_NAME + ' 字', true); return; }
+      patchStaffAndRefresh({
+        name: raw,
+        short: raw.length > 2 ? raw.slice(-1) : raw.slice(0, 2),
+      }, '已更新姓名');
+    } else if (key === 'phone') {
+      var phone = raw.replace(/\D/g, '');
+      if (!phone) { toast('请输入员工手机号'); return; }
+      if (!isValidCnMobile(phone)) { toast('请输入正确的手机号', true); return; }
+      patchStaffAndRefresh({ phone: phone }, '已更新手机号');
+    } else if (key === 'years') {
+      var yearsExp = raw === '' ? 0 : parseInt(raw, 10);
+      if (isNaN(yearsExp) || yearsExp < 0) { toast('请输入有效从业年限'); return; }
+      if (yearsExp > INPUT_LIMITS.YEARS_EXP_MAX) { toast('从业年限不能超过 ' + INPUT_LIMITS.YEARS_EXP_MAX + ' 年', true); return; }
+      patchStaffAndRefresh({ yearsExp: yearsExp }, '已更新从业年限');
+    } else if (key === 'base') {
+      if (raw === '') { toast('请输入员工基本工资'); return; }
+      var baseSalary = parseFloat(raw);
+      if (!Number.isFinite(baseSalary) || baseSalary < 0) { toast('请输入有效基本工资', true); return; }
+      if (baseSalary > INPUT_LIMITS.MONEY_MAX) { toast('金额不能超过 ' + formatMoneyLimitLabel(), true); return; }
+      patchStaffAndRefresh({ baseSalary: clampMoneyNumber(baseSalary) }, '已更新基本工资');
+    }
+    state.staffFieldKey = null;
+    closeEmpDialog('empStaffFieldMask');
+  }
+
   function openEmpAchInfoHelp(title, html) {
     var titleEl = $('empAchInfoHelpTitle');
     var bodyEl = $('empAchInfoHelpBody');
@@ -811,7 +956,7 @@
       'empAchEditMask', 'empRoleMask', 'empPermMask', 'empStatusMask', 'empDetailStatusMask', 'empSchemePickMask',
       'empGenderMask', 'empAgeBandMask', 'empAvatarActionMask', 'empAlbumMask', 'empCropMask',
       'empSwordTitleMask', 'empSwordMask', 'empScopeSelectedMask', 'empItemCommEditMask', 'achSimpleRateMask', 'empRewardStaffMask'].forEach(closeMask);
-    ['empHelpMask', 'empAchHelpMask', 'empPermHelpMask', 'empNameDialogMask', 'empRoleNameMask', 'empRoleDelConfirmMask', 'empLeaveConfirmMask', 'empCalcModeConfirmMask', 'empSchemeTypeMask', 'empLadderCalcHelpMask', 'empAchInfoHelpMask', 'empLadderResetConfirmMask'].forEach(closeEmpDialog);
+    ['empHelpMask', 'empAchHelpMask', 'empPermHelpMask', 'empNameDialogMask', 'empRoleNameMask', 'empRoleDelConfirmMask', 'empLeaveConfirmMask', 'empCalcModeConfirmMask', 'empSchemeTypeMask', 'empLadderCalcHelpMask', 'empAchInfoHelpMask', 'empLadderResetConfirmMask', 'empStaffFieldMask'].forEach(closeEmpDialog);
   }
   function fmtMoney(n) {
     return Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
@@ -1186,9 +1331,14 @@
   function applyCroppedAvatar() {
     if (!state.cropSrc) { toast('请先选择照片'); return; }
     state.formAvatar = state.cropSrc;
-    syncFormAvatarPreview();
+    if (isDetailPickerCtx()) {
+      patchStaffAndRefresh({ avatar: state.cropSrc }, '头像已更新');
+      clearPickerCtx();
+    } else {
+      syncFormAvatarPreview();
+      toast('头像已更新');
+    }
     closeMask('empCropMask');
-    toast('头像已更新');
   }
   function openSwordTitlePicker() {
     state.swordTitleDraft = state.formSwordTitle || '';
@@ -1250,7 +1400,15 @@
       state.formSwordTitle = state.swordTitleDraft;
       state.formSwordTitleMode = 'preset';
     }
-    syncFormSwordFields();
+    if (isDetailPickerCtx()) {
+      patchStaffAndRefresh({
+        swordTitle: state.formSwordTitle || '',
+        swordTitleMode: state.formSwordTitleMode || 'none',
+      }, '已更新剑号');
+      clearPickerCtx();
+    } else {
+      syncFormSwordFields();
+    }
     closeMask('empSwordTitleMask');
   }
   function openSwordPicker() {
@@ -1273,7 +1431,12 @@
   }
   function confirmSword() {
     state.formSwordId = state.swordDraftId;
-    syncFormSwordFields();
+    if (isDetailPickerCtx()) {
+      patchStaffAndRefresh({ swordId: state.formSwordId || null }, '已更新宝剑');
+      clearPickerCtx();
+    } else {
+      syncFormSwordFields();
+    }
     closeMask('empSwordMask');
   }
   function empAvatarHtml(s, cls) {
@@ -1593,15 +1756,25 @@
     openSchemePickSheet();
     nav('staff-empty-scheme');
   }
-  /** 从空态跳提成设置：返回时回到创建员工表单且内容保留 */
+  /** 从空态跳提成设置：返回时回到创建员工表单或员工详情且内容保留 */
   function setComm2ReturnToForm() {
-    state.emptyGotoReturn = 'staff-create';
+    var backTo = (isDetailPickerCtx() || state.emptyGotoReturn === 'staff-detail')
+      ? 'staff-detail'
+      : 'staff-create';
+    state.emptyGotoReturn = backTo;
     window.__empComm2BackHook = function () {
       if (!state.emptyGotoReturn) return false;
+      var target = state.emptyGotoReturn;
       state.emptyGotoReturn = null;
       window.__empComm2BackHook = null;
-      showScreen('screen-emp-form');
-      nav('staff-create');
+      if (target === 'staff-detail' && state.currentStaffId) {
+        renderStaffDetail(state.currentStaffId);
+        showScreen('screen-emp-detail');
+        nav('staff-detail');
+      } else {
+        showScreen('screen-emp-form');
+        nav('staff-create');
+      }
       return true;
     };
   }
@@ -2646,9 +2819,13 @@
     if (status === '离职') return 'quit';
     return 'active';
   }
-  function empStatusChipHtml(status) {
+  function empStatusChipHtml(status, opts) {
     var st = status || '在岗';
     var mod = empStatusChipMod(st);
+    var editable = !(opts && opts.readonly === true) && canEditStaffProfile();
+    if (!editable) {
+      return '<span class="emp-status-chip emp-status-chip--' + mod + ' emp-status-chip--ro">' + esc(st) + '</span>';
+    }
     return '<button type="button" class="emp-status-chip emp-status-chip--' + mod +
       '" data-emp-status-chip aria-label="调整状态：' + esc(st) + '">' +
       esc(st) +
@@ -2662,30 +2839,38 @@
     if (!s || !body) return;
     state.currentStaffId = id;
     var sw = s.swordId ? swordById(s.swordId) : null;
-    /* 薪资可见范围：店员/高级店员仅自己；店长不包含店主/合伙人；店主/合伙人全部可见 */
     var hideSalary = !canViewSalaryOf(s);
+    var canEdit = canEditStaffProfile();
+    var avatarHtml = canEdit
+      ? ('<button type="button" class="emp-detail-avatar-btn" data-detail-edit="avatar" aria-label="更换头像">' +
+        empAvatarHtml(s) + '</button>')
+      : empAvatarHtml(s);
+    var nameHtml = canEdit
+      ? ('<button type="button" class="emp-detail-head__name emp-detail-head__name--edit" data-detail-edit="name">' +
+        esc(s.name) + navChevHtml() + '</button>')
+      : ('<div class="emp-detail-head__name">' + esc(s.name) + '</div>');
     body.innerHTML =
       '<div class="emp-detail-head">' +
-      empAvatarHtml(s) +
-      '<div class="emp-detail-head__text"><div class="emp-detail-head__name">' + esc(s.name) + '</div>' +
+      avatarHtml +
+      '<div class="emp-detail-head__text">' + nameHtml +
       '<div class="emp-detail-head__meta">' +
       '<span class="emp-detail-head__role">' + esc(staffRoleLabel(s)) + '</span>' +
       empStatusChipHtml(s.status) +
       '</div></div></div>' +
       '<div class="emp-card emp-detail-card">' +
-      row('剑号', s.swordTitle || '暂未选择') +
-      swordDetailRow(sw) +
-      row('性别', s.gender || '未填写') +
-      row('年龄段', s.ageBand || '未填写') +
-      row('从业年限', (s.yearsExp != null && s.yearsExp !== '') ? (s.yearsExp + ' 年') : '未填写') +
-      row('员工手机号', s.phone || '未填写') +
-      row('头衔', staffRoleLabel(s)) +
-      row('角色', s.perm) +
+      detailClickRow('swordTitle', '剑号', s.swordTitle || '暂未选择') +
+      detailSwordRow(sw) +
+      detailClickRow('gender', '性别', s.gender || '未填写') +
+      detailClickRow('ageBand', '年龄段', s.ageBand || '未填写') +
+      detailClickRow('years', '从业年限', (s.yearsExp != null && s.yearsExp !== '') ? (s.yearsExp + ' 年') : '未填写') +
+      detailClickRow('phone', '员工手机号', s.phone || '未填写') +
+      detailClickRow('role', '头衔', staffRoleLabel(s)) +
+      detailClickRow('perm', '角色', s.perm) +
       (hideSalary
         ? '<div class="form-row is-readonly"><span class="label">薪资信息</span>' +
           '<span class="form-row__trail"><span class="value has-val">当前权限不可见</span></span></div>'
-        : row('基本工资', s.baseSalary ? fmtMoney(s.baseSalary) + ' 元' : '0 元') +
-          row('提成方案', s.scheme)) +
+        : detailClickRow('base', '基本工资', s.baseSalary ? fmtMoney(s.baseSalary) + ' 元' : '0 元') +
+          detailClickRow('scheme', '提成方案', s.scheme || '暂未分配')) +
       '</div>';
   }
 
@@ -2712,6 +2897,7 @@
 
   function openForm(mode, staffId) {
     clearEmptyGoto();
+    clearPickerCtx();
     syncStaffSchemeFromComm2();
     state.formMode = mode;
     state.currentStaffId = staffId || null;
@@ -7435,6 +7621,11 @@
   function applySchemePick(id) {
     if (!id) {
       state.formSchemeId = null;
+      if (isDetailPickerCtx()) {
+        patchStaffAndRefresh({ schemeId: null, scheme: '暂未分配', schemeIds: [] }, '已更新提成方案');
+        clearPickerCtx();
+        return;
+      }
       $('empFScheme').textContent = '暂未分配';
       $('empFScheme').classList.remove('has-val');
       return;
@@ -7442,6 +7633,20 @@
     var sch = schemeById(id);
     if (!sch) return;
     state.formSchemeId = sch.id;
+    if (isDetailPickerCtx()) {
+      var labels = [sch.name];
+      if (state.currentStaffId) {
+        schemesAssignedToStaff(state.currentStaffId).forEach(function (s) {
+          if (s.id !== sch.id) labels.push(s.name);
+        });
+      }
+      patchStaffAndRefresh({
+        schemeId: sch.id,
+        scheme: labels.join('、'),
+      }, '已更新提成方案');
+      clearPickerCtx();
+      return;
+    }
     var labels = [sch.name];
     if (state.currentStaffId && state.formMode !== 'create') {
       schemesAssignedToStaff(state.currentStaffId).forEach(function (s) {
@@ -8166,6 +8371,14 @@
     /* 同属性可能有多个返回键，必须 querySelectorAll，勿用 querySelector */
     document.querySelectorAll('[data-emp-back-list]').forEach(function (btn) {
       btn.addEventListener('click', function () {
+        if (state.emptyGotoReturn === 'staff-detail' && state.currentStaffId) {
+          state.emptyGotoReturn = null;
+          window.__empComm2BackHook = null;
+          renderStaffDetail(state.currentStaffId);
+          showScreen('screen-emp-detail');
+          nav('staff-detail');
+          return;
+        }
         if (state.emptyGotoReturn) {
           state.emptyGotoReturn = null;
           showScreen('screen-emp-form');
@@ -8201,10 +8414,6 @@
       btn.addEventListener('click', openComm);
     });
 
-    $('empBtnEditDetail')?.addEventListener('click', function () {
-      if (!requirePerm('staffCreate')) return;
-      openForm('edit', state.currentStaffId);
-    });
     $('empBtnSaveForm')?.addEventListener('click', saveForm);
 
     wireStaffListDrag();
@@ -8234,6 +8443,7 @@
     });
 
     $('empRowRole')?.addEventListener('click', function () {
+      clearPickerCtx();
       renderRolePickerList($('empFRole').textContent);
       openMask('empRoleMask');
     });
@@ -8310,16 +8520,19 @@
       if (e.key === 'Enter') { e.preventDefault(); commitRoleNameDialog(); }
     });
     $('empRowGender')?.addEventListener('click', function () {
+      clearPickerCtx();
       renderPickerList('empGenderList', GENDERS, $('empFGender').textContent, 'gender-val');
       openMask('empGenderMask');
     });
     $('empRowAgeBand')?.addEventListener('click', function () {
+      clearPickerCtx();
       renderPickerList('empAgeBandList', AGE_BANDS, $('empFAgeBand').textContent, 'age-val');
       openMask('empAgeBandMask');
     });
-    $('empRowAvatar')?.addEventListener('click', openAvatarAction);
+    $('empRowAvatar')?.addEventListener('click', function () { clearPickerCtx(); openAvatarAction(); });
     $('empFAvatarPreview')?.addEventListener('click', function (e) {
       e.stopPropagation();
+      clearPickerCtx();
       openAvatarAction();
     });
     $('empAvatarActionClose')?.addEventListener('click', function () { closeMask('empAvatarActionMask'); });
@@ -8339,7 +8552,7 @@
     });
     $('empCropDone')?.addEventListener('click', applyCroppedAvatar);
 
-    $('empRowSwordTitle')?.addEventListener('click', openSwordTitlePicker);
+    $('empRowSwordTitle')?.addEventListener('click', function () { clearPickerCtx(); openSwordTitlePicker(); });
     $('empSwordTitleClose')?.addEventListener('click', function () { closeMask('empSwordTitleMask'); });
     $('empSwordTitleRefresh')?.addEventListener('click', function () {
       state.swordTitleBatch = (state.swordTitleBatch + 1) % SWORD_TITLE_BATCHES.length;
@@ -8390,7 +8603,7 @@
     });
     $('empSwordTitleConfirm')?.addEventListener('click', confirmSwordTitle);
 
-    $('empRowSword')?.addEventListener('click', openSwordPicker);
+    $('empRowSword')?.addEventListener('click', function () { clearPickerCtx(); openSwordPicker(); });
     $('empSwordClose')?.addEventListener('click', function () { closeMask('empSwordMask'); });
     $('empSwordGrid')?.addEventListener('click', function (e) {
       var btn = e.target.closest('[data-sword-id]');
@@ -8401,6 +8614,7 @@
     $('empSwordConfirm')?.addEventListener('click', confirmSword);
 
     $('empRowScheme')?.addEventListener('click', function () {
+      clearPickerCtx();
       openSchemePickSheet();
     });
     $('empSchemePickList')?.addEventListener('click', function (e) {
@@ -8475,6 +8689,7 @@
       if (e.target === $('empPermHelpMask')) closeEmpDialog('empPermHelpMask');
     });
     $('empRowPerm')?.addEventListener('click', function () {
+      clearPickerCtx();
       var cur = $('empFPerm').textContent;
       if (cur === '请选择员工权限' || cur === '请选择员工角色') cur = '';
       renderPermPickerList(cur);
@@ -8507,6 +8722,20 @@
             toast(uniqueRoleTakenMessage(pickBtn.dataset.roleVal), true);
             return;
           }
+          if (isDetailPickerCtx()) {
+            var roleName = pickBtn.dataset.roleVal;
+            if (isUniqueStaffRole(roleName)) {
+              var roleTaken = findOtherStaffWithRole(roleName, state.currentStaffId);
+              if (roleTaken) {
+                toast(uniqueRoleTakenMessage(roleName), true);
+                return;
+              }
+            }
+            patchStaffAndRefresh({ role: roleName }, '已更新头衔');
+            clearPickerCtx();
+            closeMask('empRoleMask');
+            return;
+          }
           $('empFRole').textContent = pickBtn.dataset.roleVal;
           $('empFRole').classList.add('has-val');
           closeMask('empRoleMask');
@@ -8515,16 +8744,42 @@
         var btn = e.target.closest('button');
         if (!btn) return;
         if (listId === 'empPermList') {
+          if (isDetailPickerCtx()) {
+            var permName = normalizePermName(btn.dataset.permVal);
+            if (permName === '店主') {
+              var owner = findStaffByPerm('店主');
+              if (owner && owner.id !== state.currentStaffId) {
+                toast('本店已有店主（' + owner.name + '）', true);
+                return;
+              }
+            }
+            patchStaffAndRefresh({ perm: permName }, '已更新角色');
+            clearPickerCtx();
+            closeMask('empPermMask');
+            return;
+          }
           $('empFPerm').textContent = btn.dataset.permVal;
           $('empFPerm').classList.add('has-val');
           closeMask('empPermMask');
         }
         if (listId === 'empGenderList') {
+          if (isDetailPickerCtx()) {
+            patchStaffAndRefresh({ gender: btn.dataset.genderVal }, '已更新性别');
+            clearPickerCtx();
+            closeMask('empGenderMask');
+            return;
+          }
           $('empFGender').textContent = btn.dataset.genderVal;
           $('empFGender').classList.add('has-val');
           closeMask('empGenderMask');
         }
         if (listId === 'empAgeBandList') {
+          if (isDetailPickerCtx()) {
+            patchStaffAndRefresh({ ageBand: btn.dataset.ageVal }, '已更新年龄段');
+            clearPickerCtx();
+            closeMask('empAgeBandMask');
+            return;
+          }
           $('empFAgeBand').textContent = btn.dataset.ageVal;
           $('empFAgeBand').classList.add('has-val');
           closeMask('empAgeBandMask');
@@ -8556,9 +8811,11 @@
     $('empLeaveConfirmMask')?.addEventListener('click', function (e) {
       if (e.target === $('empLeaveConfirmMask')) closeLeaveConfirm();
     });
-    $('empRoleCancel')?.addEventListener('click', function () { closeMask('empRoleMask'); });
-    $('empPermCancel')?.addEventListener('click', function () { closeMask('empPermMask'); });
+    $('empRoleCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empRoleMask'); });
+    $('empPermCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empPermMask'); });
     $('empStatusCancel')?.addEventListener('click', function () { closeMask('empStatusMask'); });
+    $('empGenderCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empGenderMask'); });
+    $('empAgeBandCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empAgeBandMask'); });
     $('empDetailStatusCancel')?.addEventListener('click', closeDetailStatusSheet);
     $('empDetailStatusMask')?.addEventListener('click', function (e) {
       if (e.target.id === 'empDetailStatusMask') closeDetailStatusSheet();
@@ -8569,11 +8826,82 @@
       handleDetailStatusPick(btn.dataset.detailStatus);
     });
     $('empDetailBody')?.addEventListener('click', function (e) {
+      var editEl = e.target.closest('[data-detail-edit]');
+      if (editEl) {
+        if (!canEditStaffProfile()) return;
+        var key = editEl.getAttribute('data-detail-edit');
+        if (key === 'avatar') {
+          if (!beginDetailPicker()) return;
+          openAvatarAction();
+          return;
+        }
+        if (key === 'name' || key === 'phone' || key === 'years' || key === 'base') {
+          openStaffFieldDialog(key);
+          return;
+        }
+        if (key === 'swordTitle') {
+          if (!beginDetailPicker()) return;
+          openSwordTitlePicker();
+          return;
+        }
+        if (key === 'sword') {
+          if (!beginDetailPicker()) return;
+          openSwordPicker();
+          return;
+        }
+        if (key === 'gender') {
+          if (!beginDetailPicker()) return;
+          var sG = staffById(state.currentStaffId);
+          renderPickerList('empGenderList', GENDERS, (sG && sG.gender) || '', 'gender-val');
+          openMask('empGenderMask');
+          return;
+        }
+        if (key === 'ageBand') {
+          if (!beginDetailPicker()) return;
+          var sA = staffById(state.currentStaffId);
+          renderPickerList('empAgeBandList', AGE_BANDS, (sA && sA.ageBand) || '', 'age-val');
+          openMask('empAgeBandMask');
+          return;
+        }
+        if (key === 'role') {
+          if (!beginDetailPicker()) return;
+          var sR = staffById(state.currentStaffId);
+          renderRolePickerList(sR ? sR.role : '');
+          openMask('empRoleMask');
+          return;
+        }
+        if (key === 'perm') {
+          if (!beginDetailPicker()) return;
+          var sP = staffById(state.currentStaffId);
+          renderPermPickerList(sP ? sP.perm : '');
+          openMask('empPermMask');
+          return;
+        }
+        if (key === 'scheme') {
+          if (!beginDetailPicker()) return;
+          openSchemePickSheet();
+          return;
+        }
+        return;
+      }
       if (!e.target.closest('[data-emp-status-chip]')) return;
+      if (!canEditStaffProfile()) return;
       openDetailStatusSheet();
     });
-    $('empGenderCancel')?.addEventListener('click', function () { closeMask('empGenderMask'); });
-    $('empAgeBandCancel')?.addEventListener('click', function () { closeMask('empAgeBandMask'); });
+    $('empStaffFieldCancel')?.addEventListener('click', function () {
+      state.staffFieldKey = null;
+      closeEmpDialog('empStaffFieldMask');
+    });
+    $('empStaffFieldOk')?.addEventListener('click', commitStaffFieldDialog);
+    $('empStaffFieldMask')?.addEventListener('click', function (e) {
+      if (e.target === $('empStaffFieldMask')) {
+        state.staffFieldKey = null;
+        closeEmpDialog('empStaffFieldMask');
+      }
+    });
+    $('empStaffFieldInput')?.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); commitStaffFieldDialog(); }
+    });
 
     $('empMonthLabel')?.addEventListener('click', function () { renderMonthPicker(); openMask('empMonthMask'); });
     $('empMonthList')?.addEventListener('click', function (e) {
