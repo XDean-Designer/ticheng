@@ -47,6 +47,8 @@
     }
     if (id === 'screen-emp-list') return 'staff-list';
     if (id === 'screen-emp-roles') return 'staff-roles';
+    if (id === 'screen-emp-role-perms') return 'staff-role-perms';
+    if (id === 'screen-emp-role-perm-edit') return 'staff-role-perm-edit';
     if (id === 'screen-emp-detail') return 'staff-detail';
     if (id === 'screen-emp-form') {
       if (g.__staffFormFlow) return g.__staffFormFlow;
@@ -85,6 +87,8 @@
   var STAFF_FLOW_IDS = [
     'staff-list',
     'staff-roles',
+    'staff-role-perms',
+    'staff-role-perm-edit',
     'staff-detail',
     'staff-create',
     'staff-refine'

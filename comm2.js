@@ -700,12 +700,12 @@
       '<path d="M3 3l6 6M9 3L3 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
   }
 
-  /** 卡上工位简称：默认大/中/小；未知工位取名首字 */
+  /** 卡上工位短标：默认大工/中工/小工；未知工位用全称 */
   function stationShortLabel(sch, id) {
     var def = COMM2_STATIONS.find(function (s) { return s.id === id; });
-    if (def && def.defaultLabel) return def.defaultLabel.charAt(0);
+    if (def && def.defaultLabel) return def.defaultLabel;
     var lab = stationLabel(sch, id);
-    return lab ? String(lab).charAt(0) : '?';
+    return lab ? String(lab) : '?';
   }
 
   function barScopeCapsulesHtml(block) {
@@ -801,7 +801,7 @@
     if (block.pickMode === 'station') return barStationParamsHtml(sch, block);
     var des = pairVal(block.rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(block.rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return barParamSegHtml('点', esc(fmtVal(des, isAmt))) + barParamSegHtml('散', esc(fmtVal(non, isAmt)));
+    return barParamSegHtml('点客', esc(fmtVal(des, isAmt))) + barParamSegHtml('散客', esc(fmtVal(non, isAmt)));
   }
 
   function titleCharCount(s) {
@@ -1279,7 +1279,7 @@
           '<i class="emp-assign-card__also-ico" aria-hidden="true"></i>' +
           '<span class="emp-assign-card__also-names">' + names + '</span></span>';
       } else {
-        roleHtml = '<span class="emp-assign-card__role">' + esc(s.role || '未设置职位') + '</span>';
+        roleHtml = '<span class="emp-assign-card__role">' + esc(s.role || '未设置头衔') + '</span>';
       }
       return '<button type="button" class="emp-assign-card' + (on ? ' on' : '') + (others.length ? ' has-others' : '') + '"' +
         ' data-comm2-assign-tog="' + esc(s.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +

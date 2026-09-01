@@ -43,6 +43,45 @@
   font-size: 13px; color: var(--text-sec); margin: 0 0 8px; font-weight: 400;
 }
 
+.emp-list-add {
+  margin: 0; height: 48px; border: 1px dashed #C8C8C8; border-radius: 12px;
+  background: transparent; color: var(--brand, #F32F41); font-size: 15px; font-weight: 500;
+  cursor: pointer; font-family: inherit; width: 100%;
+  display: flex; align-items: center; justify-content: center; box-shadow: none;
+}
+.emp-list-add:active { background: #FAFAFA; }
+
+.emp-picker-empty {
+  padding: 28px 16px 12px; text-align: center;
+}
+.emp-picker-empty__tip {
+  font-size: 13px; color: var(--text-sec); line-height: 1.5; margin-bottom: 12px;
+}
+.emp-picker-empty__btn {
+  border: none; background: transparent; color: var(--brand, #F32F41);
+  font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; padding: 6px 10px;
+}
+.emp-picker-empty__btn:active { opacity: .75; }
+
+.emp-reward-recent-toggle {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  width: calc(100% - 32px); margin: 4px 16px 16px; padding: 10px 0;
+  border: none; background: transparent; color: var(--text-sec);
+  font-size: 13px; font-family: inherit; cursor: pointer;
+}
+.emp-reward-recent-toggle__ico { font-size: 12px; line-height: 1; }
+.emp-reward-recent.hidden { display: none; }
+
+.emp-pay-rw-card { cursor: pointer; }
+.emp-pay-rw-card:active { opacity: .92; }
+
+.emp-sensitive-row__txt {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;
+}
+.emp-sensitive-row__hint {
+  font-size: 12px; color: var(--text-sec); line-height: 1.35;
+}
+
 .emp-list { display: flex; flex-direction: column; gap: 12px; padding: 12px 16px 16px; touch-action: pan-y; }
 .emp-list.is-reordering {
   position: relative;
@@ -462,7 +501,7 @@
 }
 .emp-pay-cycle-opt__title { display: block; font-size: 15px; font-weight: 500; color: var(--text); }
 .emp-pay-cycle-opt__desc { display: block; font-size: 12px; color: var(--text-sec); margin-top: 4px; }
-.emp-pay-cycle-day { margin-top: 12px; padding: 16px; }
+.emp-pay-cycle-day { margin-top: 12px; padding: 14px 16px 12px; }
 .emp-pay-cycle-day__lbl { font-size: 14px; font-weight: 500; color: var(--text); }
 .emp-pay-cycle-day__ctrl {
   display: flex; align-items: center; justify-content: center; gap: 20px; margin-top: 14px;
@@ -950,8 +989,8 @@
   display: inline-flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 600; color: #fff; line-height: 1;
 }
-.emp-reward-badge--reward { background: #34C759; }
-.emp-reward-badge--deduct { background: #9E9E9E; }
+.emp-reward-badge--reward { background: #6B9BD1; }
+.emp-reward-badge--deduct { background: #D97B7B; }
 .emp-reward-item__main {
   display: inline-flex; align-items: center; gap: 8px; min-width: 0; flex: 1;
 }

@@ -528,8 +528,8 @@
   display: flex; flex-wrap: nowrap; justify-content: flex-start; align-items: center;
   gap: 0; box-sizing: border-box;
   text-align: left; cursor: pointer; font-family: inherit; color: inherit;
-  /* 与标题文字左缘对齐（图标 14 + gap 5） */
-  padding-left: 19px;
+  /* 与标题图标左缘对齐 */
+  padding-left: 0;
 }
 .comm2-rule-bar__params:active { opacity: .85; }
 .comm2-rule-bar__param-seg + .comm2-rule-bar__param-seg {
@@ -575,8 +575,8 @@
   margin-left: 0;
 }
 .comm2-rule-bar.is-station .comm2-rule-bar__p-lbl {
-  flex: 0 0 1.2em;
-  width: 1.2em;
+  flex: 0 0 auto;
+  min-width: 2em;
 }
 
 /* 右列 · 基数段控（整段可点切换）· 在 120 槽内右对齐 */

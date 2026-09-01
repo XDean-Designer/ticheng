@@ -74,11 +74,13 @@
     <div class="g-t">员工管理</div>
     <button type="button" class="nav-item" data-flow="staff-list"><span class="idx">1</span>员工列表</button>
     <div class="nav-arrow">↓</div>
-    <button type="button" class="nav-item" data-flow="staff-roles"><span class="idx">2</span>职位管理</button>
+    <button type="button" class="nav-item" data-flow="staff-roles"><span class="idx">2</span>头衔管理</button>
     <div class="nav-arrow">↓</div>
-    <button type="button" class="nav-item" data-flow="staff-detail"><span class="idx">3</span>员工详情</button>
+    <button type="button" class="nav-item" data-flow="staff-role-perms"><span class="idx">3</span>角色管理</button>
     <div class="nav-arrow">↓</div>
-    <button type="button" class="nav-item" data-flow="staff-create"><span class="idx">4</span>创建员工</button>
+    <button type="button" class="nav-item" data-flow="staff-detail"><span class="idx">4</span>员工详情</button>
+    <div class="nav-arrow">↓</div>
+    <button type="button" class="nav-item" data-flow="staff-create"><span class="idx">5</span>创建员工</button>
     <button type="button" class="nav-item" data-flow="staff-refine"><span class="idx">·</span>完善资料</button>
   </div>
   <div class="nav-group">
@@ -143,7 +145,7 @@
       </span>
       <span class="hub-card__main">
         <span class="hub-card__title">员工管理</span>
-        <span class="hub-card__desc">列表、职位、详情与创建/编辑</span>
+        <span class="hub-card__desc">列表、头衔、角色、详情与创建/编辑</span>
       </span>
       <span class="hub-card__chev" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
@@ -432,13 +434,15 @@
   <div class="page-title-bar">
     <button type="button" class="back" id="empStaffListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
     <span class="title">员工管理</span>
-    <button type="button" class="action emp-title-link" id="empBtnManageRoles">职位管理</button>
   </div>
   <div class="page-body">
     <div class="emp-list" id="empListRoot"></div>
   </div>
-  <div class="bottom-bar">
-    <div class="bottom-bar__action"><button type="button" class="btn-main" id="empBtnAddStaff">+ 创建员工</button></div>
+  <div class="bottom-bar bottom-bar--dual">
+    <div class="bottom-bar__action">
+      <button type="button" class="btn-main secondary" id="empBtnManageRoles">头衔管理</button>
+      <button type="button" class="btn-main" id="empBtnManageRolePerms">角色管理</button>
+    </div>
     <div class="bottom-bar__safe" aria-hidden="true"></div>
   </div>
 </div>
@@ -446,14 +450,34 @@
 <div class="screen hidden" id="screen-emp-roles">
   <div class="page-title-bar">
     <button type="button" class="back" data-emp-back-list aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <span class="title">职位管理</span>
+    <span class="title">头衔管理</span>
   </div>
   <div class="page-body" style="padding:0;">
     <div class="emp-role-manage-list" id="empRoleManageList"></div>
   </div>
   <div class="bottom-bar">
-    <div class="bottom-bar__action"><button type="button" class="btn-main" id="empBtnAddRolePage"><span class="btn-main__plus" aria-hidden="true">+</span><span>添加职位</span></button></div>
+    <div class="bottom-bar__action"><button type="button" class="btn-main" id="empBtnAddRolePage"><span class="btn-main__plus" aria-hidden="true">+</span><span>添加头衔</span></button></div>
     <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-emp-role-perms">
+  <div class="page-title-bar">
+    <button type="button" class="back" data-emp-back-list aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">角色管理</span>
+  </div>
+  <div class="page-body" style="padding:12px 16px 24px;">
+    <div class="emp-role-perm-list" id="empRolePermList"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-emp-role-perm-edit">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="empRolePermEditBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="empRolePermEditTitle">角色权限</span>
+  </div>
+  <div class="page-body" style="padding:12px 16px 24px;">
+    <div class="emp-card" id="empRolePermEditBody" style="margin:0;padding-bottom:8px;"></div>
   </div>
 </div>
 
@@ -508,15 +532,6 @@
       <div class="form-row emp-form-row--stack"><span class="label">基本工资<span class="req">*</span></span><input class="value input-amount" id="empFBase" type="number" min="0" max="999999.99" step="0.01" placeholder="请输入员工基本工资" inputmode="decimal" /></div>
       <p class="emp-form-note">注：当修改基本工资后，当月的薪资统计以最新的为准。</p>
       <div class="form-row clickable" id="empRowStatus"><span class="label">状态</span><span class="form-row__trail"><span class="value has-val" id="empFStatus">在岗</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
-      <div class="emp-form-collapse hidden" id="empSensitiveCollapse">
-        <button type="button" class="emp-form-collapse__head" id="empSensitiveToggle" aria-expanded="false">
-          <span class="emp-form-collapse__label">敏感权限</span>
-          <span class="emp-form-collapse__chev" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span>
-        </button>
-        <div class="emp-form-collapse__body hidden" id="empSensitiveBody">
-          <div id="empSensitivePermsCard"></div>
-        </div>
-      </div>
     </div>
   </div>
   <div class="bottom-bar">
@@ -537,20 +552,20 @@
 
 <div class="picker-mask picker-mask--bottom" id="empRoleMask">
   <div class="picker-sheet tall">
-    <div class="picker-head">选择职位</div>
+    <div class="picker-head">选择头衔</div>
     <div class="emp-picker-list" id="empRoleList"></div>
-    <button type="button" class="emp-role-add" id="empBtnAddRoleSheet">+ 添加职位</button>
+    <button type="button" class="emp-role-add" id="empBtnAddRoleSheet">+ 添加头衔</button>
     <div class="picker-foot"><button type="button" class="btn-main secondary" id="empRoleCancel">取消</button></div>
   </div>
 </div>
 
 <div class="dialog-mask" id="empRoleNameMask">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="empRoleNameTitle">
-    <div class="dialog__title" id="empRoleNameTitle">编辑职位名称</div>
+    <div class="dialog__title" id="empRoleNameTitle">编辑头衔名称</div>
     <p class="emp-role-name-hint hidden" id="empRoleNameHint"></p>
     <div class="emp-role-name-row">
-      <input type="text" class="emp-name-dialog-input" id="empRoleNameInput" placeholder="请输入职位名称" maxlength="6" autocomplete="off" />
-      <button type="button" class="emp-role-name-del hidden" id="empRoleNameDelete" aria-label="删除职位">
+      <input type="text" class="emp-name-dialog-input" id="empRoleNameInput" placeholder="请输入头衔名称" maxlength="6" autocomplete="off" />
+      <button type="button" class="emp-role-name-del hidden" id="empRoleNameDelete" aria-label="删除头衔">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12"/><path d="M10 11v6M14 11v6"/></svg>
       </button>
     </div>
@@ -565,7 +580,7 @@
 
 <div class="dialog-mask" id="empRoleDelConfirmMask">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="empRoleDelConfirmTitle">
-    <div class="dialog__title" id="empRoleDelConfirmTitle">确认删除该职位？</div>
+    <div class="dialog__title" id="empRoleDelConfirmTitle">确认删除该头衔？</div>
     <div class="dialog__body" id="empRoleDelConfirmBody">删除后不可恢复。</div>
     <div class="dialog__actions dialog__actions--row">
       <button type="button" class="btn-main secondary" id="empRoleDelConfirmCancel">取消</button>

@@ -84,6 +84,7 @@
         'staffCreate',
         'mallManage', 'mallReport',
         'achCommSet',
+        'memberPhoneView',
       ]),
       denies: ['hqEnter', 'stockAudit'],
       /* 权限说明弹窗文案（单店模式不展示「不能进入总部」） */
@@ -161,12 +162,12 @@
         { on: true, text: '给顾客办新卡、充值、续费' },
         { on: false, text: '不能开单改价' },
         { on: false, text: '不能删除会员' },
-        { on: false, text: '不能删除卡、补录卡、延期卡、退卡' },
+        { on: false, text: '不能删除卡、补录卡、退卡' },
       ],
     },
   ];
   var PERMS = PERM_DEFS.map(function (d) { return d.name; });
-  /** 敏感权限：个人级 Switch 覆盖角色默认（改角色时重置为默认） */
+  /** 敏感权限：角色级可编辑（EmployeeStore.roleSensitivePerms）；店主不进角色管理列表 */
   var SENSITIVE_PERM_DEFS = [
     { key: 'staffLogin', label: '员工端登录', hint: '关闭后不可登录员工端 App，账号仍可由店主端管理' },
     { key: 'memberPhoneView', label: '查看顾客手机号', hint: '关闭后手机号中间四位打码' },
@@ -181,11 +182,8 @@
     { key: 'debtManage', label: '欠款/还款', hint: '登记欠款与收款还款' },
     { key: 'viewOthersPerf', label: '查看他人业绩', hint: '关闭后仅可看本人业绩；改提成仍仅店主/合伙人/店长' },
   ];
-  function shouldShowSensitivePerms(permName) {
-    var p = normalizePermName(permName || '');
-    if (!p) return false;
-    return p !== '店主';
-  }
+  /** 角色管理可编辑的四角色（店主不出现） */
+  var ROLE_PERM_MANAGE_ROLES = ['合伙人', '店长', '高级店员', '店员'];
   function sensitivePermsAll(on) {
     var o = {};
     SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!on; });
@@ -201,7 +199,7 @@
     (onKeys || []).forEach(function (k) { if (Object.prototype.hasOwnProperty.call(o, k)) o[k] = true; });
     return o;
   }
-  /** 各角色敏感权限 Switch 默认值（改角色时重置为此表；个人覆盖存 staff.sensitivePerms） */
+  /** 各角色敏感权限初始默认（可运行时改写到 EmployeeStore.roleSensitivePerms） */
   var SENSITIVE_PERM_ROLE_DEFAULTS = {
     '店主': sensitivePermsAll(true),
     '合伙人': sensitivePermsExcept(['viewOthersPerf']),
@@ -209,60 +207,44 @@
     '高级店员': sensitivePermsExcept(['memberPhoneView', 'memberStatsView', 'viewOthersBill', 'debtManage', 'viewOthersPerf']),
     '店员': sensitivePermsOnly(['staffLogin', 'customerListView', 'cardOps', 'orderHold', 'cashierBill']),
   };
-  function defaultSensitivePermsForRole(permName) {
-    var p = normalizePermName(permName);
-    var tpl = SENSITIVE_PERM_ROLE_DEFAULTS[p] || SENSITIVE_PERM_ROLE_DEFAULTS['店员'];
-    var o = {};
-    SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!tpl[d.key]; });
-    return o;
-  }
-  function mergeSensitivePerms(stored, permName) {
-    var base = defaultSensitivePermsForRole(permName);
-    if (!stored || typeof stored !== 'object') return base;
-    SENSITIVE_PERM_DEFS.forEach(function (d) {
-      if (typeof stored[d.key] === 'boolean') base[d.key] = stored[d.key];
-    });
-    return base;
-  }
   function cloneSensitivePerms(src) {
     var o = {};
     SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!(src && src[d.key]); });
     return o;
   }
-  function syncSensitiveCollapse(open) {
-    var root = $('empSensitiveCollapse');
-    var body = $('empSensitiveBody');
-    var toggle = $('empSensitiveToggle');
-    if (!root || !body) return;
-    var on = !!open;
-    root.classList.toggle('is-open', on);
-    body.classList.toggle('hidden', !on);
-    if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+  function cloneRoleSensitivePermsMap(src) {
+    var out = {};
+    Object.keys(src || {}).forEach(function (role) {
+      out[role] = cloneSensitivePerms(src[role]);
+    });
+    return out;
   }
-  function renderSensitivePermsSection() {
-    var collapseEl = $('empSensitiveCollapse');
-    var cardEl = $('empSensitivePermsCard');
-    if (!collapseEl || !cardEl) return;
-    var permRaw = $('empFPerm') ? $('empFPerm').textContent : '';
-    var perm = permRaw && permRaw !== '请选择员工角色' ? normalizePermName(permRaw) : '';
-    var show = (state.formMode === 'edit' || state.formMode === 'refine') && perm && shouldShowSensitivePerms(perm);
-    collapseEl.classList.toggle('hidden', !show);
-    if (!show) return;
-    if (!state.formSensitivePerms) {
-      var s = state.currentStaffId ? staffById(state.currentStaffId) : null;
-      state.formSensitivePerms = mergeSensitivePerms(s && s.sensitivePerms, perm);
+  function ensureRoleSensitivePerms() {
+    var store = window.EmployeeStore;
+    if (!store) return cloneRoleSensitivePermsMap(SENSITIVE_PERM_ROLE_DEFAULTS);
+    if (!store.roleSensitivePerms || typeof store.roleSensitivePerms !== 'object') {
+      store.roleSensitivePerms = cloneRoleSensitivePermsMap(SENSITIVE_PERM_ROLE_DEFAULTS);
     }
-    cardEl.innerHTML = SENSITIVE_PERM_DEFS.map(function (d) {
-      var on = !!state.formSensitivePerms[d.key];
-      return '<div class="emp-sensitive-row">' +
-        '<span class="emp-sensitive-row__lbl">' + esc(d.label) + '</span>' +
-        '<button type="button" class="pay-meta-switch' + (on ? ' on' : '') + '" data-sensitive-key="' + d.key + '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(d.label) + '"></button>' +
-        '</div>';
-    }).join('');
+    Object.keys(SENSITIVE_PERM_ROLE_DEFAULTS).forEach(function (role) {
+      if (!store.roleSensitivePerms[role]) {
+        store.roleSensitivePerms[role] = cloneSensitivePerms(SENSITIVE_PERM_ROLE_DEFAULTS[role]);
+      }
+    });
+    return store.roleSensitivePerms;
   }
-  function resetSensitivePermsForRole(permName) {
-    state.formSensitivePerms = defaultSensitivePermsForRole(normalizePermName(permName));
-    renderSensitivePermsSection();
+  function defaultSensitivePermsForRole(permName) {
+    var p = normalizePermName(permName);
+    var map = ensureRoleSensitivePerms();
+    var tpl = map[p] || map['店员'] || SENSITIVE_PERM_ROLE_DEFAULTS['店员'];
+    return cloneSensitivePerms(tpl);
+  }
+  /** 只读角色敏感权限配置（废弃 staff.sensitivePerms） */
+  function getSensitivePerm(permName, key) {
+    var o = defaultSensitivePermsForRole(permName);
+    return !!(o && o[key]);
+  }
+  function hasSensitive(key, permName) {
+    return getSensitivePerm(permName || getSessionPermName(), key);
   }
   var sessionPermName = '店主';
   var sessionStaffId = 'st0';
@@ -410,6 +392,7 @@
     defs: PERM_DEFS,
     caps: PERM_CAP_META,
     keys: PERM_CAP_KEYS.slice(),
+    sensitiveDefs: SENSITIVE_PERM_DEFS,
     getSession: getSessionPermName,
     setSession: setSessionPermName,
     getSessionStaffId: getSessionStaffId,
@@ -417,6 +400,8 @@
     setSessionStaffId: setSessionStaffId,
     getDef: getPermDef,
     has: hasPerm,
+    hasSensitive: hasSensitive,
+    getSensitive: getSensitivePerm,
     require: requirePerm,
     requireCatalogWrite: requireCatalogWrite,
     requireCardWrite: requireCardWrite,
@@ -524,6 +509,8 @@
     rewardDetailStaffId: null,
     rewardFormReturn: 'salary',
     rewardStaffPicking: false,
+    rewardRecentOpen: false,
+    editingRolePermName: null,
     achEdit: null,
     achSimpleTemplate: null,
     achSimpleEditTarget: null,
@@ -599,6 +586,7 @@
   window.EmployeeStore = {
     shopName: '尚剪造型空间(卓越版体验店)',
     payCycle: { mode: 'calendar', settleDay: 25, payDayOfMonth: 7, payDayManual: false },
+    roleSensitivePerms: null,
     albumPhotos: ALBUM_DEMO_PHOTOS.slice(),
     swords: SWORD_ICONS,
     /* 办卡支付成功后写入的演示业绩分摊日志（正式环境由办卡业绩引擎落库） */
@@ -789,9 +777,9 @@
     return y + '-' + m;
   }
   function defaultPayDayFromSettle(settleDay) {
-    var s = Math.min(30, Math.max(1, Math.round(Number(settleDay) || 25)));
+    var s = Math.min(31, Math.max(1, Math.round(Number(settleDay) || 25)));
     var raw = s + 12;
-    return raw <= 30 ? raw : raw - 30;
+    return raw <= 31 ? raw : raw - 31;
   }
 
   function ensurePayCycle() {
@@ -801,14 +789,14 @@
     if (pc.mode !== 'custom') pc.mode = 'calendar';
     var d = Math.round(Number(pc.settleDay) || 25);
     if (d < 1) d = 1;
-    if (d > 28) d = 28;
+    if (d > 31) d = 31;
     pc.settleDay = d;
     if (!pc.payDayManual) {
       pc.payDayOfMonth = defaultPayDayFromSettle(d);
     } else {
       var p = Math.round(Number(pc.payDayOfMonth) || defaultPayDayFromSettle(d));
       if (p < 1) p = 1;
-      if (p > 30) p = 30;
+      if (p > 31) p = 31;
       pc.payDayOfMonth = p;
     }
     return pc;
@@ -1270,7 +1258,7 @@
   function uniqueRoleTakenMessage(roleName) {
     if (roleName === '店主') return '本店已有店主，不可重复设置';
     if (roleName === '店长') return '本店已有店长，不可重复设置';
-    return '该职位已有人担任';
+    return '该头衔已有人担任';
   }
   /** 创建不可选店主；编辑时仅现任店主（或尚无店主）可选店主 */
   function getFormPermOptions() {
@@ -1308,6 +1296,14 @@
     var roles = getRoles();
     var cur = current === '请选择' ? '' : (current || '');
     var exceptId = state.formMode === 'create' ? null : state.currentStaffId;
+    if (!roles.length) {
+      root.innerHTML =
+        '<div class="emp-picker-empty">' +
+        '<div class="emp-picker-empty__tip">暂无头衔，请先创建</div>' +
+        '<button type="button" class="emp-picker-empty__btn" id="empRolePickGoto" data-emp-role-pick-goto>去头衔管理</button>' +
+        '</div>';
+      return;
+    }
     root.innerHTML = roles.map(function (name) {
       var on = name === cur;
       var taken = isUniqueStaffRole(name) ? findOtherStaffWithRole(name, exceptId) : null;
@@ -1336,7 +1332,7 @@
         '<span class="emp-role-manage-row__name">' + esc(name) + '</span>' +
         '<span class="emp-role-manage-row__sub">' + (n ? ('已分配 ' + n + ' 人') : '暂无员工') + '</span></div>' +
         '<span class="emp-role-manage-row__act"><span>修改名称</span>' + navChevHtml() + '</span></div>';
-    }).join('') || '<div class="empty-cart" style="padding:32px 16px">暂无职位，请添加</div>';
+    }).join('') || '<div class="empty-cart" style="padding:32px 16px">暂无头衔，请添加</div>';
   }
 
   function commitRoleOrderFromDom() {
@@ -1501,6 +1497,61 @@
     showScreen('screen-emp-roles');
     nav('staff-roles');
   }
+  /**
+   * 角色敏感权限管理（期望 DOM）：
+   * #screen-emp-role-perms / #empRolePermList
+   * #screen-emp-role-perm-edit / #empRolePermEditTitle / #empRolePermEditBody
+   */
+  function openRolePermManage() {
+    renderRolePermList();
+    showScreen('screen-emp-role-perms');
+    nav('staff-role-perms');
+  }
+  function renderRolePermList() {
+    var root = $('empRolePermList');
+    if (!root) return;
+    ensureRoleSensitivePerms();
+    root.innerHTML = ROLE_PERM_MANAGE_ROLES.map(function (name) {
+      return '<div class="emp-role-manage-row" data-role-perm="' + esc(name) + '" role="button" tabindex="0">' +
+        '<div class="emp-role-manage-row__main">' +
+        '<span class="emp-role-manage-row__name">' + esc(name) + '</span>' +
+        '<span class="emp-role-manage-row__sub">敏感权限 · 12 项</span></div>' +
+        '<span class="emp-role-manage-row__act">' + navChevHtml() + '</span></div>';
+    }).join('');
+  }
+  function openRolePermEdit(roleName) {
+    var name = String(roleName || '');
+    if (ROLE_PERM_MANAGE_ROLES.indexOf(name) < 0) return;
+    state.editingRolePermName = name;
+    renderRolePermEdit(name);
+    showScreen('screen-emp-role-perm-edit');
+    nav('staff-role-perm-edit');
+  }
+  function renderRolePermEdit(roleName) {
+    var title = $('empRolePermEditTitle');
+    var body = $('empRolePermEditBody');
+    if (!body) return;
+    if (title) title.textContent = roleName;
+    var map = ensureRoleSensitivePerms();
+    if (!map[roleName]) map[roleName] = cloneSensitivePerms(SENSITIVE_PERM_ROLE_DEFAULTS[roleName] || SENSITIVE_PERM_ROLE_DEFAULTS['店员']);
+    var perms = map[roleName];
+    body.innerHTML = SENSITIVE_PERM_DEFS.map(function (d) {
+      var on = !!perms[d.key];
+      return '<div class="emp-sensitive-row">' +
+        '<div class="emp-sensitive-row__txt"><span class="emp-sensitive-row__lbl">' + esc(d.label) + '</span>' +
+        (d.hint ? '<span class="emp-sensitive-row__hint">' + esc(d.hint) + '</span>' : '') + '</div>' +
+        '<button type="button" class="pay-meta-switch' + (on ? ' on' : '') + '" data-role-sensitive-key="' + d.key +
+        '" aria-pressed="' + (on ? 'true' : 'false') + '" aria-label="' + esc(d.label) + '"></button></div>';
+    }).join('');
+  }
+  function toggleRoleSensitivePerm(key) {
+    var roleName = state.editingRolePermName;
+    if (!roleName || !key) return;
+    var map = ensureRoleSensitivePerms();
+    if (!map[roleName]) map[roleName] = defaultSensitivePermsForRole(roleName);
+    map[roleName][key] = !map[roleName][key];
+    renderRolePermEdit(roleName);
+  }
   function openRoleNameDialog(mode, oldName, source) {
     state.roleEditMode = mode;
     state.roleEditOldName = oldName || '';
@@ -1509,7 +1560,7 @@
     var input = $('empRoleNameInput');
     var hint = $('empRoleNameHint');
     var delBtn = $('empRoleNameDelete');
-    if (titleEl) titleEl.textContent = mode === 'add' ? '添加职位' : '编辑职位名称';
+    if (titleEl) titleEl.textContent = mode === 'add' ? '添加头衔' : '编辑头衔名称';
     if (input) {
       input.value = mode === 'rename' ? (oldName || '') : '';
       input.setAttribute('maxlength', String(ROLE_NAME_MAX));
@@ -1519,7 +1570,7 @@
       if (mode === 'rename') {
         var n = countStaffWithRole(oldName);
         if (n > 0) {
-          hint.textContent = '将同步更新已选该职位的 ' + n + ' 名员工';
+          hint.textContent = '将同步更新已选该头衔的 ' + n + ' 名员工';
           hint.classList.remove('hidden');
         } else {
           hint.textContent = '';
@@ -1544,14 +1595,14 @@
   }
   function commitRoleNameDialog() {
     var name = ($('empRoleNameInput')?.value || '').trim();
-    if (!name) { toast('请输入职位名称'); return; }
-    if (name.length > ROLE_NAME_MAX) { toast('职位名称不超过 ' + ROLE_NAME_MAX + ' 个字'); return; }
+    if (!name) { toast('请输入头衔名称'); return; }
+    if (name.length > ROLE_NAME_MAX) { toast('头衔名称不超过 ' + ROLE_NAME_MAX + ' 个字'); return; }
     var roles = ensureRoles();
     if (state.roleEditMode === 'add') {
-      if (roles.indexOf(name) >= 0) { toast('该职位已存在'); return; }
+      if (roles.indexOf(name) >= 0) { toast('该头衔已存在'); return; }
       roles.push(name);
       closeEmpDialog('empRoleNameMask');
-      toast('已添加职位');
+      toast('已添加头衔');
       if (state.roleEditSource === 'picker') {
         $('empFRole').textContent = name;
         $('empFRole').classList.add('has-val');
@@ -1565,9 +1616,9 @@
       closeEmpDialog('empRoleNameMask');
       return;
     }
-    if (roles.indexOf(name) >= 0) { toast('该职位已存在'); return; }
+    if (roles.indexOf(name) >= 0) { toast('该头衔已存在'); return; }
     var idx = roles.indexOf(oldName);
-    if (idx < 0) { toast('职位不存在', true); return; }
+    if (idx < 0) { toast('头衔不存在', true); return; }
     roles[idx] = name;
     (window.EmployeeStore.staff || []).forEach(function (s) {
       if (s.role === oldName) s.role = name;
@@ -1577,7 +1628,7 @@
       $('empFRole').classList.add('has-val');
     }
     closeEmpDialog('empRoleNameMask');
-    toast('职位已更新');
+    toast('头衔已更新');
     refreshRoleUiAfterChange();
   }
   function staffRoleLabel(s) {
@@ -1592,7 +1643,7 @@
     if (title) title.textContent = '确认删除「' + oldName + '」？';
     if (body) {
       body.textContent = n > 0
-        ? ('有 ' + n + ' 名员工使用该职位，删除后其职位将变为「未设置」。')
+        ? ('有 ' + n + ' 名员工使用该头衔，删除后其头衔将变为「未设置」。')
         : '删除后不可恢复。';
     }
     closeEmpDialog('empRoleNameMask');
@@ -1614,7 +1665,7 @@
     var idx = roles.indexOf(oldName);
     if (idx < 0) {
       closeEmpDialog('empRoleDelConfirmMask');
-      toast('职位不存在', true);
+      toast('头衔不存在', true);
       return;
     }
     roles.splice(idx, 1);
@@ -1631,7 +1682,7 @@
     }
     state.roleEditOldName = '';
     closeEmpDialog('empRoleDelConfirmMask');
-    toast(cleared > 0 ? ('职位已删除，已清空 ' + cleared + ' 名员工的职位') : '职位已删除');
+    toast(cleared > 0 ? ('头衔已删除，已清空 ' + cleared + ' 名员工的头衔') : '头衔已删除');
     refreshRoleUiAfterChange();
   }
   function deleteRoleFromDialog() {
@@ -2336,7 +2387,8 @@
         '<div class="emp-row__name"><span class="emp-row__name-text">' + esc(s.name) + '</span>' + statusTag + '</div>' +
         (sub ? '<div class="emp-row__sub">' + esc(sub) + '</div>' : '') +
         '</div>' + refine + navChevHtml() + '</div>';
-    }).join('');
+    }).join('') +
+      '<button type="button" class="emp-list-add" id="empBtnAddStaff">+ 创建员工</button>';
   }
 
   function commitStaffOrderFromDom() {
@@ -2611,11 +2663,8 @@
     state.formSwordTitle = s && s.swordTitle ? s.swordTitle : '';
     state.formSwordTitleMode = s && s.swordTitle ? (s.swordTitleMode || 'preset') : 'none';
     state.formSwordId = s && s.swordId ? s.swordId : null;
-    state.formSensitivePerms = null;
-    syncSensitiveCollapse(false);
     syncFormAvatarPreview();
     syncFormSwordFields();
-    renderSensitivePermsSection();
     showScreen('screen-emp-form');
     nav(mode === 'create' ? 'staff-create' : (mode === 'refine' ? 'staff-refine' : 'staff-detail'));
   }
@@ -2694,9 +2743,6 @@
       scheme: schemeText || '暂未分配',
       schemeId: schemeId,
     };
-    if (shouldShowSensitivePerms(perm) && state.formSensitivePerms) {
-      payload.sensitivePerms = cloneSensitivePerms(state.formSensitivePerms);
-    }
     function syncSchemeAssigned(staffId) {
       var C = window.Comm2Demo;
       var comm2Schemes = (C && typeof C.getSchemes === 'function') ? (C.getSchemes() || []) : [];
@@ -3394,7 +3440,7 @@
 
   function rewardTypeBadgeHtml(type) {
     var isDeduct = type === 'deduct';
-    return '<span class="emp-reward-badge' + (isDeduct ? ' emp-reward-badge--deduct' : ' emp-reward-badge--reward') + '" aria-hidden="true">' +
+    return '<span class="emp-rw-badge emp-rw-badge--' + (isDeduct ? 'deduct' : 'reward') + '" aria-hidden="true">' +
       (isDeduct ? '扣' : '奖') + '</span>';
   }
 
@@ -3979,8 +4025,8 @@
       '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">售卡</div>' +
       '<div class="emp-pay-svc__row"><span>数量</span><strong>' + svc.salesCount + '</strong></div>' +
       '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.salesAmt) + '</strong></div></div></div>' +
-      '<div class="emp-pay-stat"><div class="emp-pay-rw-head"><span class="emp-pay-rw-head__t">奖惩明细</span>' +
-      '<button type="button" class="emp-inline-link" id="empPayDetailAllRewards">查看全部</button></div>' +
+      '<div class="emp-pay-stat emp-pay-rw-card" data-pay-rewards-card role="button" tabindex="0">' +
+      '<div class="emp-pay-rw-head"><span class="emp-pay-rw-head__t">奖惩明细</span></div>' +
       rwHtml + '</div></div>';
   }
 
@@ -4032,7 +4078,7 @@
         ' data-reward-staff-tog="' + esc(s.id) + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
         empAvatarHtml(s) +
         '<span class="emp-assign-card__meta"><span class="emp-assign-card__name">' + esc(s.name) + '</span>' +
-        '<span class="emp-assign-card__role">' + esc(s.role || '未设置职位') + '</span></span>' +
+        '<span class="emp-assign-card__role">' + esc(s.role || '未设置头衔') + '</span></span>' +
         '<span class="emp-assign-card__check" aria-hidden="true">' + (on ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"/></svg>' : '') + '</span></button>';
     }).join('') || '<div style="padding:32px 16px;text-align:center;color:var(--text-sec);font-size:13px">暂无在岗员工</div>';
     syncRewardStaffPickCount();
@@ -4094,8 +4140,11 @@
   function renderRewards() {
     var keepStaff = state.rewardDraft && state.rewardDraft.staffId;
     if (state.editingRewardId) {
-      var editItem = rewardMonthItems(state.salaryMonth).find(function (r) { return r.id === state.editingRewardId; });
-      ensureRewardDraft(editItem ? { item: editItem } : {});
+      /* 仅当尚无 draft 时从原记录重建，避免覆盖用户切换的 type */
+      if (!state.rewardDraft) {
+        var editItem = rewardMonthItems(state.salaryMonth).find(function (r) { return r.id === state.editingRewardId; });
+        ensureRewardDraft(editItem ? { item: editItem } : {});
+      }
     } else if (!state.rewardDraft) {
       ensureRewardDraft({ staffId: keepStaff || '' });
     }
@@ -4126,19 +4175,39 @@
     if (typeof wireAmountKeypadInputs === 'function') wireAmountKeypadInputs(form);
 
     if (recent) {
-      var items = rewardMonthItems(state.salaryMonth).slice(0, 5);
-      recent.innerHTML = '<div class="emp-reward-recent__title">' + periodLabel(state.salaryMonth) + ' 最近记录</div><div class="emp-card" style="margin:0;padding:0;overflow:hidden">' +
-        (items.length ? items.map(function (r) {
-          var ss = staffById(r.staffId);
-          var sign = r.amount >= 0 ? '+' : '';
-          var rType = r.type || (r.amount < 0 ? 'deduct' : 'reward');
-          return '<div class="emp-reward-item">' +
-            '<span class="emp-reward-item__main">' + rewardTypeBadgeHtml(rType) +
-            '<span class="emp-reward-item__title">' + esc((ss ? ss.name + ' · ' : '') + r.title) + '</span></span>' +
-            '<span class="emp-reward-item__amt' + (r.amount < 0 ? ' is-deduct' : '') + '">' +
-            sign + fmtMoney(r.amount) + '</span></div>';
-        }).join('') : '<div class="emp-reward-item"><span class="emp-reward-item__title" style="color:var(--text-sec)">本月暂无记录</span></div>') +
-        '</div>';
+      var recentOpen = !!state.rewardRecentOpen;
+      var toggle = $('empRewardRecentToggle');
+      if (!toggle && recent.parentNode) {
+        toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.id = 'empRewardRecentToggle';
+        toggle.className = 'emp-reward-recent-toggle';
+        recent.parentNode.insertBefore(toggle, recent);
+      }
+      if (toggle) {
+        toggle.innerHTML = recentOpen
+          ? '<span>收起记录</span><span class="emp-reward-recent-toggle__ico" aria-hidden="true">∨</span>'
+          : '<span>查看记录</span><span class="emp-reward-recent-toggle__ico" aria-hidden="true">＞</span>';
+        toggle.setAttribute('aria-expanded', recentOpen ? 'true' : 'false');
+      }
+      recent.classList.toggle('hidden', !recentOpen);
+      if (!recentOpen) {
+        recent.innerHTML = '';
+      } else {
+        var items = rewardMonthItems(state.salaryMonth).slice(0, 5);
+        recent.innerHTML = '<div class="emp-reward-recent__title">' + periodLabel(state.salaryMonth) + ' 最近记录</div><div class="emp-card" style="margin:0;padding:0;overflow:hidden">' +
+          (items.length ? items.map(function (r) {
+            var ss = staffById(r.staffId);
+            var sign = r.amount >= 0 ? '+' : '';
+            var rType = r.type || (r.amount < 0 ? 'deduct' : 'reward');
+            return '<div class="emp-reward-item">' +
+              '<span class="emp-reward-item__main">' + rewardTypeBadgeHtml(rType) +
+              '<span class="emp-reward-item__title">' + esc((ss ? ss.name + ' · ' : '') + r.title) + '</span></span>' +
+              '<span class="emp-reward-item__amt' + (r.amount < 0 ? ' is-deduct' : '') + '">' +
+              sign + fmtMoney(r.amount) + '</span></div>';
+          }).join('') : '<div class="emp-reward-item"><span class="emp-reward-item__title" style="color:var(--text-sec)">本月暂无记录</span></div>') +
+          '</div>';
+      }
     }
   }
 
@@ -7113,7 +7182,7 @@
       return '<button type="button" class="emp-assign-card' + (on ? ' on' : '') + '" data-assign-id="' + s.id + '" aria-pressed="' + (on ? 'true' : 'false') + '">' +
         empAvatarHtml(s) +
         '<span class="emp-assign-card__meta"><span class="emp-assign-card__name">' + esc(s.name) + '</span>' +
-        '<span class="emp-assign-card__role">' + esc(s.role || '未设置职位') + '</span></span>' +
+        '<span class="emp-assign-card__role">' + esc(s.role || '未设置头衔') + '</span></span>' +
         '<span class="emp-assign-card__check" aria-hidden="true">' + (on ? checkSvg12() : '') + '</span></button>';
     }).join('') || '<div class="empty-cart" style="padding:32px 16px">暂无在岗员工</div>';
   }
@@ -7251,6 +7320,12 @@
         return { id: sch.id, name: sch.name, sub: '已分配 ' + n + ' 人 · 可叠加' };
       })
     );
+    var emptyHint = !schemes.length
+      ? ('<div class="emp-picker-empty">' +
+        '<div class="emp-picker-empty__tip">暂无提成方案，请先创建</div>' +
+        '<button type="button" class="emp-picker-empty__btn" id="empSchemePickEmptyGoto" data-emp-scheme-pick-goto>去提成设置</button>' +
+        '</div>')
+      : '';
     root.innerHTML = rows.map(function (r) {
       return '<button type="button" class="emp-picker-opt' + (r.id === curId ? ' on' : '') +
         '" data-scheme-pick="' + esc(r.id) + '">' +
@@ -7258,7 +7333,7 @@
         '<span>' + esc(r.name) + '</span>' +
         (r.sub ? '<span style="font-size:12px;color:var(--text-sec);font-weight:400">' + esc(r.sub) + '</span>' : '') +
         '</span></button>';
-    }).join('');
+    }).join('') + emptyHint;
   }
 
   function applySchemePick(id) {
@@ -7336,12 +7411,12 @@
     var root = $('empPayCycleBody');
     if (!root) return;
     var draft = state.payCycleDraft || { mode: 'calendar', settleDay: 25, payDayOfMonth: 7, payDayManual: false };
-    var day = Math.min(28, Math.max(1, Number(draft.settleDay) || 25));
+    var day = Math.min(31, Math.max(1, Number(draft.settleDay) || 25));
     draft.settleDay = day;
     if (!draft.payDayManual) {
       draft.payDayOfMonth = defaultPayDayFromSettle(day);
     } else {
-      draft.payDayOfMonth = Math.min(30, Math.max(1, Number(draft.payDayOfMonth) || defaultPayDayFromSettle(day)));
+      draft.payDayOfMonth = Math.min(31, Math.max(1, Number(draft.payDayOfMonth) || defaultPayDayFromSettle(day)));
     }
     var payDay = draft.payDayOfMonth;
     var canEditPay = canEditPayDay();
@@ -7367,7 +7442,7 @@
         '<span class="emp-pay-cycle-day__val"><span class="emp-num" id="empPayCycleDayVal">' + day + '</span> 日</span>' +
         '<button type="button" class="emp-pay-cycle-step" data-pay-cycle-day-delta="1" aria-label="增加"' + (canEditPay ? '' : ' disabled') + '>+</button>' +
         '</div>' +
-        '<p class="emp-pay-cycle-day__tip">可选 1–28 日；大月小月均按当月实际天数截断。</p>' +
+        '<p class="emp-pay-cycle-day__tip">可选 1–31 日；大月小月均按当月实际天数截断。</p>' +
         '<div class="emp-pay-cycle-preview">' +
         '<div class="emp-pay-cycle-preview__lbl">当前结算周期</div>' +
         '<div class="emp-pay-cycle-preview__row">' +
@@ -7387,13 +7462,9 @@
       (canEditPay
         ? (draft.payDayManual
           ? '已手动设置。短月若无该日则发至月末。'
-          : '默认按结算日 +12（30 日制）推算；改结算日会自动重算。')
+          : '默认按结算日 +12（31 日制）推算；改结算日会自动重算。')
         : '仅店主/合伙人可修改发薪日。') +
-      '</p>' +
-      (canEditPay && draft.payDayManual
-        ? '<button type="button" class="emp-inline-link" data-pay-day-reset style="margin-top:8px">恢复默认</button>'
-        : '') +
-      '</div>';
+      '</p></div>';
     root.innerHTML =
       '<div class="emp-card emp-pay-cycle-card">' +
       '<button type="button" class="emp-pay-cycle-opt' + (draft.mode === 'calendar' ? ' on' : '') + '" data-pay-cycle-mode="calendar"' + (canEditPay ? '' : ' disabled') + '>' +
@@ -7415,10 +7486,10 @@
     var draft = state.payCycleDraft || { mode: 'calendar', settleDay: 25 };
     var pc = ensurePayCycle();
     pc.mode = draft.mode === 'custom' ? 'custom' : 'calendar';
-    pc.settleDay = Math.min(28, Math.max(1, Number(draft.settleDay) || 25));
+    pc.settleDay = Math.min(31, Math.max(1, Number(draft.settleDay) || 25));
     pc.payDayManual = !!draft.payDayManual;
     if (pc.payDayManual) {
-      pc.payDayOfMonth = Math.min(30, Math.max(1, Number(draft.payDayOfMonth) || defaultPayDayFromSettle(pc.settleDay)));
+      pc.payDayOfMonth = Math.min(31, Math.max(1, Number(draft.payDayOfMonth) || defaultPayDayFromSettle(pc.settleDay)));
     } else {
       pc.payDayOfMonth = defaultPayDayFromSettle(pc.settleDay);
     }
@@ -7816,6 +7887,11 @@
     Object.assign(FLOW_NAV, {
       'staff-list': openList,
       'staff-roles': openRoleManage,
+      'staff-role-perms': openRolePermManage,
+      'staff-role-perm-edit': function () {
+        if (state.editingRolePermName) openRolePermEdit(state.editingRolePermName);
+        else openRolePermManage();
+      },
       'staff-detail': function () { if (state.currentStaffId) { renderStaffDetail(state.currentStaffId); showScreen('screen-emp-detail'); nav('staff-detail'); } else openList(); },
       'staff-create': function () { openForm('create'); },
       'staff-refine': function () { openForm('refine', state.currentStaffId || 'st2'); },
@@ -7843,6 +7919,7 @@
       },
       'staff-rewards': function () {
         state.rewardFormReturn = 'salary';
+        state.rewardRecentOpen = false;
         if (!state.editingRewardId) { state.rewardDraft = null; ensureRewardDraft({}); }
         renderRewards();
         showScreen('screen-emp-rewards');
@@ -7882,7 +7959,9 @@
         title: '员工',
         nodes: [
           { id: 'staff-list', label: '员工管理', screen: 'screen-emp-list' },
-          { id: 'staff-roles', label: '职位管理', screen: 'screen-emp-roles' },
+          { id: 'staff-roles', label: '头衔管理', screen: 'screen-emp-roles' },
+          { id: 'staff-role-perms', label: '角色管理', screen: 'screen-emp-role-perms' },
+          { id: 'staff-role-perm-edit', label: '角色权限', screen: 'screen-emp-role-perm-edit' },
           { id: 'staff-detail', label: '员工详情', screen: 'screen-emp-detail' },
           { id: 'staff-create', label: '创建员工', screen: 'screen-emp-form' },
           { id: 'staff-refine', label: '完善员工', screen: 'screen-emp-form' },
@@ -7910,7 +7989,9 @@
       var empGroup = FLOW_MAP_GROUPS.find(function (g) { return g.title === '员工'; });
       if (empGroup && empGroup.nodes) {
         [['staff-comm-item', '固定比例', 'screen-emp-comm-item'],
-          ['staff-roles', '职位管理', 'screen-emp-roles'],
+          ['staff-roles', '头衔管理', 'screen-emp-roles'],
+          ['staff-role-perms', '角色管理', 'screen-emp-role-perms'],
+          ['staff-role-perm-edit', '角色权限', 'screen-emp-role-perm-edit'],
           ['staff-comm-item-pick', '添加提成项目', 'screen-emp-comm-scope'],
           ['staff-comm-scope', '使用范围', 'screen-emp-comm-scope'],
           ['staff-comm-assign', '分配员工', 'screen-emp-comm-assign'],
@@ -7926,6 +8007,9 @@
             n.id !== 'staff-salary-detail-pending' && n.id !== 'staff-salary-detail-staff';
         });
         empGroup.nodes.forEach(function (n) {
+          if (n.id === 'staff-roles') n.label = '头衔管理';
+          if (n.id === 'staff-role-perms') n.label = '角色管理';
+          if (n.id === 'staff-role-perm-edit') n.label = '角色权限';
           if (n.id === 'staff-salary-detail') n.label = '员工业绩提成明细';
           if (n.id === 'staff-pay-detail') n.label = '员工薪资明细';
           if (n.id === 'staff-ach-adv') {
@@ -8009,10 +8093,6 @@
       btn.addEventListener('click', openComm);
     });
 
-    $('empBtnAddStaff')?.addEventListener('click', function () {
-      if (!requirePerm('staffCreate')) return;
-      openForm('create');
-    });
     $('empBtnEditDetail')?.addEventListener('click', function () {
       if (!requirePerm('staffCreate')) return;
       openForm('edit', state.currentStaffId);
@@ -8026,6 +8106,12 @@
         state.staffDragSuppressClick = false;
         e.preventDefault();
         e.stopPropagation();
+        return;
+      }
+      if (e.target.closest('#empBtnAddStaff,.emp-list-add')) {
+        e.stopPropagation();
+        if (!requirePerm('staffCreate')) return;
+        openForm('create');
         return;
       }
       if (e.target.closest('[data-emp-drag]')) {
@@ -8043,7 +8129,23 @@
       renderRolePickerList($('empFRole').textContent);
       openMask('empRoleMask');
     });
-    $('empBtnManageRoles')?.addEventListener('click', openRoleManage);
+    document.querySelectorAll('#empBtnManageRoles').forEach(function (btn) {
+      btn.addEventListener('click', openRoleManage);
+    });
+    document.querySelectorAll('#empBtnManageRolePerms').forEach(function (btn) {
+      btn.addEventListener('click', openRolePermManage);
+    });
+    $('empRolePermList')?.addEventListener('click', function (e) {
+      var row = e.target.closest('[data-role-perm]');
+      if (!row) return;
+      openRolePermEdit(row.dataset.rolePerm);
+    });
+    $('empRolePermEditBody')?.addEventListener('click', function (e) {
+      var sw = e.target.closest('[data-role-sensitive-key]');
+      if (!sw) return;
+      toggleRoleSensitivePerm(sw.dataset.roleSensitiveKey);
+    });
+    $('empRolePermEditBack')?.addEventListener('click', openRolePermManage);
     $('empBtnAddRolePage')?.addEventListener('click', function () {
       openRoleNameDialog('add', '', 'page');
     });
@@ -8194,6 +8296,17 @@
       openSchemePickSheet();
     });
     $('empSchemePickList')?.addEventListener('click', function (e) {
+      if (e.target.closest('#empSchemePickEmptyGoto,[data-emp-scheme-pick-goto]')) {
+        resetSchemePickSheetChrome();
+        closeMask('empSchemePickMask');
+        if (typeof window.Comm2Demo !== 'undefined' && typeof window.Comm2Demo.openList === 'function') {
+          window.Comm2Demo.openList();
+          if (typeof setFlowNavHighlight === 'function') setFlowNavHighlight('comm2-list');
+        } else {
+          toast('请用左侧「提成设置」管理方案', true);
+        }
+        return;
+      }
       var btn = e.target.closest('[data-scheme-pick]');
       if (!btn) return;
       applySchemePick(btn.dataset.schemePick || '');
@@ -8257,21 +8370,6 @@
       renderPermPickerList(cur);
       openMask('empPermMask');
     });
-    $('empSensitiveToggle')?.addEventListener('click', function () {
-      var body = $('empSensitiveBody');
-      if (!body) return;
-      syncSensitiveCollapse(body.classList.contains('hidden'));
-    });
-    $('empSensitivePermsCard')?.addEventListener('click', function (e) {
-      var sw = e.target.closest('[data-sensitive-key]');
-      if (!sw || !state.formSensitivePerms) return;
-      var key = sw.dataset.sensitiveKey;
-      if (!key || !state.formSensitivePerms.hasOwnProperty(key)) return;
-      var on = !state.formSensitivePerms[key];
-      state.formSensitivePerms[key] = on;
-      sw.classList.toggle('on', on);
-      sw.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
     $('empRowStatus')?.addEventListener('click', function () {
       renderStatusPickerList($('empFStatus').textContent);
       openMask('empStatusMask');
@@ -8280,6 +8378,11 @@
     ['empRoleList', 'empPermList', 'empGenderList', 'empAgeBandList'].forEach(function (listId) {
       $(listId)?.addEventListener('click', function (e) {
         if (listId === 'empRoleList') {
+          if (e.target.closest('#empRolePickGoto,[data-emp-role-pick-goto]')) {
+            closeMask('empRoleMask');
+            openRoleManage();
+            return;
+          }
           var editBtn = e.target.closest('[data-role-edit]');
           if (editBtn) {
             e.preventDefault();
@@ -8303,7 +8406,6 @@
         if (listId === 'empPermList') {
           $('empFPerm').textContent = btn.dataset.permVal;
           $('empFPerm').classList.add('has-val');
-          resetSensitivePermsForRole(btn.dataset.permVal);
           closeMask('empPermMask');
         }
         if (listId === 'empGenderList') {
@@ -8397,7 +8499,7 @@
     $('empPayCycleSave')?.addEventListener('click', function () { savePayCycleSettings(); });
     $('empPayCycleBody')?.addEventListener('click', function (e) {
       if (!canEditPayDay()) {
-        if (e.target.closest('[data-pay-cycle-mode],[data-pay-cycle-day-delta],[data-pay-day-delta],[data-pay-day-reset]')) {
+        if (e.target.closest('[data-pay-cycle-mode],[data-pay-cycle-day-delta],[data-pay-day-delta]')) {
           toast('仅店主/合伙人可修改', true);
         }
         return;
@@ -8414,7 +8516,7 @@
         if (!state.payCycleDraft) state.payCycleDraft = { mode: 'custom', settleDay: 25, payDayManual: false };
         var next = (Number(state.payCycleDraft.settleDay) || 25) + Number(step.dataset.payCycleDayDelta);
         if (next < 1) next = 1;
-        if (next > 28) next = 28;
+        if (next > 31) next = 31;
         state.payCycleDraft.settleDay = next;
         state.payCycleDraft.mode = 'custom';
         if (!state.payCycleDraft.payDayManual) {
@@ -8429,16 +8531,9 @@
         var pd = (Number(state.payCycleDraft.payDayOfMonth) || defaultPayDayFromSettle(state.payCycleDraft.settleDay || 25)) +
           Number(payStep.dataset.payDayDelta);
         if (pd < 1) pd = 1;
-        if (pd > 30) pd = 30;
+        if (pd > 31) pd = 31;
         state.payCycleDraft.payDayOfMonth = pd;
         state.payCycleDraft.payDayManual = true;
-        renderPayCycleSettings();
-        return;
-      }
-      if (e.target.closest('[data-pay-day-reset]')) {
-        if (!state.payCycleDraft) return;
-        state.payCycleDraft.payDayManual = false;
-        state.payCycleDraft.payDayOfMonth = defaultPayDayFromSettle(state.payCycleDraft.settleDay || 25);
         renderPayCycleSettings();
       }
     });
@@ -8446,6 +8541,7 @@
     $('empBtnRewardsSet')?.addEventListener('click', function () {
       state.editingRewardId = null;
       state.rewardDraft = null;
+      state.rewardRecentOpen = false;
       state.rewardFormReturn = 'salary';
       ensureRewardDraft({});
       renderRewards();
@@ -8556,7 +8652,7 @@
         openMask('empMonthMask');
         return;
       }
-      if (e.target.closest('#empPayDetailAllRewards')) {
+      if (e.target.closest('[data-pay-rewards-card]')) {
         var sid = state.currentStaffId;
         if (sid) {
           renderRewardDetail(sid);
@@ -8564,6 +8660,12 @@
           nav('staff-reward-detail');
         }
       }
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('#empRewardRecentToggle')) return;
+      state.rewardRecentOpen = !state.rewardRecentOpen;
+      renderRewards();
     });
 
     $('empCommViewerToggle')?.addEventListener('click', function () {
@@ -9612,6 +9714,7 @@
   window.EmployeeDemo = {
     openList: openList,
     openRoleManage: openRoleManage,
+    openRolePermManage: openRolePermManage,
     openSalary: openSalary,
     openPayCycleSettings: openPayCycleSettings,
     openAch: openAch,
