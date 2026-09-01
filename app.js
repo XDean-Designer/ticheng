@@ -45,6 +45,13 @@
       }
       return 'comm2-staff-3';
     }
+    if (id === 'screen-emp-list') return 'staff-list';
+    if (id === 'screen-emp-roles') return 'staff-roles';
+    if (id === 'screen-emp-detail') return 'staff-detail';
+    if (id === 'screen-emp-form') {
+      if (g.__staffFormFlow) return g.__staffFormFlow;
+      return 'staff-create';
+    }
     if (id === 'screen-emp-salary') return 'staff-salary';
     if (id === 'screen-emp-pay-detail') return 'staff-pay-detail';
     if (id === 'screen-emp-pay-cycle') return 'staff-pay-cycle';
@@ -75,6 +82,14 @@
     if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.dismissMask === 'function') g.Comm2StaffDemo.dismissMask();
   }
 
+  var STAFF_FLOW_IDS = [
+    'staff-list',
+    'staff-roles',
+    'staff-detail',
+    'staff-create',
+    'staff-refine'
+  ];
+
   var SALARY_FLOW_IDS = [
     'staff-salary',
     'staff-pay-detail',
@@ -86,20 +101,32 @@
     'staff-reward-detail'
   ];
 
-  /** employee.js patchFlowNav 写入后，再包一层：关选人弹层 + 明细深链高亮 */
-  function wrapSalaryFlows() {
-    SALARY_FLOW_IDS.forEach(function (id) {
+  function wrapEmployeeFlows(ids, flag) {
+    ids.forEach(function (id) {
       var prev = g.FLOW_NAV[id];
-      if (typeof prev !== 'function' || prev.__salaryWrapped) return;
+      if (typeof prev !== 'function' || prev[flag]) return;
       var wrapped = function () {
         dismissOverlays();
-        g.__salaryDetailFlow = id.indexOf('salary-detail') >= 0 ? id : null;
+        if (id === 'staff-create' || id === 'staff-refine') g.__staffFormFlow = id;
+        else if (id.indexOf('staff-') === 0 && id.indexOf('salary') < 0 && id.indexOf('reward') < 0 && id.indexOf('pay-') < 0) {
+          g.__staffFormFlow = null;
+        }
+        if (id.indexOf('salary-detail') >= 0) g.__salaryDetailFlow = id;
+        else if (SALARY_FLOW_IDS.indexOf(id) >= 0) g.__salaryDetailFlow = null;
         prev();
         setNavHighlight(id);
       };
-      wrapped.__salaryWrapped = true;
+      wrapped[flag] = true;
       g.FLOW_NAV[id] = wrapped;
     });
+  }
+
+  function wrapSalaryFlows() {
+    wrapEmployeeFlows(SALARY_FLOW_IDS, '__salaryWrapped');
+  }
+
+  function wrapStaffFlows() {
+    wrapEmployeeFlows(STAFF_FLOW_IDS, '__staffWrapped');
   }
 
   function wireSalaryListBack() {
@@ -108,6 +135,18 @@
     back.dataset.wired = '1';
     back.addEventListener('click', function () {
       g.openHub();
+    });
+  }
+
+  function wireStaffListBack() {
+    var back = document.getElementById('empStaffListBack');
+    if (!back || back.dataset.wired === '1') return;
+    back.dataset.wired = '1';
+    back.addEventListener('click', function () {
+      /* 独立包：列表返回留在员工列表（无工作台） */
+      if (g.EmployeeDemo && typeof g.EmployeeDemo.openList === 'function') g.EmployeeDemo.openList();
+      else g.showOnlyScreen('screen-emp-list');
+      setNavHighlight('staff-list');
     });
   }
 
@@ -123,6 +162,12 @@
         if (g.FLOW_NAV['comm2-list']) g.FLOW_NAV['comm2-list']();
         else if (g.Comm2Demo && typeof g.Comm2Demo.openList === 'function') g.Comm2Demo.openList();
         else g.showOnlyScreen('screen-comm2-list');
+        return;
+      }
+      if (go === 'staff') {
+        if (g.FLOW_NAV['staff-list']) g.FLOW_NAV['staff-list']();
+        else if (g.EmployeeDemo && typeof g.EmployeeDemo.openList === 'function') g.EmployeeDemo.openList();
+        else g.showOnlyScreen('screen-emp-list');
         return;
       }
       if (go === 'salary') {
@@ -291,7 +336,9 @@
     wireViewShell();
     wireSiteNav();
     wireHub();
+    wireStaffListBack();
     wireSalaryListBack();
+    wrapStaffFlows();
     wrapSalaryFlows();
     wirePickerMaskOutsideClose();
     if (typeof wireAmountKeypadControls === 'function') wireAmountKeypadControls();

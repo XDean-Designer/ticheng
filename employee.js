@@ -374,6 +374,9 @@
     commDetailCalMonth: null,
     commDetailViewer: 'owner',
     commDetailFilter: 'all',
+    commEditViewed: {},
+    commEditCursor: -1,
+    commEditCursorKey: null,
     commLineEditId: null,
     commLineActId: null,
     payCycleDraft: null,
@@ -1146,7 +1149,7 @@
     var root = $('empPermList');
     if (!root) return;
     var opts = getFormPermOptions();
-    var cur = (!current || current === '请选择员工权限') ? '' : normalizePermName(current);
+    var cur = (!current || current === '请选择员工权限' || current === '请选择员工角色') ? '' : normalizePermName(current);
     var owner = findStaffByPerm('店主');
     var showOwnerLocked = state.formMode === 'create' || (owner && owner.id !== state.currentStaffId);
     root.innerHTML = PERM_DEFS.map(function (d) {
@@ -1499,11 +1502,22 @@
   }
 
   function schemeById(id) {
-    return window.EmployeeStore.schemes.find(function (s) { return s.id === id; });
+    var C = window.Comm2Demo;
+    if (C && typeof C.getSchemes === 'function') {
+      var found = (C.getSchemes() || []).find(function (s) { return s.id === id; });
+      if (found) return found;
+    }
+    return (window.EmployeeStore.schemes || []).find(function (s) { return s.id === id; });
   }
 
-  /** 员工所在全部提成方案（以 schemes[].assigned 为准） */
+  /** 员工所在全部提成方案（优先提成设置链路 Comm2 的 assigneeIds；回退旧模型 assigned） */
   function schemesAssignedToStaff(staffId) {
+    var C = window.Comm2Demo;
+    if (C && typeof C.getSchemes === 'function') {
+      return (C.getSchemes() || []).filter(function (sch) {
+        return (sch.assigneeIds || []).indexOf(staffId) >= 0;
+      });
+    }
     return (window.EmployeeStore.schemes || []).filter(function (sch) {
       return (sch.assigned || []).indexOf(staffId) >= 0;
     });
@@ -1842,6 +1856,8 @@
     if (!rule) {
       if (sch.categoryDefaultsEnabled === false) return 0;
       rule = sch.categoryDefaults && sch.categoryDefaults[cat];
+      /* 提成设置链路方案：defaults[cat].rule 结构 */
+      if (!rule && sch.defaults && sch.defaults[cat]) rule = sch.defaults[cat].rule || sch.defaults[cat];
     }
     if (!rule) return 0;
     rule = mergeItemCommRule(rule);
@@ -2382,9 +2398,8 @@
       row('年龄段', s.ageBand || '未填写') +
       row('从业年限', (s.yearsExp != null && s.yearsExp !== '') ? (s.yearsExp + ' 年') : '未填写') +
       row('员工手机号', s.phone || '未填写') +
-      row('归属店铺', window.EmployeeStore.shopName, true) +
-      row('职位', staffRoleLabel(s)) +
-      row('权限', s.perm) +
+      row('头衔', staffRoleLabel(s)) +
+      row('角色', s.perm) +
       (hideSalary
         ? '<div class="form-row is-readonly"><span class="label">薪资信息</span>' +
           '<span class="form-row__trail"><span class="value has-val">当前权限不可见</span></span></div>'
@@ -2415,13 +2430,13 @@
   }
 
   function openForm(mode, staffId) {
+    syncStaffSchemeFromComm2();
     state.formMode = mode;
     state.currentStaffId = staffId || null;
     var s = staffId ? staffById(staffId) : null;
     var title = mode === 'create' ? '创建员工' : (mode === 'refine' ? '完善员工信息' : '编辑员工');
     $('empFormTitle').textContent = title;
     $('empFormTip').classList.toggle('hidden', mode !== 'refine');
-    $('empFShop').textContent = window.EmployeeStore.shopName;
     $('empFName').value = s ? s.name : '';
     $('empFGender').textContent = s && s.gender ? s.gender : '请选择';
     $('empFGender').classList.toggle('has-val', !!(s && s.gender));
@@ -2435,11 +2450,20 @@
       $('empFPerm').textContent = s.perm;
       $('empFPerm').classList.add('has-val');
     } else {
-      $('empFPerm').textContent = '请选择员工权限';
+      $('empFPerm').textContent = '请选择员工角色';
       $('empFPerm').classList.remove('has-val');
     }
     $('empFStatus').textContent = s ? s.status : '在岗';
     $('empFStatus').classList.add('has-val');
+    var statusRow = $('empRowStatus');
+    if (statusRow) statusRow.classList.toggle('hidden', mode === 'create');
+    /* 性别/年龄段/从业年限：仅编辑/完善时显示，且平铺不折叠；创建时不显示 */
+    var moreRoot = $('empFormMore');
+    var moreBody = $('empFormMoreBody');
+    var moreToggle = $('empFormMoreToggle');
+    if (moreRoot) moreRoot.classList.toggle('hidden', mode === 'create');
+    if (moreBody) moreBody.classList.toggle('hidden', mode === 'create');
+    if (moreToggle) moreToggle.classList.toggle('hidden', mode !== 'create');
     $('empFBase').value = s && s.baseSalary ? s.baseSalary : '';
     if (s) syncStaffSchemeFields(s);
     $('empFScheme').textContent = s ? s.scheme : '暂未分配';
@@ -2464,20 +2488,20 @@
     if (!isValidCnMobile(phone)) { toast('请输入正确的手机号', true); return; }
     $('empFPhone').value = phone;
     var gender = $('empFGender').textContent;
-    if (gender === '请选择') { toast('请选择性别'); return; }
+    if (gender === '请选择') gender = '';
     var ageBand = $('empFAgeBand').textContent;
-    if (ageBand === '请选择') { toast('请选择年龄段'); return; }
+    if (ageBand === '请选择') ageBand = '';
     var role = $('empFRole').textContent;
-    if (role === '请选择') { toast('请选择职位'); return; }
+    if (role === '请选择') { toast('请选择头衔'); return; }
     var perm = $('empFPerm').textContent;
-    if (!perm || perm === '请选择员工权限') { toast('请选择员工权限'); return; }
+    if (!perm || perm === '请选择员工角色') { toast('请选择员工角色'); return; }
     if (state.formMode === 'create' && perm === '店主') {
       toast('新建员工不可设为店主', true);
       return;
     }
     perm = normalizePermName(perm);
     if (PERM_DEFS.every(function (d) { return d.name !== perm; })) {
-      toast('请选择有效的权限身份', true);
+      toast('请选择有效的角色身份', true);
       return;
     }
     if (perm === '店主') {
@@ -2493,10 +2517,6 @@
         toast(uniqueRoleTakenMessage(role), true);
         return;
       }
-    }
-    if (state.formMode === 'create' && $('empFStatus').textContent === '离职') {
-      toast('新建员工不可直接设为离职', true);
-      return;
     }
     var yearsRaw = $('empFYears').value.trim();
     var yearsExp = yearsRaw === '' ? 0 : parseInt(yearsRaw, 10);
@@ -2534,17 +2554,30 @@
       schemeId: schemeId,
     };
     function syncSchemeAssigned(staffId) {
+      var C = window.Comm2Demo;
+      var comm2Schemes = (C && typeof C.getSchemes === 'function') ? (C.getSchemes() || []) : [];
+      comm2Schemes.forEach(function (sch) {
+        if (!sch.assigneeIds) sch.assigneeIds = [];
+        var idx = sch.assigneeIds.indexOf(staffId);
+        if (!schemeId) {
+          /* 暂未分配：清空该员工在全部方案中的绑定 */
+          if (idx >= 0) sch.assigneeIds.splice(idx, 1);
+        } else if (sch.id === schemeId && idx < 0) {
+          /* 选中某一方案：仅追加，不踢出其它方案 */
+          sch.assigneeIds.push(staffId);
+        }
+      });
+      /* 兼容旧模型（员工管理旧提成设置页） */
       (window.EmployeeStore.schemes || []).forEach(function (sch) {
         if (!sch.assigned) sch.assigned = [];
         var idx = sch.assigned.indexOf(staffId);
         if (!schemeId) {
-          /* 暂未分配：清空该员工在全部方案中的绑定 */
           if (idx >= 0) sch.assigned.splice(idx, 1);
         } else if (sch.id === schemeId && idx < 0) {
-          /* 选中某一方案：仅追加，不踢出其它方案 */
           sch.assigned.push(staffId);
         }
       });
+      syncStaffSchemeFromComm2();
       syncStaffSchemeFields(staffById(staffId));
     }
     if (state.formMode === 'create') {
@@ -2654,10 +2687,11 @@
         '</div>' +
         '<div class="emp-salary-card__split" aria-hidden="true"></div>' +
         '<div class="emp-salary-card__grid">' +
-        '<div class="emp-salary-card__cell">' + salaryCatIcon('labor') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">项目</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.labor) + '</span></div></div>' +
-        '<div class="emp-salary-card__cell">' + salaryCatIcon('sales') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">产品</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.sales) + '</span></div></div>' +
-        '<div class="emp-salary-card__cell">' + salaryCatIcon('issue') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">办卡/充卡</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.issueCard) + '</span></div></div>' +
-        '<div class="emp-salary-card__cell">' + salaryCatIcon('quick') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">快速消费</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.quick) + '</span></div></div>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('labor') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">项目</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.labor) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('sales') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">产品</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.sales) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('issue') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">办卡/充卡</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.issueCard) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('quick') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">快速消费</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.quick) + '</span></div></button>' +
+        navChevHtml() +
         '</div></div>';
     }).join('');
     if (sumEl) sumEl.textContent = fmtMoney(storeTotal);
@@ -3219,10 +3253,19 @@
     var text = '项';
     var cls = 'flow-type-tag';
     if (kind === 'product') { text = '产'; cls += ' flow-type-tag--product'; }
-    else if (kind === 'card') { text = '卡'; cls += ' flow-type-tag--card'; }
+    else if (kind === 'card' || kind === 'issue' || kind === 'recharge') { text = '卡'; cls += ' flow-type-tag--card'; }
     else if (kind === 'quick') { text = '快'; cls += ' flow-type-tag--quick'; }
     return '<span class="' + cls + '">' + text + '</span>';
   }
+
+  /** 开单时间展示：取 HH:mm（演示数据形如「下午 14:20」） */
+  function formatCommLineTime(orderTime) {
+    var s = String(orderTime || '');
+    var m = s.match(/(\d{1,2}:\d{2})/);
+    return m ? m[1] : s;
+  }
+
+  var COMM_LINE_EDIT_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4486 6.9516L17.0486 10.5516M4.44868 19.5516L8.81467 18.6719C9.04644 18.6252 9.25926 18.511 9.4264 18.3438L19.2001 8.56478C19.6687 8.09592 19.6684 7.33593 19.1994 6.86747L17.1289 4.7994C16.6601 4.33113 15.9005 4.33145 15.4321 4.80011L5.65745 14.5802C5.49063 14.7471 5.37673 14.9594 5.32999 15.1907L4.44868 19.5516Z"/></svg>';
 
   /** 较上期：红↑ 升 / 绿↓ 降；持平不显示 */
   function empTrendHtml(curr, prev) {
@@ -3281,21 +3324,25 @@
     state.commLineEditId = lineId;
     var meta = $('empCommLineEditMeta');
     if (meta) {
-      meta.innerHTML = '<strong>' + esc(ln.name) + '</strong> · ' + esc(ln.orderTime) +
-        '<br>当前生效：业绩 ' + fmtMoney(ln.ach) + ' · 提成 ' + fmtMoney(ln.comm);
+      meta.innerHTML = '<strong>' + esc(ln.name) + '</strong> · ' + esc(ln.orderTime);
     }
-    var achIn = $('empCommLineEditAch');
+    var achEl = $('empCommLineEditAch');
     var commIn = $('empCommLineEditComm');
     var reasonIn = $('empCommLineEditReason');
-    if (achIn) { achIn.value = String(ln.ach); achIn.readOnly = true; }
+    if (achEl) achEl.textContent = fmtMoney(ln.ach);
     if (commIn) commIn.value = String(ln.comm);
     if (reasonIn) reasonIn.value = '';
-    var hint = $('empCommLineEditHint');
-    if (hint) hint.textContent = '保存后提成立即生效，并留下修改记录。业绩不可修改。';
     var okBtn = $('empCommLineEditOk');
     if (okBtn) okBtn.textContent = '保存生效';
     openMask('empCommLineEditMask');
     if (typeof wireAmountKeypadInputs === 'function') wireAmountKeypadInputs($('empCommLineEditMask'));
+  }
+
+  function focusCommLineEditInput() {
+    var commIn = $('empCommLineEditComm');
+    if (!commIn) return;
+    if (typeof openAmountKeypad === 'function') openAmountKeypad(commIn);
+    else commIn.focus();
   }
 
   function openCommEditLogSheet(lineId) {
@@ -3497,17 +3544,95 @@
       ? '<span class="emp-comm-line__edited-tag" data-comm-edit-log="' + esc(ln.id) + '" role="button" tabindex="0" aria-label="查看修改记录">有修改</span>'
       : '';
     var editedCls = hasLog ? ' is-edited' : '';
+    var editBtn = canEditCommission()
+      ? '<span class="emp-comm-line__edit" data-comm-edit="' + esc(ln.id) + '" role="button" tabindex="0" aria-label="修改提成">' + COMM_LINE_EDIT_SVG + '</span>'
+      : '';
     return '<button type="button" class="emp-comm-line' + editedCls + '" data-comm-line="' + esc(ln.id) + '">' +
       editedTag +
       '<div class="emp-comm-line__top"><div class="emp-comm-line__name">' + empTypeTagHtml(ln.kind) +
-      '<span>' + esc(ln.name) + '</span></div></div>' +
-      '<div class="emp-comm-line__meta">' + esc(ln.orderTime) + '</div>' +
+      '<span>' + esc(ln.name) + '</span></div>' +
+      '<span class="emp-comm-line__time">' + esc(formatCommLineTime(ln.orderTime)) + '</span></div>' +
       '<div class="emp-comm-line__vals">' +
       '<div class="emp-comm-line__val"><span class="emp-comm-line__val-lbl">业绩</span>' +
       '<span class="emp-comm-line__val-num">' + fmtMoney(ln.ach) + '</span></div>' +
       '<div class="emp-comm-line__val"><span class="emp-comm-line__val-lbl">提成</span>' +
-      '<span class="emp-comm-line__val-num">' + fmtMoney(ln.comm) + '</span></div>' +
+      '<span class="emp-comm-line__val-num">' + fmtMoney(ln.comm) + '</span>' + editBtn + '</div>' +
       '</div></button>';
+  }
+
+  /* ==== 员工视角 · 提成被店主/合伙人修改提醒 banner ==== */
+  var COMM_EDIT_BANNER_BELL_SVG = '<svg class="emp-comm-edit-banner__bell" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.33333 20.0909C10.041 20.6562 10.9755 21 12 21C13.0245 21 13.959 20.6562 14.6667 20.0909M4.50763 17.1818C4.08602 17.1818 3.85054 16.5194 4.10557 16.1514C4.69736 15.2975 5.26855 14.0451 5.26855 12.537L5.29296 10.3517C5.29296 6.29145 8.29581 3 12 3C15.7588 3 18.8058 6.33993 18.8058 10.4599L18.7814 12.537C18.7814 14.0555 19.3329 15.3147 19.9006 16.169C20.1458 16.5379 19.9097 17.1818 19.4933 17.1818H4.50763Z"/></svg>';
+  var COMM_EDIT_BANNER_CLOSE_SVG = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+  function isOwnerEditedLine(ln) {
+    return !!(ln && ln.commEditLogs && ln.commEditLogs.length &&
+      ln.commEditLogs.some(function (log) {
+        return log.by === '店主' || log.by === '合伙人';
+      }));
+  }
+
+  /** 当前员工本月被店主/合伙人修改过的提成行，按页面顺序（日期新→旧，同日按展示顺序） */
+  function commEditedPageOrder(staffId) {
+    var out = [];
+    demoCommDetail(staffId).days.forEach(function (day) {
+      day.lines.forEach(function (ln) {
+        if (isOwnerEditedLine(ln)) out.push(ln);
+      });
+    });
+    return out;
+  }
+
+  function commEditBannerHtml(days) {
+    var flagged = [];
+    (days || []).forEach(function (day) {
+      day.lines.forEach(function (ln) {
+        if (isOwnerEditedLine(ln)) flagged.push(ln);
+      });
+    });
+    var unviewed = flagged.filter(function (ln) { return !state.commEditViewed[ln.id]; });
+    if (!unviewed.length) return '';
+    return '<div class="emp-comm-edit-banner" id="empCommEditBanner" role="status">' +
+      COMM_EDIT_BANNER_BELL_SVG +
+      '<span class="emp-comm-edit-banner__text">您有 <strong class="emp-comm-edit-banner__count">' + unviewed.length + '</strong> 条提成被店主修改</span>' +
+      '<button type="button" class="emp-comm-edit-banner__go" id="empCommEditBannerGo">去查看</button>' +
+      '<button type="button" class="emp-comm-edit-banner__close" id="empCommEditBannerClose" aria-label="关闭">' + COMM_EDIT_BANNER_CLOSE_SVG + '</button>' +
+      '</div>';
+  }
+
+  function commEditBannerGo() {
+    var staffId = state.currentStaffId;
+    if (!staffId) return;
+    var all = commEditedPageOrder(staffId);
+    if (!all.length) return;
+    var key = state.salaryMonth + ':' + staffId;
+    if (state.commEditCursorKey !== key) { state.commEditCursorKey = key; state.commEditCursor = -1; }
+    state.commEditCursor = (state.commEditCursor + 1) % all.length;
+    var ln = all[state.commEditCursor];
+    state.commEditViewed[ln.id] = true;
+    var needRender = state.commDetailScope !== 'day' || state.commDetailDay !== ln.ymd;
+    if (needRender) {
+      state.commDetailScope = 'day';
+      state.commDetailDay = ln.ymd;
+      state.commDetailBoundMonth = state.salaryMonth;
+      renderSalaryDetail(staffId);
+    }
+    var card = document.querySelector('#empSalaryDetailBody [data-comm-line="' + ln.id + '"]');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.classList.add('is-flash');
+      setTimeout(function () { card.classList.remove('is-flash'); }, 1800);
+    }
+    if (!needRender) {
+      /* 原位更新 banner：未查看数归零则移除 */
+      var unviewed = commEditedPageOrder(staffId).filter(function (l) { return !state.commEditViewed[l.id]; });
+      var banner = $('empCommEditBanner');
+      if (!unviewed.length) {
+        if (banner && banner.parentNode) banner.parentNode.removeChild(banner);
+      } else if (banner) {
+        var strong = banner.querySelector('.emp-comm-edit-banner__count');
+        if (strong) strong.textContent = String(unviewed.length);
+      }
+    }
   }
 
   function renderSalaryDetail(staffId) {
@@ -3583,16 +3708,14 @@
         '<div class="emp-comm-day__head">' +
         '<div class="emp-comm-day__head-top">' +
         '<span class="emp-comm-day__date-pill">' + esc(formatCommDayListHead(day.ymd)) + '</span>' +
-        '</div>' +
-        '<div class="emp-comm-day__head-total">' +
-        '<span class="emp-comm-day__metric">业绩 <span class="emp-num">' + fmtMoney(day.ach) + '</span></span>' +
-        '<span class="emp-comm-day__metric">提成 <span class="emp-num">' + fmtMoney(day.comm) + '</span></span>' +
         '</div></div>' + linesHtml + '</div>';
     }).join('');
     if (!daysHtml) {
       daysHtml = '<div class="emp-comm-empty">' + (scopeIsDay ? '当日暂无提成明细' : '本周期暂无提成明细') + '</div>';
     }
+    var bannerHtml = (state.commDetailViewer === 'staff') ? commEditBannerHtml(data.days) : '';
     body.innerHTML =
+      bannerHtml +
       '<div class="emp-comm-detail-head">' + empAvatarHtml(s, 'emp-avatar--md') +
       '<div class="emp-comm-detail-head__meta"><div class="emp-comm-detail-head__name">' + esc(s.name) + '</div>' +
       staffSchemePillsHtml(s.id) + '</div>' +
@@ -6963,11 +7086,13 @@
     var root = $('empSchemePickList');
     if (!root) return;
     var curId = state.formSchemeId || '';
+    var schemes = (window.Comm2Demo && typeof window.Comm2Demo.getSchemes === 'function')
+      ? (window.Comm2Demo.getSchemes() || [])
+      : (window.EmployeeStore.schemes || []);
     var rows = [{ id: '', name: '暂未分配', sub: '清空该员工全部方案绑定' }].concat(
-      (window.EmployeeStore.schemes || []).map(function (sch) {
-        var typeLabel = sch.type === 'ladder' ? '阶梯比例' : '固定比例';
-        var n = (sch.assigned || []).length;
-        return { id: sch.id, name: sch.name, sub: typeLabel + ' · 已分配 ' + n + ' 人 · 可叠加' };
+      schemes.map(function (sch) {
+        var n = (sch.assigneeIds || sch.assigned || []).length;
+        return { id: sch.id, name: sch.name, sub: '已分配 ' + n + ' 人 · 可叠加' };
       })
     );
     root.innerHTML = rows.map(function (r) {
@@ -7971,7 +8096,7 @@
     });
     $('empRowPerm')?.addEventListener('click', function () {
       var cur = $('empFPerm').textContent;
-      if (cur === '请选择员工权限') cur = '';
+      if (cur === '请选择员工权限' || cur === '请选择员工角色') cur = '';
       renderPermPickerList(cur);
       openMask('empPermMask');
     });
@@ -8205,6 +8330,15 @@
     });
 
     $('empSalaryDetailBody')?.addEventListener('click', function (e) {
+      if (e.target.closest('#empCommEditBannerGo')) {
+        commEditBannerGo();
+        return;
+      }
+      if (e.target.closest('#empCommEditBannerClose')) {
+        var bn = $('empCommEditBanner');
+        if (bn && bn.parentNode) bn.parentNode.removeChild(bn);
+        return;
+      }
       if (e.target.closest('#empCommDetailDateBtn')) {
         openCommDetailDateSheet();
         return;
@@ -8225,6 +8359,12 @@
       if (logBtn) {
         e.stopPropagation();
         openCommEditLogSheet(logBtn.dataset.commEditLog);
+        return;
+      }
+      var editBtn = e.target.closest('[data-comm-edit]');
+      if (editBtn) {
+        e.stopPropagation();
+        openCommLineEditSheet(editBtn.dataset.commEdit);
         return;
       }
       var lineBtn = e.target.closest('[data-comm-line]');
@@ -8248,16 +8388,6 @@
         }
       }
     });
-    $('empPayDetailToComm')?.addEventListener('click', function () {
-      var id = state.currentStaffId;
-      if (!id) return;
-      state.commDetailViewer = isStaffSelfViewer() ? 'staff' : 'owner';
-      state.commDetailFilter = 'all';
-      resetCommDetailScope();
-      renderSalaryDetail(id);
-      showScreen('screen-emp-salary-detail');
-      nav('staff-salary-detail');
-    });
 
     $('empCommViewerToggle')?.addEventListener('click', function () {
       state.commDetailViewer = state.commDetailViewer === 'staff' ? 'owner' : 'staff';
@@ -8271,6 +8401,10 @@
       state.commLineEditId = null;
     });
     $('empCommLineEditOk')?.addEventListener('click', function () { submitCommLineEdit(); });
+    $('empCommLineEditFocus')?.addEventListener('click', function (e) {
+      e.preventDefault();
+      focusCommLineEditInput();
+    });
     $('empCommEditLogClose')?.addEventListener('click', function () {
       closeMask('empCommEditLogMask');
     });
@@ -8360,6 +8494,8 @@
           return;
         }
         resetCommDetailScope();
+        state.commDetailViewer = isStaffSelfViewer() ? 'staff' : 'owner';
+        state.commDetailFilter = 'all';
         renderSalaryDetail(sid);
         showScreen('screen-emp-salary-detail');
         nav('staff-salary-detail');
@@ -9277,7 +9413,6 @@
       openComm();
     });
 
-    $('empFShop').textContent = window.EmployeeStore.shopName;
     syncAchFromCatalog();
     setSessionStaffId(sessionStaffId || 'st0');
     syncDemoPermButtons();

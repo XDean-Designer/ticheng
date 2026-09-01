@@ -571,16 +571,24 @@ g.getActiveTemplates = getActiveTemplates;
 g.getShelvedTemplates = getShelvedTemplates;
 g.getCustomCatalogGroups = getCustomCatalogGroups;
 g.ensureCardGroups = ensureCardGroups;
-g.EmployeeStore = { staff: [
-  { id:'st0', name:'顾清扬', short:'顾', status:'在岗', role:'店主', avatar:'assets/emp-avatars/man-e.jpg' },
-  { id:'st1', name:'林屿森', short:'森', status:'在岗', role:'美容师', avatar:'assets/emp-avatars/man-a.jpg' },
-  { id:'st2', name:'何苏叶', short:'叶', status:'在岗', role:'店长', avatar:'assets/emp-avatars/woman-a.jpg' },
-  { id:'st3', name:'阿Ken', short:'Ken', status:'在岗', role:'美容师', avatar:'assets/emp-avatars/man-b.jpg' },
-  { id:'st4', name:'Lisa', short:'Lisa', status:'在岗', role:'美甲师', avatar:'assets/emp-avatars/woman-b.jpg' },
-]};
+
+/* 演示员工（兜底）：运行时员工数据唯一权威源为 employee.js 的 window.EmployeeStore.staff，
+ * 员工管理 / 薪资 / 提成设置三链路共用同一数组（员工管理里新增 / 编辑员工后自动同步反映到薪资与提成设置）。
+ * 此处仅当页面不加载 employee.js（如 _verify_comm2.html）时提供兜底，内容需与 employee.js 保持一致。 */
+var DEMO_STAFF_FALLBACK = [
+  { id: 'st0', name: '顾清扬', short: '顾', status: '在岗', role: '店主', avatar: 'assets/emp-avatars/man-e.jpg' },
+  { id: 'st1', name: '林屿森', short: '森', status: '在岗', role: '美容师', avatar: 'assets/emp-avatars/man-a.jpg' },
+  { id: 'st2', name: '何苏叶', short: '叶', status: '在岗', role: '店长', avatar: 'assets/emp-avatars/woman-a.jpg' },
+  { id: 'st3', name: '阿Ken', short: 'Ken', status: '在岗', role: '美容师', avatar: 'assets/emp-avatars/man-b.jpg' },
+  { id: 'st4', name: 'Lisa', short: 'Lisa', status: '在岗', role: '美甲师', avatar: 'assets/emp-avatars/woman-b.jpg' },
+];
+function demoStaffSource() {
+  var store = (g.EmployeeStore && typeof g.EmployeeStore === 'object') ? g.EmployeeStore : null;
+  return (store && Array.isArray(store.staff) && store.staff.length) ? store.staff : DEMO_STAFF_FALLBACK;
+}
 g.EmployeeDemo = { getBillingStaffPool: function () {
-  return g.EmployeeStore.staff.filter(function (s) { return s.status === '在岗'; })
-    .map(function (s) { return { id:s.id, name:s.name, short:s.short, avatar:s.avatar||'', role:s.role||'' }; });
+  return demoStaffSource().filter(function (s) { return !s.status || s.status === '在岗'; })
+    .map(function (s) { return { id: s.id, name: s.name, short: s.short, avatar: s.avatar || '', role: s.role || '' }; });
 }};
 initComm2Seed();
 })(typeof window !== 'undefined' ? window : globalThis);

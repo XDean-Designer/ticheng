@@ -1,0 +1,291 @@
+<!-- ==== STAFF MODULE (员工管理 from card employee) ==== -->
+<div class="screen hidden" id="screen-emp-list">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="empStaffListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">员工管理</span>
+    <button type="button" class="action emp-title-link" id="empBtnManageRoles">职位管理</button>
+  </div>
+  <div class="page-body">
+    <div class="emp-list" id="empListRoot"></div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-bar__action"><button type="button" class="btn-main" id="empBtnAddStaff">+ 创建员工</button></div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-emp-roles">
+  <div class="page-title-bar">
+    <button type="button" class="back" data-emp-back-list aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">职位管理</span>
+  </div>
+  <div class="page-body" style="padding:0;">
+    <div class="emp-role-manage-list" id="empRoleManageList"></div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-bar__action"><button type="button" class="btn-main" id="empBtnAddRolePage"><span class="btn-main__plus" aria-hidden="true">+</span><span>添加职位</span></button></div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-emp-detail">
+  <div class="page-title-bar">
+    <button type="button" class="back" data-emp-back-list aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">员工详情</span>
+    <button type="button" class="action emp-title-link" id="empBtnEditDetail" aria-label="编辑员工">
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M14.92 3.08a2.35 2.35 0 0 1 3.32 0l2.68 2.68a2.35 2.35 0 0 1 0 3.32L9.28 20.72c-.24.24-.54.4-.87.46l-4.78 1.12a1.12 1.12 0 0 1-1.35-1.35l1.12-4.78c.06-.33.22-.63.46-.87L14.92 3.08Z"/><path d="M16.2 4.55c.2-.2.52-.2.72 0l2.53 2.53c.2.2.2.52 0 .72l-.9.9-3.25-3.25.9-.9Z" opacity=".35"/></svg>
+      <span>编辑</span>
+    </button>
+  </div>
+  <div class="page-body" id="empDetailBody"></div>
+</div>
+
+<div class="screen hidden" id="screen-emp-form">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="empFormBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title" id="empFormTitle">创建员工</span>
+  </div>
+  <div class="page-top-hint hidden" id="empFormTip">
+    <svg class="page-top-hint__icon" width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true"><path d="M7.5 14.5C9.433 14.5 11.183 13.7165 12.45 12.4497C13.7165 11.183 14.5 9.433 14.5 7.5C14.5 5.567 13.7165 3.817 12.45 2.5503C11.183 1.2835 9.433 0.5 7.5 0.5C5.567 0.5 3.817 1.2835 2.5503 2.5503C1.2835 3.817 0.5 5.567 0.5 7.5C0.5 9.433 1.2835 11.183 2.5503 12.4497C3.817 13.7165 5.567 14.5 7.5 14.5Z" stroke="currentColor" stroke-linejoin="round"/><path d="M7.5 10.55a0.625 0.625 0 1 1 0 1.25 0.625 0.625 0 0 1 0-1.25Z" fill="currentColor" stroke="currentColor" stroke-width="0.5"/><path d="M7.5 3.3v5.6" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <p class="page-top-hint__text">请完善员工信息，以便正常开单与业绩统计</p>
+  </div>
+  <p class="emp-form-sec-title">基础信息</p>
+  <div class="page-body" style="padding-top:0;">
+    <div class="emp-card emp-detail-card">
+      <div class="emp-form-row-avatar" id="empRowAvatar" role="button" tabindex="0" aria-label="添加头像">
+        <span class="label">头像</span>
+        <button type="button" class="emp-form-avatar-add" id="empFAvatarPreview" aria-hidden="true">
+          <svg class="emp-form-avatar-add__cam" width="16" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span class="emp-form-avatar-add__txt">添加头像</span>
+        </button>
+      </div>
+      <div class="form-row clickable" id="empRowSwordTitle"><span class="label">剑号</span><span class="form-row__trail"><span class="value" id="empFSwordTitle">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="form-row clickable" id="empRowSword"><span class="label">宝剑</span><span class="form-row__trail"><span class="emp-form-sword-thumb hidden" id="empFSwordThumb"></span><span class="value" id="empFSword">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="form-row"><span class="label">员工姓名<span class="req">*</span></span><input class="value" id="empFName" placeholder="请输入" maxlength="20" /></div>
+      <div class="form-row"><span class="label">员工手机号<span class="req">*</span></span><input class="value" id="empFPhone" placeholder="请输入" inputmode="numeric" maxlength="11" autocomplete="tel" /></div>
+      <div class="emp-form-collapse" id="empFormMore">
+        <button type="button" class="emp-form-collapse__head" id="empFormMoreToggle" aria-expanded="false">
+          <span class="emp-form-collapse__label">更多信息</span>
+          <span class="emp-form-collapse__chev" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span>
+        </button>
+        <div class="emp-form-collapse__body hidden" id="empFormMoreBody">
+          <div class="form-row clickable" id="empRowGender"><span class="label">性别</span><span class="form-row__trail"><span class="value" id="empFGender">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+          <div class="form-row clickable" id="empRowAgeBand"><span class="label">年龄段</span><span class="form-row__trail"><span class="value" id="empFAgeBand">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+          <div class="form-row"><span class="label">从业年限</span><input class="value issue-extend-custom-input" id="empFYears" type="number" min="0" max="50" step="1" placeholder="请输入年数" inputmode="numeric" /></div>
+        </div>
+      </div>
+      <div class="form-row clickable" id="empRowRole"><span class="label">头衔<span class="req">*</span></span><span class="form-row__trail"><span class="value" id="empFRole">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="form-row clickable" id="empRowPerm"><span class="label">角色<span class="req">*</span><button type="button" class="emp-label-info" id="empPermInfo" aria-label="权限说明"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.25v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="5.2" r="0.85" fill="currentColor"/></svg></button></span><span class="form-row__trail"><span class="value" id="empFPerm">请选择员工角色</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="form-row clickable" id="empRowScheme"><span class="label">提成方案</span><span class="form-row__trail"><span class="value" id="empFScheme">暂未分配</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="form-row emp-form-row--stack"><span class="label">基本工资<span class="req">*</span></span><input class="value input-amount" id="empFBase" type="number" min="0" max="999999.99" step="0.01" placeholder="请输入员工基本工资" inputmode="decimal" /></div>
+      <p class="emp-form-note">注：当修改基本工资后，当月的薪资统计以最新的为准。</p>
+      <div class="form-row clickable" id="empRowStatus"><span class="label">状态</span><span class="form-row__trail"><span class="value has-val" id="empFStatus">在岗</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+    </div>
+  </div>
+  <div class="bottom-bar">
+    <div class="bottom-bar__action"><button type="button" class="btn-main" id="empBtnSaveForm">保存</button></div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="empPermHelpMask">
+  <div class="dialog dialog--emp-help" role="dialog" aria-modal="true" aria-labelledby="empPermHelpTitle">
+    <div class="dialog__title" id="empPermHelpTitle">权限说明</div>
+    <div class="dialog__scroll emp-help-body" id="empPermHelpBody"></div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="empPermHelpOk">知道了</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empRoleMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">选择职位</div>
+    <div class="emp-picker-list" id="empRoleList"></div>
+    <button type="button" class="emp-role-add" id="empBtnAddRoleSheet">+ 添加职位</button>
+    <div class="picker-foot"><button type="button" class="btn-main secondary" id="empRoleCancel">取消</button></div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="empRoleNameMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="empRoleNameTitle">
+    <div class="dialog__title" id="empRoleNameTitle">编辑职位名称</div>
+    <p class="emp-role-name-hint hidden" id="empRoleNameHint"></p>
+    <div class="emp-role-name-row">
+      <input type="text" class="emp-name-dialog-input" id="empRoleNameInput" placeholder="请输入职位名称" maxlength="6" autocomplete="off" />
+      <button type="button" class="emp-role-name-del hidden" id="empRoleNameDelete" aria-label="删除职位">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/><path d="M7 7l1 12a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2l1-12"/><path d="M10 11v6M14 11v6"/></svg>
+      </button>
+    </div>
+    <div class="emp-role-name-actions">
+      <div class="dialog__actions dialog__actions--row">
+        <button type="button" class="btn-main secondary" id="empRoleNameCancel">取消</button>
+        <button type="button" class="btn-main" id="empRoleNameOk">确定</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="empRoleDelConfirmMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="empRoleDelConfirmTitle">
+    <div class="dialog__title" id="empRoleDelConfirmTitle">确认删除该职位？</div>
+    <div class="dialog__body" id="empRoleDelConfirmBody">删除后不可恢复。</div>
+    <div class="dialog__actions dialog__actions--row">
+      <button type="button" class="btn-main secondary" id="empRoleDelConfirmCancel">取消</button>
+      <button type="button" class="btn-main" id="empRoleDelConfirmOk">确认删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empPermMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">权限角色</div>
+    <div class="emp-picker-list" id="empPermList"></div>
+    <div class="picker-foot"><button type="button" class="btn-main secondary" id="empPermCancel">取消</button></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empStatusMask">
+  <div class="picker-sheet tall">
+    <div class="picker-head">选择状态</div>
+    <div class="emp-picker-list" id="empStatusList"></div>
+    <div class="picker-foot"><button type="button" class="btn-main secondary" id="empStatusCancel">取消</button></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empDetailStatusMask">
+  <div class="picker-sheet picker-sheet--menu">
+    <div class="catalog-action-card">
+      <div class="picker-sheet__grabber" aria-hidden="true"></div>
+      <div class="picker-head picker-head--stack">
+        <div class="picker-head__title">调整员工状态</div>
+        <div class="picker-head__sub" id="empDetailStatusSub"></div>
+      </div>
+      <div class="catalog-action-list" id="empDetailStatusList"></div>
+    </div>
+    <div class="catalog-action-foot">
+      <button type="button" class="catalog-action-item catalog-action-item--cancel" id="empDetailStatusCancel">取消</button>
+    </div>
+    <div class="catalog-action-safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="dialog-mask" id="empLeaveConfirmMask">
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="empLeaveConfirmTitle">
+    <div class="dialog__title" id="empLeaveConfirmTitle">确认注销该员工账号？</div>
+    <div class="dialog__body">注销后将无法参与开单与业绩分配。</div>
+    <div class="dialog__actions dialog__actions--row">
+      <button type="button" class="btn-main secondary" id="empLeaveConfirmCancel">取消</button>
+      <button type="button" class="btn-main" id="empLeaveConfirmOk">确认注销</button>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empGenderMask">
+  <div class="picker-sheet">
+    <div class="picker-head">选择性别</div>
+    <div class="emp-picker-list" id="empGenderList"></div>
+    <div class="picker-foot"><button type="button" class="btn-main secondary" id="empGenderCancel">取消</button></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empAgeBandMask">
+  <div class="picker-sheet">
+    <div class="picker-head">选择年龄段</div>
+    <div class="emp-picker-list" id="empAgeBandList"></div>
+    <div class="picker-foot"><button type="button" class="btn-main secondary" id="empAgeBandCancel">取消</button></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empAvatarActionMask">
+  <div class="picker-sheet" style="padding:0;background:#fff;">
+    <div class="emp-sheet-head">
+      <span class="emp-sheet-head__title">添加头像</span>
+      <button type="button" class="emp-sheet-head__close" id="empAvatarActionClose" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="emp-avatar-action-list">
+      <button type="button" class="emp-avatar-action-item" id="empAvatarFromAlbum">
+        <span class="emp-avatar-action-item__icon">
+          <svg viewBox="0 0 20 20" width="20" height="20" fill="none" aria-hidden="true">
+            <rect x="2.25" y="2.25" width="15.5" height="15.5" rx="2.5" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="7" cy="7" r="1.5" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M3.75 15.25 7.25 11.5 9.75 14 13.5 9.75 16.25 15.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="emp-avatar-action-item__label">从相册选择</span>
+        <span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span>
+      </button>
+      <button type="button" class="emp-avatar-action-item" id="empAvatarFromCamera">
+        <span class="emp-avatar-action-item__icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span>
+        <span class="emp-avatar-action-item__label">拍照</span>
+        <span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span>
+      </button>
+    </div>
+    <div class="bottom-bar__safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empAlbumMask">
+  <div class="picker-sheet emp-album-sheet" role="dialog" aria-label="选择照片">
+    <div class="emp-sheet-head">
+      <span class="emp-sheet-head__title">选择照片</span>
+      <button type="button" class="emp-sheet-head__close" id="empAlbumClose" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="emp-album-sheet__body">
+      <div class="emp-album-grid" id="empAlbumGrid"></div>
+    </div>
+    <div class="catalog-action-safe" aria-hidden="true"></div>
+  </div>
+</div>
+
+<div class="picker-mask emp-crop-mask" id="empCropMask">
+  <div class="emp-crop-screen" role="dialog" aria-label="裁剪头像">
+    <div class="emp-crop-bar">
+      <button type="button" class="emp-crop-bar__btn" id="empCropCancel">取消</button>
+      <span class="emp-crop-bar__title">裁剪头像</span>
+      <button type="button" class="emp-crop-bar__btn emp-crop-bar__btn--ok" id="empCropDone">完成</button>
+    </div>
+    <div class="emp-crop-stage">
+      <img class="emp-crop-stage__img" id="empCropBg" alt="" />
+      <div class="emp-crop-circle"><img id="empCropCircle" alt="" /></div>
+      <div class="emp-crop-hint">拖动或双指缩放照片（演示）</div>
+    </div>
+    <div class="emp-crop-preview">
+      <div class="emp-crop-preview__lbl">预览</div>
+      <div class="emp-crop-preview__circle"><img id="empCropPreview" alt="" /></div>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empSwordTitleMask">
+  <div class="picker-sheet emp-sword-sheet" style="padding:0;">
+    <div class="emp-sheet-head">
+      <button type="button" class="emp-sheet-head__left" id="empSwordTitleRefresh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.1-3.4L23 10M1 14l5.4 4.4A9 9 0 0 0 20.5 15"/></svg>换一批</button>
+      <span class="emp-sheet-head__title">选择剑号</span>
+      <button type="button" class="emp-sheet-head__close" id="empSwordTitleClose" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="emp-sword-title-list" id="empSwordTitleList"></div>
+    <div class="bottom-bar" style="position:relative;box-shadow:none;">
+      <div class="bottom-bar__action"><button type="button" class="btn-main" id="empSwordTitleConfirm">确定</button></div>
+      <div class="bottom-bar__safe" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="empSwordMask">
+  <div class="picker-sheet emp-sword-sheet" style="padding:0;">
+    <div class="emp-sheet-head">
+      <span class="emp-sheet-head__title">添加宝剑</span>
+      <button type="button" class="emp-sheet-head__close" id="empSwordClose" aria-label="关闭"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div class="emp-sword-sheet__sub">宝剑列表</div>
+    <div class="emp-sword-grid" id="empSwordGrid"></div>
+    <div class="emp-sword-more" id="empSwordMore">上滑查看更多 · 共 0 个</div>
+    <div class="bottom-bar" style="position:relative;box-shadow:none;">
+      <div class="bottom-bar__action"><button type="button" class="btn-main" id="empSwordConfirm">确定</button></div>
+      <div class="bottom-bar__safe" aria-hidden="true"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==== /STAFF MODULE ==== -->

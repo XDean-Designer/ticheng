@@ -15,6 +15,8 @@ function extract(a, b) {
 /* ---- CSS ---- */
 const cssRanges = [
   [231, 238],
+  [1245, 1292],    // .form-row shared (staff form/detail)
+  [2806, 2819],    // .page-top-hint
   [4710, 7823],      // full employee module CSS
   [8549, 8555],      // page-title-bar .emp-title-link
   [11441, 11522],    // flow-balance-cal + bill-date-quick
