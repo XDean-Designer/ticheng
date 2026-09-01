@@ -25,7 +25,7 @@
   };
 
   g.openHub = function () {
-    dismissOverlays();
+    try { dismissOverlays(); } catch (e) {}
     g.showOnlyScreen('screen-hub');
     setNavHighlight('hub');
   };
@@ -129,25 +129,20 @@
     wrapEmployeeFlows(STAFF_FLOW_IDS, '__staffWrapped');
   }
 
-  function wireSalaryListBack() {
-    var back = document.getElementById('empSalaryListBack');
-    if (!back || back.dataset.wired === '1') return;
-    back.dataset.wired = '1';
-    back.addEventListener('click', function () {
+  /* 返回 → 功能入口：document 级事件委托（capture），不依赖元素绑定时机，
+     覆盖手机预览等环境下单个按钮事件未绑上/被覆盖的情况 */
+  function wireBackToHub() {
+    if (g.__backToHubWired === '1') return;
+    g.__backToHubWired = '1';
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || typeof t.closest !== 'function') return;
+      var hit = t.closest('#empStaffListBack, #empSalaryListBack, #comm2ListBack');
+      if (!hit) return;
+      e.preventDefault();
+      e.stopPropagation();
       g.openHub();
-    });
-  }
-
-  function wireStaffListBack() {
-    var back = document.getElementById('empStaffListBack');
-    if (!back || back.dataset.wired === '1') return;
-    back.dataset.wired = '1';
-    back.addEventListener('click', function () {
-      /* 独立包：列表返回留在员工列表（无工作台） */
-      if (g.EmployeeDemo && typeof g.EmployeeDemo.openList === 'function') g.EmployeeDemo.openList();
-      else g.showOnlyScreen('screen-emp-list');
-      setNavHighlight('staff-list');
-    });
+    }, true);
   }
 
   function wireHub() {
@@ -336,8 +331,7 @@
     wireViewShell();
     wireSiteNav();
     wireHub();
-    wireStaffListBack();
-    wireSalaryListBack();
+    wireBackToHub();
     wrapStaffFlows();
     wrapSalaryFlows();
     wirePickerMaskOutsideClose();
