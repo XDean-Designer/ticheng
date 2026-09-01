@@ -4300,10 +4300,10 @@
       '<div class="emp-pay-svc">' +
       '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">服务' + metricHelpBtn('svcSales') + '</div>' +
       '<div class="emp-pay-svc__row"><span>人次</span><strong>' + svc.serviceCount + '</strong></div>' +
-      '<div class="emp-pay-svc__row"><span>金额（实收）</span><strong>¥' + fmtMoney(svc.serviceAmt) + '</strong></div></div>' +
-      '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">售卡</div>' +
+      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.serviceAmt) + '</strong></div></div>' +
+      '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">售卡' + metricHelpBtn('svcSales') + '</div>' +
       '<div class="emp-pay-svc__row"><span>数量</span><strong>' + svc.salesCount + '</strong></div>' +
-      '<div class="emp-pay-svc__row"><span>金额（实收）</span><strong>¥' + fmtMoney(svc.salesAmt) + '</strong></div></div></div>' +
+      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.salesAmt) + '</strong></div></div></div>' +
       '<div class="emp-pay-stat emp-pay-rw-card" data-pay-rewards-card role="button" tabindex="0">' +
       '<div class="emp-pay-rw-head"><span class="emp-pay-rw-head__t">奖惩明细</span></div>' +
       rwHtml + '</div></div>';
@@ -8407,8 +8407,7 @@
       });
     });
     $('empCommDetailBack')?.addEventListener('click', function () {
-      if (state.currentStaffId) openEmpPayDetail(state.currentStaffId);
-      else openSalary();
+      openSalary();
     });
     document.querySelectorAll('[data-emp-back-comm]').forEach(function (btn) {
       btn.addEventListener('click', openComm);

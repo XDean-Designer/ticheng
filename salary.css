@@ -1749,8 +1749,10 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
 }
 .emp-ach-info-btn:active { opacity: .7; }
 .emp-pay-stat__title,
+.emp-pay-svc__title {
+  display: flex; align-items: center; gap: 4px;
+}
 .emp-pay-detail__card-lbl,
-.emp-pay-svc__title,
 .emp-comm-sum__label {
   display: inline-flex; align-items: center; gap: 4px;
 }
