@@ -86,6 +86,16 @@
         'achCommSet',
       ]),
       denies: ['hqEnter', 'stockAudit'],
+      /* 权限说明弹窗文案（单店模式不展示「不能进入总部」） */
+      helpLines: [
+        { on: true, text: '开单、结算、查看流水单' },
+        { on: true, text: '创建价目表' },
+        { on: true, text: '创建卡项' },
+        { on: true, text: '创建员工' },
+        { on: true, text: '管理商城商品、项目' },
+        { on: true, text: '查看商城收益报表' },
+        { on: false, text: '不能审核库存记录' },
+      ],
     },
     {
       id: 'manager',
@@ -100,11 +110,19 @@
         'staffCreate',
       ]),
       denies: ['memberDelete', 'memberPhoneView', 'memberPhoneEdit'],
+      helpLines: [
+        { on: true, text: '开单、结算、查看流水单' },
+        { on: true, text: '创建价目表' },
+        { on: true, text: '创建卡项' },
+        { on: true, text: '创建员工' },
+        { on: false, text: '不能删除会员' },
+        { on: false, text: '不能查看或编辑顾客手机号' },
+      ],
     },
     {
       id: 'senior',
       name: '高级店员',
-      hint: '适用于总监、特殊店员 · 可查看价目表/会员卡，不可改动',
+      hint: '适用于总监、特殊店员',
       unique: false,
       createSelectable: true,
       caps: permCapsOf([
@@ -115,11 +133,20 @@
         'cardIssue', 'cardRecharge', 'cardRenew',
       ]),
       denies: ['staffCreate', 'memberDelete', 'audienceCreate'],
+      helpLines: [
+        { on: true, text: '开单、结算、查看流水单' },
+        { on: true, text: '查看价目表、卡项' },
+        { on: true, text: '开单可以改价' },
+        { on: true, text: '可以延期会员卡或退卡' },
+        { on: false, text: '不能创建员工' },
+        { on: false, text: '不能删除会员' },
+        { on: false, text: '不能创建顾客分群' },
+      ],
     },
     {
       id: 'clerk',
       name: '店员',
-      hint: '适用于技师、助理 · 可查看价目表/会员卡，不可改动',
+      hint: '适用于技师、助理',
       unique: false,
       createSelectable: true,
       caps: permCapsOf([
@@ -128,6 +155,14 @@
         'cardIssue', 'cardRecharge', 'cardRenew',
       ]),
       denies: ['billChangePrice', 'memberDelete', 'cardDelete', 'cardBackfill', 'cardExtend', 'cardRefund'],
+      helpLines: [
+        { on: true, text: '开单、结算' },
+        { on: true, text: '查看价目表、卡项' },
+        { on: true, text: '给顾客办新卡、充值、续费' },
+        { on: false, text: '不能开单改价' },
+        { on: false, text: '不能删除会员' },
+        { on: false, text: '不能删除卡、补录卡、延期卡、退卡' },
+      ],
     },
   ];
   var PERMS = PERM_DEFS.map(function (d) { return d.name; });
@@ -319,19 +354,24 @@
   function renderPermHelpBody() {
     var root = $('empPermHelpBody');
     if (!root) return;
-    var iconOn = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
-    var iconOff = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>';
-    root.innerHTML = PERM_DEFS.map(function (d) {
-      var items = PERM_CAP_KEYS.map(function (k) {
-        var on = !!(d.caps && d.caps[k]);
-        var label = (PERM_CAP_META[k] && PERM_CAP_META[k].label) || k;
+    /* 原型：黑底白勾 / 红底白横杠；店主不展示（创建员工不可选） */
+    var iconOn = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#1A1A1A"/><path d="M4.6 8.2l2.2 2.2 4.6-4.6" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    var iconOff = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="8" fill="#E53935"/><path d="M4.5 8h7" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    root.innerHTML = PERM_DEFS.filter(function (d) {
+      return d.id !== 'owner' && Array.isArray(d.helpLines) && d.helpLines.length;
+    }).map(function (d) {
+      var items = d.helpLines.map(function (line) {
+        var on = !!line.on;
         return '<li class="emp-perm-help__item ' + (on ? 'is-on' : 'is-off') + '">' +
           '<span class="emp-perm-help__mark" aria-hidden="true">' + (on ? iconOn : iconOff) + '</span>' +
-          '<span>' + esc(label) + '</span></li>';
+          '<span>' + esc(line.text) + '</span></li>';
       }).join('');
-      return '<h4>' + esc(d.name) + '</h4>' +
-        (d.hint ? '<p class="emp-perm-help__hint">' + esc(d.hint) + '</p>' : '') +
-        '<ul class="emp-perm-help__list" role="list">' + items + '</ul>';
+      return '<section class="emp-perm-help__role">' +
+        '<div class="emp-perm-help__titles">' +
+          '<h4>' + esc(d.name) + '</h4>' +
+          (d.hint ? '<p class="emp-perm-help__hint">(' + esc(d.hint) + ')</p>' : '') +
+        '</div>' +
+        '<ul class="emp-perm-help__list" role="list">' + items + '</ul></section>';
     }).join('');
   }
   function openPermHelpDialog() {
