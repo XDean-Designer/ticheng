@@ -145,6 +145,7 @@
       if (!hit) return;
       e.preventDefault();
       e.stopPropagation();
+      if (typeof g.__empComm2BackHook === 'function' && g.__empComm2BackHook()) return;
       g.openHub();
     }, true);
   }

@@ -52,15 +52,25 @@
 .emp-list-add:active { background: #FAFAFA; }
 
 .emp-picker-empty {
-  padding: 28px 16px 12px; text-align: center;
+  padding: 34px 20px 22px; text-align: center;
+}
+.emp-picker-empty__main {
+  font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.4;
 }
 .emp-picker-empty__tip {
-  font-size: 13px; color: var(--text-sec); line-height: 1.5; margin-bottom: 12px;
+  margin-top: 6px;
+  font-size: 12px; color: var(--text-sec); line-height: 1.5;
 }
 .emp-picker-empty__btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px;
+  margin-top: 18px;
   border: none; background: transparent; color: var(--brand, #F32F41);
   font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; padding: 6px 10px;
 }
+.emp-picker-empty__btn .ui-nav-chev {
+  color: currentColor;
+}
+.emp-picker-empty__btn .ui-nav-chev svg { width: 14px; height: 14px; display: block; }
 .emp-picker-empty__btn:active { opacity: .75; }
 
 .emp-reward-recent-toggle {
@@ -1002,11 +1012,24 @@
 .emp-sensitive-row {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 14px 16px;
+  position: relative;
 }
 .emp-sensitive-row + .emp-sensitive-row {
-  border-top: 0.5px solid var(--card-divider, #EBEBEB);
+  border-top: none;
 }
-.emp-sensitive-row__lbl { font-size: 14px; color: var(--text); line-height: 1.35; flex: 1; min-width: 0; }
+.emp-sensitive-row + .emp-sensitive-row::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 0;
+  height: 0.5px;
+  background: var(--card-divider, #EBEBEB);
+  pointer-events: none;
+}
+.emp-sensitive-row__lbl {
+  font-size: 14px; font-weight: 500; color: var(--text); line-height: 1.35; flex: 1; min-width: 0;
+}
 
 /* 业绩提成明细 */
 .emp-comm-detail-head {
@@ -3519,6 +3542,57 @@
   color: #C8C8C8; display: inline-flex; align-items: center;
 }
 .emp-role-manage-row__act .ui-nav-chev svg { width: 14px; height: 14px; display: block; }
+
+/* 角色管理列表：白卡 + 金银铜铁竖条 + 动态权限摘要 */
+.emp-role-perm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.emp-role-perm-card {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 14px 12px 14px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+  color: inherit;
+  position: relative;
+  overflow: hidden;
+}
+.emp-role-perm-card:active { opacity: .92; }
+.emp-role-perm-card__bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--role-accent, #5C5C5C);
+  border-radius: 12px 0 0 12px;
+  pointer-events: none;
+}
+.emp-role-perm-card__main { flex: 1; min-width: 0; padding: 0 4px; }
+.emp-role-perm-card__name {
+  display: block; font-size: 15px; font-weight: 500; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.emp-role-perm-card__sub {
+  display: block; font-size: 12px; color: var(--text-sec); margin-top: 4px; line-height: 1.3;
+}
+.emp-role-perm-card__act {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 2px;
+  color: var(--text-sec);
+}
+.emp-role-perm-card__act .ui-nav-chev {
+  color: #C8C8C8; display: inline-flex; align-items: center;
+}
+.emp-role-perm-card__act .ui-nav-chev svg { width: 14px; height: 14px; display: block; }
 
 /* 支出 · 支付方式 sheet：左侧渠道 icon */
 #expPayList .exp-pay-opt {

@@ -184,6 +184,19 @@
   ];
   /** 角色管理可编辑的四角色（店主不出现） */
   var ROLE_PERM_MANAGE_ROLES = ['合伙人', '店长', '高级店员', '店员'];
+  /** 角色卡左侧金属色竖条：金 / 银 / 铜 / 铁 */
+  var ROLE_PERM_ACCENT = {
+    '合伙人': '#C9A227',
+    '店长': '#8E8E93',
+    '高级店员': '#B87333',
+    '店员': '#5C5C5C',
+  };
+  function countEnabledSensitivePerms(roleName) {
+    var perms = (ensureRoleSensitivePerms()[roleName]) || {};
+    var n = 0;
+    SENSITIVE_PERM_DEFS.forEach(function (d) { if (perms[d.key]) n += 1; });
+    return n;
+  }
   function sensitivePermsAll(on) {
     var o = {};
     SENSITIVE_PERM_DEFS.forEach(function (d) { o[d.key] = !!on; });
@@ -511,6 +524,8 @@
     rewardStaffPicking: false,
     rewardRecentOpen: false,
     editingRolePermName: null,
+    demoEmptyRolePicker: false,
+    demoEmptySchemePicker: false,
     achEdit: null,
     achSimpleTemplate: null,
     achSimpleEditTarget: null,
@@ -753,7 +768,12 @@
     openEmpDialog('empAchInfoHelpMask');
   }
   function openMask(id) { var el = $(id); if (el) el.classList.add('open'); }
-  function closeMask(id) { var el = $(id); if (el) el.classList.remove('open'); }
+  function closeMask(id) {
+    var el = $(id);
+    if (el) el.classList.remove('open');
+    if (id === 'empRoleMask') state.demoEmptyRolePicker = false;
+    if (id === 'empSchemePickMask') state.demoEmptySchemePicker = false;
+  }
   function closeAllEmpMasks() {
     ['empMonthMask', 'empCommDateMask', 'empCommLineEditMask', 'empCommEditLogMask', 'empCommLineConsentMask', 'empCommLineActMask',
       'empRuleMask', 'empSchemeMenuMask', 'empTypeSheetMask',
@@ -1296,11 +1316,13 @@
     var roles = getRoles();
     var cur = current === '请选择' ? '' : (current || '');
     var exceptId = state.formMode === 'create' ? null : state.currentStaffId;
-    if (!roles.length) {
+    if (state.demoEmptyRolePicker || !roles.length) {
       root.innerHTML =
         '<div class="emp-picker-empty">' +
-        '<div class="emp-picker-empty__tip">暂无头衔，请先创建</div>' +
-        '<button type="button" class="emp-picker-empty__btn" id="empRolePickGoto" data-emp-role-pick-goto>去头衔管理</button>' +
+        '<div class="emp-picker-empty__main">暂无头衔</div>' +
+        '<div class="emp-picker-empty__tip">请先创建头衔后，再为员工分配</div>' +
+        '<button type="button" class="emp-picker-empty__btn" id="empRolePickGoto" data-emp-role-pick-goto>' +
+        '<span>去头衔管理</span>' + navChevHtml() + '</button>' +
         '</div>';
       return;
     }
@@ -1503,6 +1525,7 @@
    * #screen-emp-role-perm-edit / #empRolePermEditTitle / #empRolePermEditBody
    */
   function openRolePermManage() {
+    clearEmptyGoto();
     renderRolePermList();
     showScreen('screen-emp-role-perms');
     nav('staff-role-perms');
@@ -1512,12 +1535,49 @@
     if (!root) return;
     ensureRoleSensitivePerms();
     root.innerHTML = ROLE_PERM_MANAGE_ROLES.map(function (name) {
-      return '<div class="emp-role-manage-row" data-role-perm="' + esc(name) + '" role="button" tabindex="0">' +
-        '<div class="emp-role-manage-row__main">' +
-        '<span class="emp-role-manage-row__name">' + esc(name) + '</span>' +
-        '<span class="emp-role-manage-row__sub">敏感权限 · 12 项</span></div>' +
-        '<span class="emp-role-manage-row__act">' + navChevHtml() + '</span></div>';
+      var onN = countEnabledSensitivePerms(name);
+      var accent = ROLE_PERM_ACCENT[name] || '#5C5C5C';
+      return '<div class="emp-role-perm-card" data-role-perm="' + esc(name) + '" role="button" tabindex="0" style="--role-accent:' + accent + '">' +
+        '<span class="emp-role-perm-card__bar" aria-hidden="true"></span>' +
+        '<div class="emp-role-perm-card__main">' +
+        '<span class="emp-role-perm-card__name">' + esc(name) + '</span>' +
+        '<span class="emp-role-perm-card__sub">已开启 ' + onN + ' 项权限</span></div>' +
+        '<span class="emp-role-perm-card__act">' + navChevHtml() + '</span></div>';
     }).join('');
+  }
+  /** 左侧「关联页面」：强制空态演示头衔 sheet（不改真实 store） */
+  function openDemoEmptyRoleSheet() {
+    state.demoEmptySchemePicker = false;
+    state.demoEmptyRolePicker = true;
+    openForm('create');
+    renderRolePickerList('');
+    openMask('empRoleMask');
+    nav('staff-empty-role');
+  }
+  /** 左侧「关联页面」：强制空态演示提成方案 sheet */
+  function openDemoEmptySchemeSheet() {
+    state.demoEmptyRolePicker = false;
+    state.demoEmptySchemePicker = true;
+    openForm('create');
+    openSchemePickSheet();
+    nav('staff-empty-scheme');
+  }
+  /** 从空态跳提成设置：返回时回到创建员工表单且内容保留 */
+  function setComm2ReturnToForm() {
+    state.emptyGotoReturn = 'staff-create';
+    window.__empComm2BackHook = function () {
+      if (!state.emptyGotoReturn) return false;
+      state.emptyGotoReturn = null;
+      window.__empComm2BackHook = null;
+      showScreen('screen-emp-form');
+      nav('staff-create');
+      return true;
+    };
+  }
+  /** 离开「空态跳转」上下文时清除返回标记与 hook，避免误返回 */
+  function clearEmptyGoto() {
+    state.emptyGotoReturn = null;
+    window.__empComm2BackHook = null;
   }
   function openRolePermEdit(roleName) {
     var name = String(roleName || '');
@@ -2620,6 +2680,7 @@
   }
 
   function openForm(mode, staffId) {
+    clearEmptyGoto();
     syncStaffSchemeFromComm2();
     state.formMode = mode;
     state.currentStaffId = staffId || null;
@@ -7311,19 +7372,22 @@
     var root = $('empSchemePickList');
     if (!root) return;
     var curId = state.formSchemeId || '';
-    var schemes = (window.Comm2Demo && typeof window.Comm2Demo.getSchemes === 'function')
-      ? (window.Comm2Demo.getSchemes() || [])
-      : (window.EmployeeStore.schemes || []);
-    var rows = [{ id: '', name: '暂未分配', sub: '清空该员工全部方案绑定' }].concat(
-      schemes.map(function (sch) {
-        var n = (sch.assigneeIds || sch.assigned || []).length;
-        return { id: sch.id, name: sch.name, sub: '已分配 ' + n + ' 人 · 可叠加' };
-      })
-    );
+    var schemes = state.demoEmptySchemePicker
+      ? []
+      : ((window.Comm2Demo && typeof window.Comm2Demo.getSchemes === 'function')
+        ? (window.Comm2Demo.getSchemes() || [])
+        : (window.EmployeeStore.schemes || []));
+    var rows = schemes.map(function (sch) {
+      var n = (sch.assigneeIds || sch.assigned || []).length;
+      return { id: sch.id, name: sch.name, sub: '已分配 ' + n + ' 人 · 可叠加' };
+    });
+    if (rows.length) rows.unshift({ id: '', name: '暂未分配', sub: '清空该员工全部方案绑定' });
     var emptyHint = !schemes.length
       ? ('<div class="emp-picker-empty">' +
-        '<div class="emp-picker-empty__tip">暂无提成方案，请先创建</div>' +
-        '<button type="button" class="emp-picker-empty__btn" id="empSchemePickEmptyGoto" data-emp-scheme-pick-goto>去提成设置</button>' +
+        '<div class="emp-picker-empty__main">暂无提成方案</div>' +
+        '<div class="emp-picker-empty__tip">请先创建提成方案后，再为员工分配</div>' +
+        '<button type="button" class="emp-picker-empty__btn" id="empSchemePickEmptyGoto" data-emp-scheme-pick-goto>' +
+        '<span>去提成设置</span>' + navChevHtml() + '</button>' +
         '</div>')
       : '';
     root.innerHTML = rows.map(function (r) {
@@ -7369,6 +7433,7 @@
 
   function openList() {
     closeAllEmpMasks();
+    clearEmptyGoto();
     renderStaffList();
     showScreen('screen-emp-list');
     nav('staff-list');
@@ -7376,6 +7441,7 @@
 
   function openSalary() {
     closeAllEmpMasks();
+    clearEmptyGoto();
     syncStaffSchemeFromComm2();
     syncSalaryPeriodToCycle();
     renderSalaryList();
@@ -7892,6 +7958,8 @@
         if (state.editingRolePermName) openRolePermEdit(state.editingRolePermName);
         else openRolePermManage();
       },
+      'staff-empty-role': openDemoEmptyRoleSheet,
+      'staff-empty-scheme': openDemoEmptySchemeSheet,
       'staff-detail': function () { if (state.currentStaffId) { renderStaffDetail(state.currentStaffId); showScreen('screen-emp-detail'); nav('staff-detail'); } else openList(); },
       'staff-create': function () { openForm('create'); },
       'staff-refine': function () { openForm('refine', state.currentStaffId || 'st2'); },
@@ -8065,7 +8133,15 @@
     });
     /* 同属性可能有多个返回键，必须 querySelectorAll，勿用 querySelector */
     document.querySelectorAll('[data-emp-back-list]').forEach(function (btn) {
-      btn.addEventListener('click', openList);
+      btn.addEventListener('click', function () {
+        if (state.emptyGotoReturn) {
+          state.emptyGotoReturn = null;
+          showScreen('screen-emp-form');
+          nav('staff-create');
+          return;
+        }
+        openList();
+      });
     });
     document.querySelectorAll('[data-emp-back-salary]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -8300,6 +8376,7 @@
         resetSchemePickSheetChrome();
         closeMask('empSchemePickMask');
         if (typeof window.Comm2Demo !== 'undefined' && typeof window.Comm2Demo.openList === 'function') {
+          setComm2ReturnToForm();
           window.Comm2Demo.openList();
           if (typeof setFlowNavHighlight === 'function') setFlowNavHighlight('comm2-list');
         } else {
@@ -8349,6 +8426,7 @@
       closeMask('empSchemePickMask');
       /* 独立原型：旧「提成方案」页未迁入，跳转左侧提成设置列表 */
       if (typeof window.Comm2Demo !== 'undefined' && typeof window.Comm2Demo.openList === 'function') {
+        setComm2ReturnToForm();
         window.Comm2Demo.openList();
         if (typeof setFlowNavHighlight === 'function') setFlowNavHighlight('comm2-list');
       } else {
@@ -8380,6 +8458,7 @@
         if (listId === 'empRoleList') {
           if (e.target.closest('#empRolePickGoto,[data-emp-role-pick-goto]')) {
             closeMask('empRoleMask');
+            state.emptyGotoReturn = 'staff-create';
             openRoleManage();
             return;
           }

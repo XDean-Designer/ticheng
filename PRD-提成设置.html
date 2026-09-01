@@ -237,7 +237,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>添加规则项页：类型 Tab（项目 / 产品 / 会员卡）+ 分组筛选 + 多选（含整类分组）+ 已配置项禁用</li>
 <li>分配员工 Sheet（员工池多选、全选、清空；已在其他方案者可勾选，副文为 <strong>file-multiple 图标 + 方案名</strong>（无「也在：」字面））</li>
 <li>规则卡「固定」标签：提成参数=<strong>固定金额</strong>时，规则卡计算基数标签改显「固定」（<code>#A7E6A7</code>），忽略计算基数设置；提成参数统一在规则设置 Sheet 的「提成取值」分段中设置</li>
-<li>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）+ 三个并列入口：「选择员工（3工位）」「选择员工（2工位）」「选择员工（1工位）」；共用灰底页 + Sheet（纯演示）</li>
+<li>左侧导航「<strong>关联页面</strong>」区域（位于「页面链路」与「文档」之间）+ 工位选择（3/2/1）与「头衔空态 sheet」「方案空态 sheet」演示入口</li>
 <li>试算口径：示例订单行按员工方案集合计算提成（原型试算引擎）</li>
 <li>流水订单 / 薪资关联口径（§6.8 / §6.10）：<strong>规格保留（本系统现有页面）</strong></li>
 <li>关联页面口径对齐：员工薪资明细（业绩统计 / 提成统计）、员工业绩提成明细（见 §6.10；非本包 UI）</li>
@@ -998,15 +998,15 @@ flowchart LR
 <li>若员工已在其他方案：副文展示 <strong>file-multiple 图标</strong>（<code>assets/icons/file-multiple.svg</code>，12×12，字色 <code>#C4795A</code>）+ 其他方案名（<code>、</code> 连接）；<code>aria-label</code> 为「也在其他方案：…」。</li>
 <li>未在其他方案：副文为头衔文案。</li>
 </ul>
-<h2>6.7 关联页面 · 选择员工 Sheet（3 / 2 / 1 工位）</h2>
-<p>左侧导航「<strong>关联页面</strong>」区域中三个并列入口，与提成方案编辑链路无数据联动，<strong>仅作关联功能演示</strong>。三者<strong>共用</strong>灰底页 <code>screen-comm2-staff</code> 与同一 Sheet 壳，按入口切换 <code>stationMode</code>。</p>
+<h2>6.7 关联页面 · 选择员工 Sheet &amp; 空态演示</h2>
+<p>左侧导航「<strong>关联页面</strong>」区域中入口，与提成方案编辑链路无数据联动，<strong>仅作关联功能演示</strong>。工位选择三者<strong>共用</strong>灰底页 <code>screen-comm2-staff</code> 与同一 Sheet 壳，按入口切换 <code>stationMode</code>。</p>
 <p><strong>入口</strong>：</p>
 <table>
 <thead>
 <tr>
 <th>导航</th>
 <th>flow</th>
-<th>工位步</th>
+<th>说明</th>
 </tr>
 </thead>
 <tbody><tr>
@@ -1021,8 +1021,17 @@ flowchart LR
 <td>选择员工（1工位）</td>
 <td><code>comm2-staff-1</code></td>
 <td><strong>仅</strong>点客/散客即完成（逻辑等同未设工位，不出工位面）</td>
+</tr><tr>
+<td>头衔空态 sheet</td>
+<td><code>staff-empty-role</code></td>
+<td>打开创建员工 + 头衔 sheet，<strong>强制空态</strong>（<code>demoEmptyRolePicker</code>）；关闭清除 flag</td>
+</tr><tr>
+<td>方案空态 sheet</td>
+<td><code>staff-empty-scheme</code></td>
+<td>打开创建员工 + 提成方案 sheet，<strong>强制空态</strong>（<code>demoEmptySchemePicker</code>）；关闭清除 flag</td>
 </tr></tbody></table>
-<p><strong>页面宿主</strong>：先切灰底页（<code>#F7F7F7</code>），再开 Sheet；不叠在方案列表/编辑上。关闭后回进入前页面。</p>
+<p><strong>页面宿主（工位 Sheet）</strong>：先切灰底页（<code>#F7F7F7</code>），再开 Sheet；不叠在方案列表/编辑上。关闭后回进入前页面。</p>
+<p><strong>空态样式</strong>：居中主文案「暂无头衔 / 暂无提成方案」（<strong>15px/500</strong>，弱于 sheet 标题 17px/600）+ 灰字说明（<strong>12px</strong>）+ 红字按钮「去头衔管理 / 去提成设置」（<strong>14px/500</strong>）右侧带「＞」；头衔 sheet 无「添加头衔」按钮；空态时方案列表不显示「暂未分配」（有方案时保留）。点「去…」进入管理页后返回：回到创建员工表单（Sheet 已关），<strong>已填内容不丢失</strong>（<code>emptyGotoReturn</code> / <code>__empComm2BackHook</code>，不重建表单）。</p>
 <p><strong>Sheet 结构</strong>：标题随版本（「选择员工（N工位）」）；5 名演示员工（含头像）；初始全部未选；底部「完成」。</p>
 <p><strong>交互动效</strong>（卡片 morph 自开单页；2 工位 role 面按双按钮宽展开）：</p>
 <ul>
@@ -1167,7 +1176,7 @@ flowchart LR
 <hr>
 <hr>
 <h2>6.11 员工管理（hub 链路二）</h2>
-<p>详见 Markdown 源文件完整表格。要点：用户可见一律「头衔」；列表底栏「头衔管理」+「角色管理」，「+ 创建员工」在卡下灰虚线红字按钮；角色管理（<code>screen-emp-role-perms</code> / <code>screen-emp-role-perm-edit</code>）维护四角色 12 项敏感权限（店主不出现）；敏感权限完全跟随 <code>EmployeeStore.roleSensitivePerms</code>，废除 <code>staff.sensitivePerms</code>；员工表单无敏感权限区；helpLines 可与 12 项不同步（合伙人含查看顾客手机号；店员不再写「不能延期卡」）；创建时头衔/提成方案空态可跳转。</p>
+<p>详见 Markdown 源文件完整表格。要点：用户可见一律「头衔」；列表底栏「头衔管理」+「角色管理」，「+ 创建员工」在卡下灰虚线红字按钮；角色管理白卡 + 金/银/铜/铁竖条 +「已开启 N 项权限」；权限编辑名称字重 500、分隔线缩进 16px；敏感权限完全跟随 <code>EmployeeStore.roleSensitivePerms</code>；关联页面含头衔/方案空态 sheet 演示（强制空态 flag）；创建时真实空态 tip+跳转仍保留。</p>
 <h2>6.12 员工薪资（hub 链路三）</h2>
 <p>详见 Markdown 源文件。要点：列表删生效中、卡面 2×2；员工薪资明细奖惩卡无「查看全部」、整卡进明细；奖/扣徽章蓝/红；设奖惩「最近记录」默认收起、「查看记录」展开；结算日/发薪日 1–31、无该日 clamp 月末、删发薪日「恢复默认」；口径与 §6.10.0 一致。</p>
 <h1>模块 7　数据模型与接口约定</h1>
@@ -1495,7 +1504,7 @@ flowchart LR
 <p>读者：前端 ✓ · 后端 部分 · 测试 ✓</p>
 </blockquote>
 <h2>9.1 文案清单（须与原型一致）</h2>
-<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、恢复为默认、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、迁移完成、迁移结果提醒、重新创建方案、稍后处理、<strong>关联页面、选择员工（3工位）、选择员工（2工位）、选择员工（1工位）</strong>。</p>
+<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、恢复为默认、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、迁移完成、迁移结果提醒、重新创建方案、稍后处理、<strong>关联页面、选择员工（3工位）、选择员工（2工位）、选择员工（1工位）、头衔空态 sheet、方案空态 sheet</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、点客、散客、<strong>基数</strong>、<strong>范围</strong>、提成范围、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
 <p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、点客、散客、大工、中工、小工</strong>。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、撤销、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的散客比例/金额、比例需在 0–100%、名称不能为空、已删除工位、不可新增工位。</p>

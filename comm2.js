@@ -51,6 +51,7 @@
   }
   function goNav(id) { if (typeof nav === 'function') nav(id); }
   function backWb() {
+    if (typeof window.__empComm2BackHook === 'function' && window.__empComm2BackHook()) return;
     if (typeof openWorkbench === 'function') openWorkbench();
     else show('screen-workbench');
   }
