@@ -938,7 +938,7 @@ flowchart LR
 </tr>
 <tr>
 <td>结算周期模式</td>
-<td><code>calendar</code> 自然月 / <code>custom</code> 自定义周期；仅店主/合伙人可改；自定义时月份 pill 文案为「选择结算期」+ 区间副文</td>
+<td><code>calendar</code> 自然月 / <code>custom</code> 自定义周期；仅店主/合伙人可改；自定义跨自然月时 pill / sheet 项仅首尾日期（见 §6.12.1）</td>
 </tr>
 <tr>
 <td>明细范围</td>
@@ -1605,7 +1605,7 @@ flowchart LR
 </tr>
 <tr>
 <td>列表页配套</td>
-<td>删「生效中」；卡面「合计」左置 + 中部三行（基本工资 / 提成合计 / 奖惩合计带进度条，奖惩合计行 → 奖惩明细）+ 提成 2×2（项目 / 产品 / 办卡·充卡 / 快速消费，无进度条；点格可直达业绩提成明细，<strong>返回回员工薪资列表</strong>）；月份 pill 可点（选择月份/结算期 ±3 期，自定义周期展示区间副文）；结算周期页结算日/发薪日均可 <strong>1–31</strong>（当月无该日则 clamp 月末；<strong>仅店主/合伙人可改结算周期全部项</strong>）</td>
+<td>删「生效中」；卡面「合计」左置 + 中部三行（基本工资 / 提成合计 / 奖惩合计带进度条，奖惩合计行 → 奖惩明细）+ 提成 2×2（项目 / 产品 / 办卡·充卡 / 快速消费，无进度条；点格可直达业绩提成明细，<strong>返回回员工薪资列表</strong>）；月份 pill 可点（选择月份/结算期 ±3 期；跨自然月仅首尾日期，见 §6.12.1）；结算周期页结算日/发薪日均可 <strong>1–31</strong>（当月无该日则 clamp 月末；<strong>仅店主/合伙人可改结算周期全部项</strong>）</td>
 </tr>
 </tbody>
 </table>
@@ -2020,7 +2020,7 @@ flowchart LR
 </tr>
 <tr>
 <td>月份 pill</td>
-<td>点击弹出「选择月份 / 选择结算期」sheet（±3 期）。<strong>自定义且起止跨自然月</strong>时，列表顶卡 pill <strong>仅</strong>显示首尾日期（如 <code>7.16–8.15</code>），不显示「*期」；sheet 列表项仍可用完整文案。明细页 pill 暂不改</td>
+<td>点击弹出「选择月份 / 选择结算期」sheet（±3 期）。<strong>自定义且起止跨自然月</strong>时：员工薪资列表、员工薪资明细顶卡 pill，以及 sheet 列表项，<strong>均仅</strong>显示首尾日期（如 <code>7.16–8.15</code>），不显示「N期」、无灰字副文；自然月仍显示 <code>YYYY年MM月</code></td>
 </tr>
 <tr>
 <td>员工卡</td>
@@ -2145,7 +2145,7 @@ flowchart LR
 </tr>
 <tr>
 <td>月份/结算期</td>
-<td>标题栏下日期区含月份/结算期 pill；点开「选择月份/选择结算期」sheet（±3 期）</td>
+<td>与列表同周期；本页以「查询日期」入口为主（本月/本期全部或单日），结算期切换沿用列表/薪资明细的月份 pill</td>
 </tr>
 <tr>
 <td>查询日期</td>
@@ -2903,7 +2903,7 @@ flowchart LR
 <li><strong>基本工资即时生效</strong>：改基本工资后当月薪资统计以最新值为准（表单内注「当修改基本工资后，当月的薪资统计以最新的为准」）。</li>
 <li><strong>结算周期权限</strong>：仅店主 / 合伙人可改模式（自然月/自定义）、结算日、发薪日；其他角色全部禁用只读。</li>
 <li><strong>结算日/发薪日</strong>：可选 1–31；当月无该日（如 2 月 31）→ clamp 到月末；配置仍记「第 N 日」。</li>
-<li><strong>月份/结算期切换</strong>：薪资列表/明细/业绩提成明细顶部 pill 切换（±3 期）；自定义周期时切换「选择结算期」并展示区间副文；切换后重算并刷新。</li>
+<li><strong>月份/结算期切换</strong>：薪资列表/明细顶部 pill 切换（±3 期）；自定义跨自然月时 pill 与 sheet 项仅 <code>M.D–M.D</code>（无「N期」、无灰字副文）；切换后重算并刷新。</li>
 <li><strong>奖惩</strong>：设奖惩保存 → 写入 <code>rewards[monthKey]</code>；金额奖励正、扣除负；保存/编辑/删除即时刷新薪资摘要与明细列表。</li>
 <li><strong>业绩提成明细范围</strong>：默认「本期/本月全部」；查询日期 sheet 可选单日（今天/昨天/日历），单日视图头部显示「当日合计」，仅可查本结算周期内日期（跨期日期禁用）。</li>
 </ol>
@@ -3194,7 +3194,7 @@ flowchart LR
 68a. <strong>Given</strong> 点员工卡 <strong>2×2 提成格</strong>，<strong>When</strong> 进入，<strong>Then</strong> 直达「员工业绩提成明细」。
 68b. <strong>Given</strong> 由列表 <strong>2×2 提成格</strong>进入「员工业绩提成明细」，<strong>When</strong> 点标题栏返回，<strong>Then</strong> 回到「员工薪资」列表；<strong>不经</strong>「员工薪资明细」。
 68b2. <strong>Given</strong> 员工薪资明细，<strong>When</strong> 点标题栏右侧 file-search-02 图标，<strong>Then</strong> 进入「员工业绩提成明细」；再点返回 → 回到「员工薪资明细」。
-68c. <strong>Given</strong> 薪资列表 / 薪资明细，<strong>When</strong> 点月份 pill，<strong>Then</strong> 弹出「选择月份 / 选择结算期」sheet（±3 期）；自定义周期 sheet 项可带区间副文；<strong>列表</strong>顶卡 pill 在跨自然月时仅显示 <code>M.D–M.D</code>；选定后全链路重算。</li>
+68c. <strong>Given</strong> 薪资列表 / 薪资明细，<strong>When</strong> 点月份 pill，<strong>Then</strong> 弹出「选择月份 / 选择结算期」sheet（±3 期）；<strong>自定义且起止跨自然月</strong>时，列表/明细顶卡 pill 与 sheet 项均仅显示 <code>M.D–M.D</code>（无「*期」、无灰字副文）；选定后全链路重算。</li>
 <li><strong>Given</strong> 薪资明细，<strong>When</strong> 查看顶栏与服务/售卡卡，<strong>Then</strong> 顶栏右侧有深灰 file-search-02 图标（无「业绩提成明细」文字按钮）；点业绩/提成/服务/<strong>售卡</strong>旁 <strong>?</strong> 可看字段释义（服务与售卡为同一弹窗）；金额标签为「金额」（无「（实收）」字样）。</li>
 <li><strong>Given</strong> 薪资明细奖惩卡，<strong>When</strong> 查看/点击，<strong>Then</strong> 无「查看全部」；整卡进入奖惩明细；奖/扣徽章为蓝/红。</li>
 <li><strong>Given</strong> 结算周期自定义模式，<strong>When</strong> 设结算日=31、发薪日=31，<strong>Then</strong> 均可选；短月实际落月末；无「恢复默认」。

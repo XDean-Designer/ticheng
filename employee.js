@@ -1184,15 +1184,19 @@
     var end = parts.end.split('-');
     return Number(end[1]) + '期 · ' + shortMd(parts.start) + '–' + shortMd(parts.end);
   }
-  /** 员工薪资列表顶卡 pill：跨自然月时仅显示首尾日期 */
-  function salaryListPeriodPillLabel(key) {
+  /** 自定义且起止跨自然月 */
+  function isCrossMonthPeriod(key) {
     var parts = periodParts(key);
-    if (parts.kind === 'calendar') return monthLabel(parts.monthKey || key);
+    if (parts.kind !== 'custom') return false;
     var s = String(parts.start).split('-');
     var e = String(parts.end).split('-');
-    if (Number(s[0]) !== Number(e[0]) || Number(s[1]) !== Number(e[1])) {
-      return shortMd(parts.start) + '–' + shortMd(parts.end);
-    }
+    return Number(s[0]) !== Number(e[0]) || Number(s[1]) !== Number(e[1]);
+  }
+  /** 顶卡 pill / 选择 sheet 主文：跨自然月时仅首尾日期（无「*期」） */
+  function periodPillLabel(key) {
+    var parts = periodParts(key);
+    if (parts.kind === 'calendar') return monthLabel(parts.monthKey || key);
+    if (isCrossMonthPeriod(key)) return shortMd(parts.start) + '–' + shortMd(parts.end);
     return periodLabel(key);
   }
   function periodRangeText(key) {
@@ -3139,7 +3143,7 @@
     syncSalaryPeriodToCycle();
     var mk = state.salaryMonth;
     var pc = ensurePayCycle();
-    if (lbl) lbl.innerHTML = salaryListPeriodPillLabel(mk) + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+    if (lbl) lbl.innerHTML = periodPillLabel(mk) + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
     var staffOnly = isStaffSelfViewer();
     if (sumLbl) sumLbl.textContent = staffOnly ? '我的薪酬' : '合计薪酬';
     if (settleVal) settleVal.textContent = pc.settleDay + '日';
@@ -4303,7 +4307,7 @@
       '<div class="emp-pay-detail__head">' + empAvatarHtml(s, 'emp-avatar--md') +
       '<div class="emp-pay-detail__meta"><div class="emp-pay-detail__name">' + esc(s.name) + '</div>' +
       staffSchemePillsHtml(s.id) + '</div>' +
-      '<button type="button" class="emp-month-pill" id="empPayDetailMonth">' + periodLabel(mk) +
+      '<button type="button" class="emp-month-pill" id="empPayDetailMonth">' + periodPillLabel(mk) +
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button></div>' +
       '<div class="emp-pay-detail__card"><div class="emp-pay-detail__card-row">' +
       '<div class="emp-pay-detail__card-lbl">当月合计薪资' + metricHelpBtn('totalPay') + '</div>' +
@@ -7528,11 +7532,10 @@
     var cur = state.salaryMonth;
     for (var i = -3; i <= 3; i++) months.push(shiftPeriod(cur, i));
     root.innerHTML = months.map(function (m) {
-      var sub = ensurePayCycle().mode === 'custom'
-        ? '<span class="emp-month-opt__sub">' + periodRangeText(m) + '</span>'
-        : '';
+      /* 跨自然月：主文仅首尾日期，无「*期」、无灰字副行 */
+      var main = periodPillLabel(m);
       return '<button type="button" class="emp-month-opt' + (m === state.salaryMonth ? ' on' : '') +
-        '" data-month="' + m + '"><span class="emp-month-opt__main">' + periodLabel(m) + '</span>' + sub + '</button>';
+        '" data-month="' + m + '"><span class="emp-month-opt__main">' + main + '</span></button>';
     }).join('');
   }
 
