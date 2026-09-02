@@ -607,6 +607,72 @@ flowchart LR
  └─ 完善员工（formMode=refine）：顶栏提示 · 保存后 incomplete=false
 </code></pre>
 <p><strong>FLOW</strong>：<code>staff-list</code> / <code>staff-roles</code> / <code>staff-role-perms</code> / <code>staff-role-perm-edit</code> / <code>staff-detail</code> / <code>staff-create</code> / <code>staff-refine</code>。</p>
+<h3>3.2.0 页面流（示意）</h3>
+<div class="mermaid">
+flowchart LR
+  W[工作台] -->|员工管理| L[员工列表]
+  L -->|+ 创建员工| C[创建员工表单]
+  L -->|incomplete·去完善| RF[完善员工表单]
+  L -->|点行| D[员工详情]
+  L -->|底栏·头衔管理| R[头衔管理]
+  L -->|底栏·角色管理| P[角色管理]
+  P -->|点角色行| PE[角色权限编辑]
+  C -->|头衔空态·去头衔管理| R
+  C -->|方案空态·去提成设置| C2[提成设置]
+  R -->|返回·内容保留| C
+  C2 -->|返回·内容保留| C
+  C -->|保存| L
+  RF -->|保存| L
+  D -->|字段直编| DS[[头像/姓名/性别/年龄/工龄/头衔/角色/方案/状态 等 Sheet]]
+  D -->|返回| L
+</div>
+<table>
+<thead>
+<tr>
+<th>页面/层</th>
+<th>导航标题（原型）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>员工列表</td>
+<td>员工管理</td>
+<td>行拖动柄 · 头像 · 姓名 · 状态 chip · 副文；incomplete「去完善」；底部「+ 创建员工」；底栏「头衔管理 / 角色管理」</td>
+</tr>
+<tr>
+<td>头衔管理</td>
+<td>头衔管理</td>
+<td>添加 / 重命名 / 删除（≤6 字；被占用不可删）；创建表单空态「去头衔管理」返回时内容保留</td>
+</tr>
+<tr>
+<td>角色管理</td>
+<td>角色管理</td>
+<td>四角色卡（合伙人 / 店长 / 高级店员 / 店员，店主不出现）；金银铜铁竖条 +「已开启 N 项权限」</td>
+</tr>
+<tr>
+<td>角色权限编辑</td>
+<td>角色权限</td>
+<td>12 项敏感权限 Switch；与线上版本完全对应</td>
+</tr>
+<tr>
+<td>员工详情</td>
+<td>员工详情</td>
+<td>字段直编即时保存；<strong>无</strong>标题栏「编辑」；头像可换；状态切换（离职走确认 Dialog）</td>
+</tr>
+<tr>
+<td>创建员工</td>
+<td>创建员工</td>
+<td>formMode=create；无状态字段；隐藏性别 / 年龄 / 年限；头衔 / 提成方案 sheet 空态可跳转</td>
+</tr>
+<tr>
+<td>完善员工</td>
+<td>完善员工</td>
+<td>formMode=refine；顶栏提示「请完善员工信息…」；保存后 incomplete=false</td>
+</tr>
+</tbody>
+</table>
+<p>实现路由建议（名称可调整）：<code>emp-list</code> / <code>emp-roles</code> / <code>emp-role-perms</code> / <code>emp-role-perm-edit</code> / <code>emp-detail</code> / <code>emp-create</code> / <code>emp-refine</code>；表单内字段直编与 picker sheet 复用现有 <code>emp*Mask</code> 弹层。</p>
 <h3>3.3 链路三：员工薪资</h3>
 <pre><code>员工薪资
  ├─ 列表（screen-emp-salary）：全店合计 · 月份 · 结算周期 · 员工卡 2×2 提成
@@ -617,6 +683,69 @@ flowchart LR
  └─ 奖惩明细（screen-emp-reward-detail）
 </code></pre>
 <p><strong>FLOW</strong>：<code>staff-salary</code> / <code>staff-pay-detail</code> / <code>staff-pay-cycle</code> / <code>staff-salary-detail</code> / <code>staff-rewards</code> / <code>staff-reward-detail</code>。</p>
+<h3>3.3.0 页面流（示意）</h3>
+<div class="mermaid">
+flowchart LR
+  W[工作台] -->|员工薪资| S[员工薪资列表]
+  S -->|点员工卡| PD[员工薪资明细]
+  S -->|2×2 提成格| CD[员工业绩提成明细]
+  CD -->|返回| S
+  S -->|奖惩合计行| RD[奖惩明细]
+  S -->|结算周期入口| PC[结算周期]
+  S -->|设奖惩入口| RW[设奖惩表单]
+  PD -->|奖惩·查看全部| RD
+  RD -->|编辑| RW
+  RW -->|保存| RD
+  RW -->|保存| S
+  PD -->|月份 pill| M[[选择月份/结算期 Sheet]]
+  CD -->|查询日期| DT[[选择查询日期/日历 Sheet]]
+  RD -->|删除| DK[[删除确认 Dialog]]
+  RD -->|返回| PD
+  PD -->|返回| S
+  PC -->|保存| S
+</div>
+<table>
+<thead>
+<tr>
+<th>页面/层</th>
+<th>导航标题（原型）</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>员工薪资列表</td>
+<td>员工薪资</td>
+<td>全店合计 · 月份 pill · 结算周期入口（摘要含发薪日）· 设奖惩入口；员工卡三行（基本工资 / 提成合计 / 奖惩合计）+ 2×2 提成格</td>
+</tr>
+<tr>
+<td>员工薪资明细</td>
+<td>员工薪资明细</td>
+<td>大头像 + 姓名 + 头衔 + 月份 pill；薪资 / 业绩 / 提成统计（<code>?</code> 释义）；奖惩摘要「查看全部」</td>
+</tr>
+<tr>
+<td>结算周期</td>
+<td>结算周期</td>
+<td>模式（自然月 / 自定义）· 结算日 / 发薪日（1–31，clamp 月末）；仅店主 / 合伙人可改全部项</td>
+</tr>
+<tr>
+<td>员工业绩提成明细</td>
+<td>员工业绩提成明细</td>
+<td>月份 / 结算期 pill + 查询日期；单日 / 日历选择；「上一有数据日 / 下一有数据日」导航</td>
+</tr>
+<tr>
+<td>设奖惩</td>
+<td>设奖惩</td>
+<td>员工 / 日期 / 类型（奖励 / 扣除）/ 金额 / 备注；新增与编辑共用；保存即时刷新列表与摘要</td>
+</tr>
+<tr>
+<td>奖惩明细</td>
+<td>奖惩明细</td>
+<td>当月记录列表（按日期倒序）；编辑 / 删除（删除需确认 Dialog）</td>
+</tr>
+</tbody>
+</table>
+<p>实现路由建议（名称可调整）：<code>salary-list</code> / <code>salary-detail</code> / <code>pay-cycle</code> / <code>comm-detail</code> / <code>reward-form</code> / <code>reward-detail</code>；月份 / 查询日期选择复用 <code>empMonthMask</code> / <code>empCommDateMask</code> 弹层。</p>
 <h3>3.4 三链路数据联动</h3>
 <table>
 <thead>
