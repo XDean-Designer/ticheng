@@ -3,14 +3,21 @@
   <div class="page-title-bar">
     <button type="button" class="back" id="empStaffListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
     <span class="title">员工管理</span>
+    <div class="emp-staff-settings">
+      <button type="button" class="action emp-title-link emp-title-link--text" id="empBtnStaffSettings" aria-haspopup="menu" aria-expanded="false">设置</button>
+      <div class="emp-staff-settings__menu" id="empStaffSettingsMenu" role="menu" hidden>
+        <button type="button" class="emp-staff-settings__item" role="menuitem" data-emp-settings="roles">头衔管理</button>
+        <button type="button" class="emp-staff-settings__item" role="menuitem" data-emp-settings="perms">角色管理</button>
+      </div>
+    </div>
   </div>
   <div class="page-body">
     <div class="emp-list" id="empListRoot"></div>
   </div>
   <div class="bottom-bar bottom-bar--dual">
     <div class="bottom-bar__action">
-      <button type="button" class="btn-main secondary" id="empBtnManageRoles">头衔管理</button>
-      <button type="button" class="btn-main" id="empBtnManageRolePerms">角色管理</button>
+      <button type="button" class="btn-main secondary" id="empBtnAddStaff">创建员工</button>
+      <button type="button" class="btn-main" id="empBtnInviteStaff">邀请员工</button>
     </div>
     <div class="bottom-bar__safe" aria-hidden="true"></div>
   </div>

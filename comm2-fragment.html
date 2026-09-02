@@ -178,11 +178,11 @@
       <h4>每人可分配多个提成方案</h4>
       <p>列表里点「已分配」给人时，同一员工可同时属于多个提成方案。分配 Sheet 中若已在其他方案，副文显示图标与方案名（无「也在：」字面），仍可勾选。</p>
       <h4>计算项重叠时取高</h4>
-      <p>开单按<strong>订单行</strong>计提：对该员工所属每个方案分别算出本行提成金额，取<strong>金额最大</strong>者写入本行；多方案<strong>不加总</strong>。金额并列时按方案列表顺序，先出现的方案胜出。</p>
-      <h4>按行过滤</h4>
-      <p>每一笔订单行，先按该行的支付方式对照该方案命中规则块的「提成范围」。支付方式不在范围内则该方案本行不计，不参与取高。</p>
+      <p>开单按<strong>订单行</strong>计提：对该员工所属每个方案分别算出本行提成金额，取<strong>金额最大</strong>者写入本行；多方案<strong>不加总</strong>。金额并列时按方案列表顺序，先出现的方案胜出。同一方案内多条覆盖规则命中同一项时，同样按试算金额取高；并列按规则卡添加顺序先出现者胜。</p>
+      <h4>按项分摊 · 适用范围</h4>
+      <p>「适用范围」指对应到开单中每一个项目/产品/会员卡的金额分摊，不是整单是否命中某种支付方式。混合支付时：计算基数=原价 → 基数 = 原价 ×（范围内实付 ÷ 该行全部实付）；计算基数=实收 → 基数 = 范围内实付之和；固定金额 → 固定额 ×（范围内实付 ÷ 全部实付）。卡付含会员卡面值（充值+赠送）与计次（购买+赠送次数/数量）；计次按卡内成本/均价折算为卡付实付。</p>
       <h4>覆盖优先</h4>
-      <p>方案内覆盖规则项（含系统「快速消费」）优先于分类默认；命中覆盖后不再吃分类默认。方案之间再比金额取高。</p>
+      <p>方案内覆盖规则项（含系统「快速消费」）优先于分类默认；命中覆盖后不再吃分类默认。覆盖之间允许重复添加同一项，再比金额取高。方案之间再比金额取高。</p>
       <h4>不同行可相加</h4>
       <p>不同业务行分别取高后，行与行之间可相加汇总。</p>
     </div>
@@ -210,6 +210,19 @@
       <button type="button" class="btn-main secondary" id="comm2OverrideDelCancel">取消</button>
       <button type="button" class="btn-main" id="comm2OverrideDelOk">确认删除</button>
     </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="comm2OverrideActionMask">
+  <div class="picker-sheet picker-sheet--menu">
+    <div class="catalog-action-card">
+      <div class="catalog-action-list">
+        <button type="button" class="catalog-action-item" data-comm2-ov-act="retarget">选择适用项</button>
+        <button type="button" class="catalog-action-item" data-comm2-ov-act="rename">重命名</button>
+        <button type="button" class="catalog-action-item catalog-action-item--danger" data-comm2-ov-act="delete">删除</button>
+      </div>
+    </div>
+    <div class="catalog-action-safe" aria-hidden="true"></div>
   </div>
 </div>
 

@@ -509,6 +509,7 @@
     commDetailCalYear: null,
     commDetailCalMonth: null,
     commDetailViewer: 'owner',
+    commDetailFrom: null,
     commDetailFilter: 'all',
     commEditViewed: {},
     commEditCursor: -1,
@@ -2651,8 +2652,7 @@
         '<div class="emp-row__name"><span class="emp-row__name-text">' + esc(s.name) + '</span>' + statusTag + '</div>' +
         (sub ? '<div class="emp-row__sub">' + esc(sub) + '</div>' : '') +
         '</div>' + refine + navChevHtml() + '</div>';
-    }).join('') +
-      '<button type="button" class="emp-list-add" id="empBtnAddStaff">+ 创建员工</button>';
+    }).join('');
   }
 
   function commitStaffOrderFromDom() {
@@ -2943,6 +2943,8 @@
     state.formSwordId = s && s.swordId ? s.swordId : null;
     syncFormAvatarPreview();
     syncFormSwordFields();
+    var formScreen = $('screen-emp-form');
+    if (formScreen) formScreen.classList.toggle('is-create', mode === 'create');
     showScreen('screen-emp-form');
     nav(mode === 'create' ? 'staff-create' : (mode === 'refine' ? 'staff-refine' : 'staff-detail'));
   }
@@ -4224,9 +4226,23 @@
     var sid = staffId || state.currentStaffId || (salaryVisibleStaff()[0] && salaryVisibleStaff()[0].id);
     if (!sid) { openSalary(); return; }
     state.currentStaffId = sid;
+    state.commDetailFrom = null;
     renderEmpPayDetail(sid);
     showScreen('screen-emp-pay-detail');
     nav('staff-pay-detail');
+  }
+
+  function openCommDetailFromPayDetail() {
+    var sid = state.currentStaffId;
+    if (!sid) return;
+    closeAllEmpMasks();
+    resetCommDetailScope();
+    state.commDetailFrom = 'pay-detail';
+    state.commDetailViewer = isStaffSelfViewer() ? 'staff' : 'owner';
+    state.commDetailFilter = 'all';
+    renderSalaryDetail(sid);
+    showScreen('screen-emp-salary-detail');
+    nav('staff-salary-detail');
   }
 
   function renderEmpPayDetail(staffId) {
@@ -8209,6 +8225,7 @@
       'staff-salary-detail': function () {
         var id = state.currentStaffId || (salaryVisibleStaff()[0] && salaryVisibleStaff()[0].id);
         if (id) {
+          state.commDetailFrom = null;
           state.commDetailViewer = 'owner';
           state.commDetailFilter = 'all';
           resetCommDetailScope();
@@ -8407,8 +8424,14 @@
       });
     });
     $('empCommDetailBack')?.addEventListener('click', function () {
+      if (state.commDetailFrom === 'pay-detail' && state.currentStaffId) {
+        openEmpPayDetail(state.currentStaffId);
+        return;
+      }
+      state.commDetailFrom = null;
       openSalary();
     });
+    $('empPayDetailToComm')?.addEventListener('click', openCommDetailFromPayDetail);
     document.querySelectorAll('[data-emp-back-comm]').forEach(function (btn) {
       btn.addEventListener('click', openComm);
     });
@@ -8417,17 +8440,18 @@
 
     wireStaffListDrag();
     wireRoleManageListDrag();
+    $('empBtnAddStaff')?.addEventListener('click', function () {
+      if (!requirePerm('staffCreate')) return;
+      openForm('create');
+    });
+    $('empBtnInviteStaff')?.addEventListener('click', function () {
+      toast('功能开发中');
+    });
     $('empListRoot')?.addEventListener('click', function (e) {
       if (state.staffDragSuppressClick) {
         state.staffDragSuppressClick = false;
         e.preventDefault();
         e.stopPropagation();
-        return;
-      }
-      if (e.target.closest('#empBtnAddStaff,.emp-list-add')) {
-        e.stopPropagation();
-        if (!requirePerm('staffCreate')) return;
-        openForm('create');
         return;
       }
       if (e.target.closest('[data-emp-drag]')) {
@@ -8452,6 +8476,40 @@
     document.querySelectorAll('#empBtnManageRolePerms').forEach(function (btn) {
       btn.addEventListener('click', openRolePermManage);
     });
+    (function wireStaffSettingsMenu() {
+      var btn = $('empBtnStaffSettings');
+      var menu = $('empStaffSettingsMenu');
+      if (!btn || !menu || btn._wiredSettings) return;
+      btn._wiredSettings = true;
+      function closeMenu() {
+        menu.hidden = true;
+        btn.setAttribute('aria-expanded', 'false');
+      }
+      function openMenu() {
+        if (!canEditStaffProfile()) {
+          toast('暂无权限', true);
+          return;
+        }
+        menu.hidden = false;
+        btn.setAttribute('aria-expanded', 'true');
+      }
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (menu.hidden) openMenu();
+        else closeMenu();
+      });
+      menu.addEventListener('click', function (e) {
+        var item = e.target.closest('[data-emp-settings]');
+        if (!item) return;
+        var act = item.getAttribute('data-emp-settings');
+        closeMenu();
+        if (act === 'roles') openRoleManage();
+        else if (act === 'perms') openRolePermManage();
+      });
+      document.addEventListener('click', function (e) {
+        if (!menu.hidden && !e.target.closest('.emp-staff-settings')) closeMenu();
+      });
+    })();
     $('empRolePermList')?.addEventListener('click', function (e) {
       var row = e.target.closest('[data-role-perm]');
       if (!row) return;
@@ -9221,6 +9279,7 @@
           return;
         }
         resetCommDetailScope();
+        state.commDetailFrom = 'salary-list';
         state.commDetailViewer = isStaffSelfViewer() ? 'staff' : 'owner';
         state.commDetailFilter = 'all';
         renderSalaryDetail(sid);

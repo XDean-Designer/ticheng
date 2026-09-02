@@ -614,31 +614,141 @@
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, .05);
 }
 
-/* 左滑飞出删除（无右侧按钮） */
-.comm2-rule-swipe {
-  position: relative; border-radius: 10px;
-  touch-action: pan-y; will-change: transform;
+/* 左滑露出垃圾桶删除 */
+.comm2-rule-swipe-wrap {
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  isolation: isolate;
 }
+.comm2-rule-swipe-wrap .comm2-rule-swipe {
+  position: relative;
+  z-index: 1;
+  touch-action: pan-y;
+  will-change: transform;
+  background: transparent;
+  border-radius: 10px;
+  transition: transform .18s ease;
+}
+.comm2-rule-swipe-wrap .comm2-rule-bar {
+  background: #fff;
+  border-radius: 10px;
+}
+.comm2-rule-swipe-wrap.is-menu-host,
 .comm2-rule-swipe.is-menu-host { z-index: 5; }
-.comm2-rule-swipe.is-dragging { transition: none; }
-.comm2-rule-swipe.is-exiting { pointer-events: none; }
+.comm2-rule-swipe-wrap.is-dragging .comm2-rule-swipe { transition: none; }
+.comm2-rule-swipe__trash {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 72px;
+  border: none;
+  background: #F32F41;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 0;
+  padding: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .12s ease;
+}
+.comm2-rule-swipe-wrap.is-open .comm2-rule-swipe__trash,
+.comm2-rule-swipe-wrap.is-dragging .comm2-rule-swipe__trash {
+  opacity: 1;
+  pointer-events: auto;
+}
+.comm2-rule-swipe__trash:active { opacity: .9; }
 
-/* 长按 · 卡片右侧下拉菜单 */
-.comm2-rule-bar__menu {
-  display: none; position: absolute; right: 8px; top: 10px;
-  z-index: 6; min-width: 96px; padding: 4px;
-  background: #fff; border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, .14), 0 0 0 1px rgba(0, 0, 0, .06);
+.comm2-pick-item__name-row {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
 }
-.comm2-rule-bar.is-menu-open { z-index: 3; }
-.comm2-rule-bar.is-menu-open .comm2-rule-bar__menu { display: block; }
-.comm2-rule-bar__menu-item {
-  display: block; width: 100%; border: none; background: transparent;
-  padding: 10px 14px; text-align: left; cursor: pointer;
-  color: #C46B6B; font-size: 14px; font-weight: 600; font-family: inherit;
-  border-radius: 8px; line-height: 1.2;
+.comm2-pick-item__badge {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #F2F3F5;
+  color: #8F959E;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  white-space: nowrap;
 }
-.comm2-rule-bar__menu-item:active { background: #FFF2EE; }
+
+.comm2-sheet-station__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+.comm2-sheet-station__name:active { opacity: .75; }
+.comm2-sheet-station__label { font-weight: 500; }
+.comm2-sheet-station__edit {
+  display: inline-flex;
+  color: #8F959E;
+  flex-shrink: 0;
+}
+.comm2-sheet-station__edit svg { width: 14px; height: 14px; display: block; }
+.comm2-sheet-station__input {
+  width: 88px;
+  height: 28px;
+  border: 1px solid #E5E6EB;
+  border-radius: 6px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.comm2-sheet-station-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  min-height: 40px;
+  border: 1px dashed #D0D3D6;
+  border-radius: 8px;
+  background: #FAFBFC;
+  color: #F32F41;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+}
+.comm2-sheet-station-add.is-editing {
+  justify-content: flex-start;
+  padding: 0 8px;
+  border-style: solid;
+  border-color: #E5E6EB;
+  background: #fff;
+}
+.comm2-sheet-station-add__ok {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: #F32F41;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 8px;
+}
 
 /* 删除撤销 toast */
 .toast-msg.is-undo {

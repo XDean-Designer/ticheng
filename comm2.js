@@ -742,7 +742,7 @@
   /** 卡上：现金/卡付/团购 · 独立 chip 多选（与基数段控区分） */
   function barPayCtrlHtml(block, target) {
     ensurePayScopeBlock(block);
-    return '<div class="comm2-rule-bar__scope-chips" role="group" aria-label="提成范围">' +
+    return '<div class="comm2-rule-bar__scope-chips" role="group" aria-label="适用范围">' +
       COMM2_PAY_SCOPE.map(function (d) {
         var on = !!block.payScope[d.key];
         return '<button type="button" class="comm2-scope-chip' + (on ? ' on' : '') +
@@ -773,9 +773,8 @@
     var isStation = block.pickMode === 'station';
     return '<div class="comm2-rule-card__seg comm2-base-seg comm2-sheet-ctrl" role="radiogroup">' +
       '<button type="button" class="comm2-base-seg__btn' + (!isStation ? ' on' : '') + '" data-comm2-sheet-pick="avg">不分工位</button>' +
-      '<button type="button" class="comm2-base-seg__btn' + (isStation ? ' on comm2-base-seg__btn--station' : '') + '" data-comm2-sheet-pick="station">' +
+      '<button type="button" class="comm2-base-seg__btn' + (isStation ? ' on' : '') + '" data-comm2-sheet-pick="station">' +
       '<span class="comm2-base-seg__lbl">按工位分配</span>' +
-      (isStation ? '<span class="comm2-base-seg__gear" aria-hidden="true">' + gearSvg() + '</span>' : '') +
       '</button></div>';
   }
 
@@ -824,11 +823,6 @@
     var isStation = block.pickMode === 'station';
     var ovId = opts.ovId || '';
     var titleEllipsis = titleCharCount(title) > 6;
-    var menuHtml = isOv
-      ? '<div class="comm2-rule-bar__menu" role="menu">' +
-        '<button type="button" class="comm2-rule-bar__menu-item" role="menuitem" data-comm2-override-del="' + esc(ovId) + '">删除</button>' +
-        '</div>'
-      : '';
     /* 两行：①标题+基数 ②参数+范围；按工位时参数竖排三行 */
     var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') + '" data-comm2-rule-card="' + esc(target) + '"' +
       (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
@@ -843,9 +837,11 @@
       barParamsHtml(sch, block) + '<span class="comm2-rule-bar__p-edit" aria-hidden="true">' + editIconSvg() + '</span></button>' +
       barFieldHtml(barPayCtrlHtml(block, target)) +
       '</div>' +
-      menuHtml + '</article>';
+      '</article>';
     if (!isOv) return card;
-    return '<div class="comm2-rule-swipe" data-comm2-swipe-ov="' + esc(ovId) + '">' + card + '</div>';
+    return '<div class="comm2-rule-swipe-wrap" data-comm2-swipe-ov="' + esc(ovId) + '">' +
+      '<button type="button" class="comm2-rule-swipe__trash" data-comm2-swipe-del="' + esc(ovId) + '" aria-label="删除规则项" tabindex="-1">' + trashSvg() + '</button>' +
+      '<div class="comm2-rule-swipe">' + card + '</div></div>';
   }
 
   function renderEditCards(sch) {
@@ -1010,6 +1006,7 @@
     { id: 'tl2', name: '充卡 · 老客续充', cat: 'card', pay: 'cash', list: 1000, paid: 1000, designated: true },
     { id: 'tl3', name: '深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', pay: 'memberCard', list: 268, paid: 268, designated: true },
     { id: 'tl4', name: '染发', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', list: 358, paid: 358, designated: true, station: 'senior' },
+    { id: 'tl4b', name: '染发 · 混合支付', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', payParts: { cash: 40, memberCard: 60, groupBuy: 0 }, list: 100, paid: 100, designated: true, station: 'senior' },
     { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, designated: true },
     { id: 'tl6', name: '团购体验 · 洗头', cat: 'labor', kind: 'project', refId: 'p19', pay: 'groupBuy', list: 28, paid: 28, designated: false },
     { id: 'tl7', name: '卡付 · 时尚洗吹', cat: 'labor', kind: 'project', refId: 'p1', pay: 'memberCard', list: 58, paid: 58, designated: false },
@@ -1058,16 +1055,74 @@
     return sch.defaults[cat] || sch.defaults.labor;
   }
 
+  function linePayParts(line) {
+    if (line && line.payParts && typeof line.payParts === 'object') {
+      return {
+        cash: Number(line.payParts.cash) || 0,
+        memberCard: Number(line.payParts.memberCard) || 0,
+        groupBuy: Number(line.payParts.groupBuy) || 0
+      };
+    }
+    var o = { cash: 0, memberCard: 0, groupBuy: 0 };
+    if (line && line.pay && o[line.pay] != null) o[line.pay] = Number(line.paid) || 0;
+    return o;
+  }
+
+  function payPartsTotal(parts) {
+    return (Number(parts.cash) || 0) + (Number(parts.memberCard) || 0) + (Number(parts.groupBuy) || 0);
+  }
+
+  function payPartsInScope(block, parts) {
+    ensurePayScopeBlock(block);
+    var sum = 0;
+    COMM2_PAY_SCOPE.forEach(function (d) {
+      if (block.payScope[d.key]) sum += Number(parts[d.key]) || 0;
+    });
+    return sum;
+  }
+
   function lineBaseAmount(block, line) {
-    return block.baseMode === 'paid' ? (Number(line.paid) || 0) : (Number(line.list) || 0);
+    var parts = linePayParts(line);
+    var total = payPartsTotal(parts);
+    var inScope = payPartsInScope(block, parts);
+    if (block.baseMode === 'paid') return inScope;
+    var list = Number(line.list) || 0;
+    if (total <= 0) return 0;
+    return Math.round(list * (inScope / total) * 100) / 100;
   }
 
   function schemeLineAmount(sch, line) {
     normalizeScheme(sch);
     var block = resolveLineBlock(sch, line);
     ensurePayScopeBlock(block);
-    /* 经理签单（实收=0）：不走 payScope 三类；是否计提由命中块 baseMode 决定 */
-    if (!line.sign && !block.payScope[line.pay]) {
+    /* 经理签单（实收=0）：不走三类适用范围；是否计提由命中块 baseMode 决定 */
+    if (line.sign) {
+      var ruleS = ensureCat(block.rule, getStationIds(sch));
+      var isAmtS = ruleS.valueMode === 'amount';
+      var pairS = ruleS;
+      if (block.pickMode === 'station') {
+        var stIdS = line.station || getStationIds(sch)[0];
+        pairS = ruleS.stations[stIdS] || defaultPair();
+      }
+      var rateS = line.designated
+        ? pairVal(pairS, isAmtS, 'designated', 'designatedAmt')
+        : pairVal(pairS, isAmtS, 'nonDesignated', 'nonDesignatedAmt');
+      var baseS = block.baseMode === 'paid' ? 0 : (Number(line.list) || 0);
+      var amountS = isAmtS ? rateS : Math.round(baseS * rateS) / 100;
+      if (!isAmtS && baseS <= 0) {
+        return { amount: 0, skipped: 'sign', rateLabel: rateS + '%', base: 0 };
+      }
+      return {
+        amount: amountS,
+        skipped: '',
+        rateLabel: isAmtS ? ('¥' + rateS) : (rateS + '%'),
+        base: baseS
+      };
+    }
+    var parts = linePayParts(line);
+    var totalPaid = payPartsTotal(parts);
+    var inScope = payPartsInScope(block, parts);
+    if (inScope <= 0) {
       return { amount: 0, skipped: 'scope', rateLabel: '' };
     }
     var rule = ensureCat(block.rule, getStationIds(sch));
@@ -1080,15 +1135,22 @@
     var rate = line.designated
       ? pairVal(pair, isAmt, 'designated', 'designatedAmt')
       : pairVal(pair, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    var base = lineBaseAmount(block, line);
-    var amount = isAmt ? rate : Math.round(base * rate) / 100;
-    if (line.sign && !isAmt && base <= 0) {
-      return { amount: 0, skipped: 'sign', rateLabel: rate + '%', base: 0 };
+    var ratio = totalPaid > 0 ? (inScope / totalPaid) : 0;
+    if (isAmt) {
+      var amtFixed = Math.round(rate * ratio * 100) / 100;
+      return {
+        amount: amtFixed,
+        skipped: '',
+        rateLabel: '¥' + rate,
+        base: inScope
+      };
     }
+    var base = lineBaseAmount(block, line);
+    var amount = Math.round(base * rate) / 100;
     return {
       amount: amount,
       skipped: '',
-      rateLabel: isAmt ? ('¥' + rate) : (rate + '%'),
+      rateLabel: rate + '%',
       base: base
     };
   }
@@ -1234,16 +1296,27 @@
     return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>';
   }
 
-  function pickItemConfigured(sch, type, itemId, cardRole) {
-    var covered = coveredTargetKeys(sch);
+  function pickItemConfigured(sch, type, itemId, cardRole, excludeOvId) {
     var ikey = type === 'card'
       ? ('card:' + itemId + ':' + (cardRole || 'issue'))
       : ('item:' + type + ':' + itemId);
-    if (covered[ikey]) return true;
+    if (coveredTargetCount(sch, ikey, excludeOvId) > 0) return true;
     return comm2Groups(type).some(function (g) {
       var gkey = 'group:' + type + ':' + g.id;
-      return covered[gkey] && (g.itemIds || []).indexOf(itemId) >= 0;
+      return coveredTargetCount(sch, gkey, excludeOvId) > 0 && (g.itemIds || []).indexOf(itemId) >= 0;
     });
+  }
+
+  function pickItemCoverCount(sch, type, itemId, cardRole, excludeOvId) {
+    var ikey = type === 'card'
+      ? ('card:' + itemId + ':' + (cardRole || 'issue'))
+      : ('item:' + type + ':' + itemId);
+    var n = coveredTargetCount(sch, ikey, excludeOvId);
+    comm2Groups(type).forEach(function (g) {
+      var gkey = 'group:' + type + ':' + g.id;
+      if ((g.itemIds || []).indexOf(itemId) >= 0) n += coveredTargetCount(sch, gkey, excludeOvId);
+    });
+    return n;
   }
 
   function pickCheckHtml(on, configured) {
@@ -1344,13 +1417,25 @@
     var html = sheetRowHtml('提成参数', modeHtml, 'comm2-sheet-row--params-head', ' data-comm2-sheet-anchor="params"');
     html += '<div class="comm2-sheet-params-body" data-comm2-sheet-anchor="params-body">';
     if (block.pickMode === 'station') {
-      getStationIds(sch).forEach(function (sid) {
+      var ids = getStationIds(sch);
+      ids.forEach(function (sid) {
         var st = rule.stations[sid] || defaultPair();
+        var editingName = store._stationInlineEditId === sid;
         html += '<div class="comm2-sheet-station comm2-sheet-station--compact">' +
-          '<div class="comm2-sheet-station__name"><i class="comm2-sheet-station__dot" aria-hidden="true"></i>' +
-          esc(stationLabel(sch, sid)) + '</div>' +
+          (editingName
+            ? '<div class="comm2-sheet-station__name is-editing"><input type="text" class="comm2-sheet-station__input" maxlength="6" data-comm2-station-inline-input="' + esc(sid) + '" value="' + esc(stationLabel(sch, sid)) + '" /></div>'
+            : '<button type="button" class="comm2-sheet-station__name" data-comm2-station-inline-edit="' + esc(sid) + '" aria-label="改名工位"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">' + esc(stationLabel(sch, sid)) + '</span><span class="comm2-sheet-station__edit" aria-hidden="true">' + editIconSvg() + '</span></button>') +
           twinHtml('st.' + sid + '.', st, isAmt, stationLabel(sch, sid)) + '</div>';
       });
+      if (ids.length < 3) {
+        if (store._stationAdding) {
+          html += '<div class="comm2-sheet-station-add is-editing">' +
+            '<input type="text" class="comm2-sheet-station__input" maxlength="6" placeholder="输入工位名称" data-comm2-station-add-input />' +
+            '<button type="button" class="comm2-sheet-station-add__ok" data-comm2-station-add-ok>添加</button></div>';
+        } else {
+          html += '<button type="button" class="comm2-sheet-station-add" data-comm2-station-add>+ 添加工位</button>';
+        }
+      }
     } else {
       html += twinHtml('base.', rule, isAmt, '点客散客');
     }
@@ -1365,7 +1450,7 @@
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var html = '';
     if (variant === 'full') {
-      html += sheetRowHtml('提成范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
+      html += sheetRowHtml('适用范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
         sheetRowHtml('计算基数', sheetSegHtml('base', block));
     }
     html += sheetRowHtml('分配模式', sheetSegHtml('pick', block));
@@ -1397,6 +1482,8 @@
     store._sheetContext = 'edit';
     store._cardTarget = target;
     store._sheetVariant = opts.variant === 'params' ? 'params' : 'full';
+    store._stationInlineEditId = null;
+    store._stationAdding = false;
     var p = parseCardTarget(target);
     var title = p.type === 'default'
       ? ((COMM2_CATS.find(function (c) { return c.key === p.id; }) || {}).label || '')
@@ -1496,16 +1583,34 @@
     if (err) { toast(err, true); return; }
     b.rule = rule;
     if (!sch.overrides) sch.overrides = [];
-    sch.overrides.push({
-      id: 'ov_' + Date.now(),
-      belongCat: b.belongCat,
-      title: b.targets.map(function (t) { return t.name; }).join('、'),
-      payScope: JSON.parse(JSON.stringify(b.payScope)),
-      baseMode: b.baseMode,
-      pickMode: b.pickMode,
-      rule: JSON.parse(JSON.stringify(b.rule)),
-      targets: b.targets.slice()
-    });
+    var title = (b.targets || []).map(function (t) { return t.name; }).join('、') || (b.title || '未命名');
+    if (store._editOverrideId) {
+      var hit = sch.overrides.find(function (o) { return o.id === store._editOverrideId; });
+      if (hit) {
+        hit.targets = b.targets.slice();
+        hit.title = title;
+        hit.payScope = JSON.parse(JSON.stringify(b.payScope));
+        hit.baseMode = b.baseMode;
+        hit.pickMode = b.pickMode;
+        hit.rule = JSON.parse(JSON.stringify(b.rule));
+        hit.belongCat = b.belongCat;
+        if (b.cardRole) hit.cardRole = b.cardRole;
+      }
+      store._editOverrideId = null;
+      toast('已更新适用项');
+    } else {
+      sch.overrides.push({
+        id: 'ov_' + Date.now(),
+        belongCat: b.belongCat,
+        title: title,
+        payScope: JSON.parse(JSON.stringify(b.payScope)),
+        baseMode: b.baseMode,
+        pickMode: b.pickMode,
+        rule: JSON.parse(JSON.stringify(b.rule)),
+        targets: b.targets.slice()
+      });
+      toast('已添加规则项');
+    }
     markDirty();
     store._sheetContext = null;
     store._pickSel = {};
@@ -1513,7 +1618,6 @@
     var mask = $('comm2CatSheetMask');
     if (mask) mask.classList.remove('open');
     openEdit(store.editingId);
-    toast('已添加规则项');
   }
 
   function saveCatSheet() {
@@ -1603,16 +1707,26 @@
     return { name: hit ? hit.name : (refId || '未命名'), sub: hit ? hit.sub : '' };
   }
 
-  function coveredTargetKeys(sch) {
+  function coveredTargetKeys(sch, excludeOvId) {
     var out = {};
     (sch.overrides || []).forEach(function (ov) {
+      if (excludeOvId && ov.id === excludeOvId) return;
+      if (isQuickOverride(ov)) return;
       (ov.targets || []).forEach(function (t) {
-        if (t.kind === 'group') out['group:' + (t.groupKind || 'project') + ':' + t.refId] = true;
-        else if (t.kind === 'card') out['card:' + t.refId + ':' + (t.cardRole || 'issue')] = true;
-        else out['item:' + t.kind + ':' + t.refId] = true;
+        var key;
+        if (t.kind === 'group') key = 'group:' + (t.groupKind || 'project') + ':' + t.refId;
+        else if (t.kind === 'card') key = 'card:' + t.refId + ':' + (t.cardRole || 'issue');
+        else key = 'item:' + t.kind + ':' + t.refId;
+        out[key] = (out[key] || 0) + 1;
       });
     });
     return out;
+  }
+
+  /** 其它规则项卡片中该项出现次数（不含当前编辑卡 / 系统快消） */
+  function coveredTargetCount(sch, key, excludeOvId) {
+    var map = coveredTargetKeys(sch, excludeOvId);
+    return map[key] || 0;
   }
 
   function pickBelongCat(type, cardRole) {
@@ -1685,12 +1799,11 @@
 
   function pickItemBlocked(sch, type, itemId, sel) {
     sel = sel || {};
-    var covered = coveredTargetKeys(sch);
     var groups = comm2Groups(type);
     for (var i = 0; i < groups.length; i++) {
       var g = groups[i];
       var gkey = 'group:' + type + ':' + g.id;
-      if ((covered[gkey] || sel[gkey]) && (g.itemIds || []).indexOf(itemId) >= 0) return true;
+      if (sel[gkey] && (g.itemIds || []).indexOf(itemId) >= 0) return true;
     }
     return false;
   }
@@ -1718,7 +1831,7 @@
     if (!sch) return;
     var type = store._pickType || 'project';
     var items = pickVisibleItems();
-    var covered = coveredTargetKeys(sch);
+    var excludeOvId = store._editOverrideId || null;
     var sel = store._pickSel || {};
     var gid = store._pickGroup;
     var html = '';
@@ -1727,11 +1840,13 @@
       if (g) {
         var gkey = 'group:' + type + ':' + g.id;
         var gOn = !!sel[gkey];
-        var gCov = !!covered[gkey];
-        html += '<div class="comm2-pick-item-wrap comm2-pick-group-row' + (gOn ? ' on' : '') + (gCov ? ' is-configured' : '') + '">' +
-          '<button type="button" class="comm2-pick-item' + (gOn ? ' on' : '') + (gCov ? ' disabled is-configured' : '') + '" data-comm2-pick-group-item="' + esc(g.id) + '"' + (gCov ? ' disabled' : '') + '>' +
-          pickCheckHtml(gOn, gCov) +
-          '<span class="comm2-pick-item__text"><span class="comm2-pick-item__name">整类 · ' + esc(g.name) + '</span></span></button></div>';
+        var gCount = coveredTargetCount(sch, gkey, excludeOvId);
+        html += '<div class="comm2-pick-item-wrap comm2-pick-group-row' + (gOn ? ' on' : '') + '">' +
+          '<button type="button" class="comm2-pick-item' + (gOn ? ' on' : '') + '" data-comm2-pick-group-item="' + esc(g.id) + '">' +
+          pickCheckHtml(gOn, false) +
+          '<span class="comm2-pick-item__text"><span class="comm2-pick-item__name-row"><span class="comm2-pick-item__name">整类 · ' + esc(g.name) + '</span>' +
+          (gCount ? '<span class="comm2-pick-item__badge">已被添加设置' + gCount + '次</span>' : '') +
+          '</span></span></button></div>';
       }
     }
     if (!items.length && !html) {
@@ -1742,14 +1857,15 @@
           ? ('card:' + it.id + ':' + (store._pickBundle && store._pickBundle.cardRole || 'issue'))
           : ('item:' + type + ':' + it.id);
         var on = !!sel[ikey];
-        var configured = pickItemConfigured(sch, type, it.id, store._pickBundle && store._pickBundle.cardRole);
+        var coverN = pickItemCoverCount(sch, type, it.id, store._pickBundle && store._pickBundle.cardRole, excludeOvId);
         var blocked = pickItemBlocked(sch, type, it.id, sel);
-        var disabled = configured || blocked;
-        return '<div class="comm2-pick-item-wrap' + (on ? ' on' : '') + (configured ? ' is-configured' : '') + '">' +
-          '<button type="button" class="comm2-pick-item' + (on ? ' on' : '') + (disabled ? ' disabled' : '') + (configured ? ' is-configured' : '') + '" data-comm2-pick-item="' + esc(it.id) + '"' + (disabled ? ' disabled' : '') + '>' +
-          pickCheckHtml(on, configured) +
+        return '<div class="comm2-pick-item-wrap' + (on ? ' on' : '') + '">' +
+          '<button type="button" class="comm2-pick-item' + (on ? ' on' : '') + (blocked ? ' disabled' : '') + '" data-comm2-pick-item="' + esc(it.id) + '"' + (blocked ? ' disabled' : '') + '>' +
+          pickCheckHtml(on, false) +
           '<span class="comm2-pick-item__text">' +
-          '<span class="comm2-pick-item__name">' + esc(it.name) + '</span>' +
+          '<span class="comm2-pick-item__name-row"><span class="comm2-pick-item__name">' + esc(it.name) + '</span>' +
+          (coverN ? '<span class="comm2-pick-item__badge">已被添加设置' + coverN + '次</span>' : '') +
+          '</span>' +
           (it.sub ? '<span class="comm2-pick-item__sub">' + esc(it.sub) + '</span>' : '') +
           '</span></button></div>';
       }).join('');
@@ -1802,7 +1918,6 @@
     var g = comm2Groups(type).find(function (x) { return x.id === groupId; });
     if (!g) return;
     var key = 'group:' + type + ':' + groupId;
-    if (coveredTargetKeys(sch)[key]) return;
     if (store._pickSel[key]) delete store._pickSel[key];
     else {
       clearItemsInGroup(type, groupId);
@@ -1817,6 +1932,7 @@
     store._pickSel = {};
     store._pickBundle = null;
     store._sheetContext = null;
+    store._editOverrideId = null;
     var mask = $('comm2CatSheetMask');
     if (mask) mask.classList.remove('open');
     openEdit(store.editingId);
@@ -1825,6 +1941,7 @@
   function openRulePick() {
     var sch = editing();
     if (!sch) return;
+    store._editOverrideId = null;
     store._pickType = 'project';
     store._pickGroup = 'all';
     store._sheetContext = null;
@@ -1897,10 +2014,142 @@
     closeRuleCardMenus();
     closeAllRuleSwipes();
     sch.overrides = list.slice(0, idx).concat(list.slice(idx + 1));
-    store._undoOverride = { schemeId: sch.id, ov: hit, index: idx };
+    store._undoOverride = null;
     markDirty();
     renderEditCards(sch);
-    showDeleteUndoToast();
+    toast('已删除规则项');
+  }
+
+  function requestDeleteOverride(id) {
+    var sch = editing();
+    if (!sch || !id) return;
+    var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
+    if (!hit) return;
+    if (isQuickOverride(hit)) { toast('系统规则不可删除', true); return; }
+    closeRuleCardMenus();
+    closeAllRuleSwipes();
+    if (!confirm('确定删除该规则项？删除后不可撤销。')) return;
+    softDeleteOverride(id);
+  }
+
+  function renameOverrideTitle(id) {
+    var sch = editing();
+    if (!sch || !id) return;
+    var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
+    if (!hit || isQuickOverride(hit)) return;
+    closeRuleCardMenus();
+    var cur = hit.title || '';
+    var next = window.prompt('重命名规则项（最多 6 字）', cur);
+    if (next == null) return;
+    next = String(next).trim();
+    if (!next) { toast('名称不能为空', true); return; }
+    if (titleCharCount(next) > 6) { toast('标题最多 6 个字', true); return; }
+    hit.title = next;
+    markDirty();
+    renderEditCards(sch);
+    toast('已重命名');
+  }
+
+  function openOverrideRetarget(id) {
+    var sch = editing();
+    if (!sch || !id) return;
+    var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
+    if (!hit || isQuickOverride(hit)) return;
+    closeRuleCardMenus();
+    store._editOverrideId = id;
+    store._pickType = (hit.targets && hit.targets[0] && hit.targets[0].kind === 'product')
+      ? 'product'
+      : ((hit.targets && hit.targets[0] && hit.targets[0].kind === 'card') ? 'card' : 'project');
+    store._pickGroup = 'all';
+    store._pickSel = {};
+    (hit.targets || []).forEach(function (t) {
+      var key;
+      if (t.kind === 'group') key = 'group:' + (t.groupKind || 'project') + ':' + t.refId;
+      else if (t.kind === 'card') key = 'card:' + t.refId + ':' + (t.cardRole || 'issue');
+      else key = 'item:' + t.kind + ':' + t.refId;
+      store._pickSel[key] = t;
+    });
+    store._pickBundle = {
+      targets: (hit.targets || []).slice(),
+      payScope: JSON.parse(JSON.stringify(hit.payScope || defaultPayScope())),
+      baseMode: hit.baseMode || 'list',
+      pickMode: hit.pickMode || 'avg',
+      rule: JSON.parse(JSON.stringify(ensureCat(hit.rule, getStationIds(sch)))),
+      belongCat: hit.belongCat || 'labor',
+      cardRole: hit.cardRole || 'issue',
+      title: hit.title || ''
+    };
+    show('screen-comm2-pick');
+    goNav('comm2-pick');
+    var t = $('comm2PickScreenTitle');
+    if (t) t.textContent = '选择适用项';
+    renderPickScreen();
+  }
+
+  /** 工位改名/新增全局同步到本店全部方案 */
+  function applyStationsGlobal(stationIds, stationLabels) {
+    function applyOne(sch) {
+      if (!sch) return;
+      sch.stationIds = stationIds.slice();
+      sch.stationLabels = JSON.parse(JSON.stringify(stationLabels || {}));
+      function ensureBlock(b) {
+        if (!b) return;
+        b.rule = ensureCat(b.rule, stationIds);
+      }
+      COMM2_CATS.forEach(function (c) { ensureBlock(sch.defaults && sch.defaults[c.key]); });
+      (sch.overrides || []).forEach(ensureBlock);
+    }
+    applyOne(store._draft);
+    (store.schemes || []).forEach(applyOne);
+  }
+
+  function commitStationRename(sid, name) {
+    var sch = editing();
+    if (!sch || !sid) return;
+    name = String(name || '').trim();
+    if (!name) { toast('名称不能为空', true); return; }
+    if (titleCharCount(name) > 6) { toast('工位名最多 6 个字', true); return; }
+    if (!sch.stationLabels) sch.stationLabels = defaultStationLabels();
+    if (!sch.stationLabels[sid]) sch.stationLabels[sid] = {};
+    sch.stationLabels[sid].label = name;
+    store._stationInlineEditId = null;
+    applyStationsGlobal(getStationIds(sch), sch.stationLabels);
+    markDirty();
+    renderEditCards(sch);
+    maybeRefreshOpenCardSheet();
+  }
+
+  function beginAddStation() {
+    var sch = editing();
+    if (!sch) return;
+    if (getStationIds(sch).length >= 3) { toast('最多 3 个工位', true); return; }
+    store._stationAdding = true;
+    store._stationInlineEditId = null;
+    refreshCardSheetBody();
+    setTimeout(function () {
+      var input = document.querySelector('[data-comm2-station-add-input]');
+      if (input) { input.focus(); input.select(); }
+    }, 30);
+  }
+
+  function commitAddStation(name) {
+    var sch = editing();
+    if (!sch) return;
+    name = String(name || '').trim();
+    if (!name) { toast('名称不能为空', true); return; }
+    if (titleCharCount(name) > 6) { toast('工位名最多 6 个字', true); return; }
+    var ids = getStationIds(sch);
+    if (ids.length >= 3) { toast('最多 3 个工位', true); return; }
+    var newId = 'stn_' + Date.now().toString(36);
+    ids.push(newId);
+    if (!sch.stationLabels) sch.stationLabels = defaultStationLabels();
+    sch.stationLabels[newId] = { label: name };
+    store._stationAdding = false;
+    applyStationsGlobal(ids, sch.stationLabels);
+    markDirty();
+    renderEditCards(sch);
+    maybeRefreshOpenCardSheet();
+    toast('已添加工位');
   }
 
   function undoOverrideDelete() {
@@ -1918,63 +2167,73 @@
     toast('已撤销删除');
   }
 
-  function closeRuleCardMenus(except) {
+  function closeRuleCardMenus() {
     document.querySelectorAll('.comm2-rule-bar.is-menu-open').forEach(function (el) {
-      if (el !== except) el.classList.remove('is-menu-open');
+      el.classList.remove('is-menu-open');
     });
-    document.querySelectorAll('.comm2-rule-swipe.is-menu-host').forEach(function (el) {
-      var card = el.querySelector('.comm2-rule-bar');
-      if (!except || card !== except) el.classList.remove('is-menu-host');
+    document.querySelectorAll('.comm2-rule-swipe-wrap.is-menu-host, .comm2-rule-swipe.is-menu-host').forEach(function (el) {
+      el.classList.remove('is-menu-host');
     });
+    closeSheet('comm2OverrideActionMask');
+    store._overrideActionId = null;
   }
 
   function openRuleCardMenu(card) {
     if (!card || !card.classList.contains('is-override')) return;
+    var id = card.getAttribute('data-comm2-ov-id');
+    if (!id) return;
     closeAllRuleSwipes();
-    closeRuleCardMenus(card);
-    card.classList.add('is-menu-open');
-    var swipe = card.closest('.comm2-rule-swipe');
-    if (swipe) swipe.classList.add('is-menu-host');
+    store._overrideActionId = id;
     store._gestureConsumed = true;
+    openSheet('comm2OverrideActionMask');
+  }
+
+  function runOverrideAction(act) {
+    var id = store._overrideActionId;
+    closeRuleCardMenus();
+    if (!id) return;
+    if (act === 'retarget') openOverrideRetarget(id);
+    else if (act === 'rename') renameOverrideTitle(id);
+    else if (act === 'delete') requestDeleteOverride(id);
   }
 
   function setRuleSwipeX(swipe, x, dragging) {
     if (!swipe) return;
-    var clamped = Math.min(0, x);
-    if (dragging) swipe.classList.add('is-dragging');
-    else swipe.classList.remove('is-dragging');
+    var wrap = swipe.closest('.comm2-rule-swipe-wrap') || swipe;
+    var max = 72;
+    var clamped = Math.max(-max, Math.min(0, x));
+    if (dragging) wrap.classList.add('is-dragging');
+    else wrap.classList.remove('is-dragging');
     swipe.style.transform = clamped ? ('translateX(' + clamped + 'px)') : '';
   }
 
   function snapRuleSwipe(swipe, open) {
-    /* open 已废弃：松手不吸附到半开，仅回弹或飞出 */
     if (!swipe) return;
-    swipe.classList.remove('is-dragging', 'is-open');
-    swipe.style.transition = '';
-    swipe.style.transform = '';
-    swipe.style.opacity = '';
+    var wrap = swipe.closest('.comm2-rule-swipe-wrap');
+    swipe.classList.remove('is-dragging');
+    if (wrap) wrap.classList.remove('is-dragging');
+    swipe.style.transition = 'transform .22s cubic-bezier(.22,.82,.24,1)';
+    if (open) {
+      swipe.style.transform = 'translateX(-72px)';
+      if (wrap) wrap.classList.add('is-open');
+    } else {
+      swipe.style.transform = '';
+      if (wrap) wrap.classList.remove('is-open');
+    }
+    setTimeout(function () { swipe.style.transition = ''; }, 220);
   }
 
   function closeAllRuleSwipes(except) {
-    document.querySelectorAll('.comm2-rule-swipe').forEach(function (el) {
-      if (el === except) return;
-      if (el.classList.contains('is-exiting')) return;
-      snapRuleSwipe(el, false);
+    document.querySelectorAll('.comm2-rule-swipe-wrap, .comm2-rule-swipe').forEach(function (el) {
+      if (el === except || (except && el.contains(except))) return;
+      var swipe = el.classList.contains('comm2-rule-swipe') ? el : el.querySelector('.comm2-rule-swipe');
+      if (swipe) snapRuleSwipe(swipe, false);
     });
   }
 
   function flyOutAndDelete(swipe) {
-    if (!swipe || swipe.classList.contains('is-exiting')) return;
-    var id = swipe.getAttribute('data-comm2-swipe-ov');
-    var w = swipe.offsetWidth || 320;
-    swipe.classList.add('is-exiting', 'is-dragging');
-    swipe.style.transition = 'transform .28s cubic-bezier(.4,0,.2,1), opacity .28s ease';
-    swipe.style.transform = 'translateX(-' + (w + 48) + 'px)';
-    swipe.style.opacity = '0';
-    store._gestureConsumed = true;
-    setTimeout(function () {
-      softDeleteOverride(id);
-    }, 280);
+    /* 改为吸附露出垃圾桶，由点击垃圾桶确认删除 */
+    snapRuleSwipe(swipe, true);
   }
 
   function wireRuleCardGestures() {
@@ -1996,20 +2255,11 @@
       var gesture = st;
       var doClick = !gesture.longFired && !gesture.swiping && gesture.target && !(e && e.type === 'pointercancel');
       if (gesture.swiping && gesture.swipe && !gesture.swipe.classList.contains('is-exiting')) {
-        var w = gesture.swipe.offsetWidth || 320;
-        var threshold = w * 0.4;
-        var shouldDelete = gesture.dx <= -threshold || (gesture.dx < -48 && gesture.vx < -0.45);
+        var shouldOpen = gesture.dx <= -48 || (gesture.dx < -24 && gesture.vx < -0.35);
         var swipeEl = gesture.swipe;
         var moved = gesture.moved;
-        if (shouldDelete) {
-          flyOutAndDelete(swipeEl);
-        } else {
-          swipeEl.classList.remove('is-dragging');
-          swipeEl.style.transition = 'transform .22s cubic-bezier(.22,.82,.24,1)';
-          swipeEl.style.transform = '';
-          setTimeout(function () { swipeEl.style.transition = ''; }, 220);
-          if (moved) store._gestureConsumed = true;
-        }
+        snapRuleSwipe(swipeEl, shouldOpen);
+        if (moved) store._gestureConsumed = true;
       }
       st = null;
       if (doClick) {
@@ -2021,16 +2271,18 @@
 
     root.addEventListener('pointerdown', function (e) {
       if (e.button != null && e.button !== 0) return;
-      if (e.target.closest('[data-comm2-bar-base-toggle], [data-comm2-bar-scope], [data-comm2-override-del], .comm2-rule-bar__menu')) {
+      if (e.target.closest('[data-comm2-bar-base-toggle], [data-comm2-bar-scope], [data-comm2-swipe-del]')) {
         return;
       }
-      var swipe = e.target.closest('.comm2-rule-swipe');
+      var wrap = e.target.closest('.comm2-rule-swipe-wrap');
+      var swipe = wrap ? wrap.querySelector('.comm2-rule-swipe') : e.target.closest('.comm2-rule-swipe');
       var card = e.target.closest('.comm2-rule-bar.is-override');
       if (!swipe && !card) {
         closeRuleCardMenus();
+        closeAllRuleSwipes();
         return;
       }
-      closeRuleCardMenus(card);
+      closeRuleCardMenus();
       st = {
         swipe: swipe,
         card: card || (swipe && swipe.querySelector('.comm2-rule-bar')),
@@ -2227,11 +2479,10 @@
     });
 
     $('comm2EditCards') && $('comm2EditCards').addEventListener('click', function (e) {
-      var delBtn = e.target.closest('[data-comm2-override-del]');
-      if (delBtn) {
+      var swipeDel = e.target.closest('[data-comm2-swipe-del]');
+      if (swipeDel) {
         e.preventDefault(); e.stopPropagation();
-        closeRuleCardMenus();
-        softDeleteOverride(delBtn.getAttribute('data-comm2-override-del'));
+        requestDeleteOverride(swipeDel.getAttribute('data-comm2-swipe-del'));
         return;
       }
       if (store._gestureConsumed) {
@@ -2346,6 +2597,14 @@
     $('comm2OverrideDelMask') && $('comm2OverrideDelMask').addEventListener('click', function (e) {
       if (e.target === $('comm2OverrideDelMask')) closeDialog('comm2OverrideDelMask');
     });
+    $('comm2OverrideActionMask') && $('comm2OverrideActionMask').addEventListener('click', function (e) {
+      if (e.target === $('comm2OverrideActionMask')) {
+        closeRuleCardMenus();
+        return;
+      }
+      var actBtn = e.target.closest('[data-comm2-ov-act]');
+      if (actBtn) runOverrideAction(actBtn.getAttribute('data-comm2-ov-act'));
+    });
 
     $('comm2StationOk') && $('comm2StationOk').addEventListener('click', function () { closeSheet('comm2StationMask'); });
     $('comm2StationAdd') && $('comm2StationAdd').addEventListener('click', addStationRow);
@@ -2404,14 +2663,29 @@
       if (baseBtn) { setSheetBase(baseBtn.getAttribute('data-comm2-sheet-base')); return; }
       var pickBtn = e.target.closest('[data-comm2-sheet-pick]');
       if (pickBtn) {
-        var mode = pickBtn.getAttribute('data-comm2-sheet-pick');
-        var sch = editing();
-        var block = sch ? getSheetBlock(sch) : null;
-        if (mode === 'station' && block && block.pickMode === 'station') {
-          openStationSheet();
-          return;
-        }
-        setSheetPick(mode);
+        setSheetPick(pickBtn.getAttribute('data-comm2-sheet-pick'));
+        return;
+      }
+      var stEdit = e.target.closest('[data-comm2-station-inline-edit]');
+      if (stEdit) {
+        store._stationInlineEditId = stEdit.getAttribute('data-comm2-station-inline-edit');
+        store._stationAdding = false;
+        refreshCardSheetBody();
+        setTimeout(function () {
+          var input = document.querySelector('[data-comm2-station-inline-input]');
+          if (input) { input.focus(); input.select(); }
+        }, 30);
+        return;
+      }
+      var stAdd = e.target.closest('[data-comm2-station-add]');
+      if (stAdd && !stAdd.closest('.is-editing')) {
+        beginAddStation();
+        return;
+      }
+      var stAddOk = e.target.closest('[data-comm2-station-add-ok]');
+      if (stAddOk) {
+        var addInput = document.querySelector('[data-comm2-station-add-input]');
+        commitAddStation(addInput ? addInput.value : '');
         return;
       }
       var cardRoleBtn = e.target.closest('[data-comm2-sheet-card-role]');
@@ -2420,6 +2694,29 @@
       if (!btn) return;
       store._sheetMode = btn.getAttribute('data-comm2-valmode') === 'amount' ? 'amount' : 'pct';
       refreshCardSheetBody();
+    });
+    $('comm2CatSheetBody') && $('comm2CatSheetBody').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      var renameInput = e.target.closest('[data-comm2-station-inline-input]');
+      if (renameInput) {
+        e.preventDefault();
+        commitStationRename(renameInput.getAttribute('data-comm2-station-inline-input'), renameInput.value);
+        return;
+      }
+      var addInput = e.target.closest('[data-comm2-station-add-input]');
+      if (addInput) {
+        e.preventDefault();
+        commitAddStation(addInput.value);
+      }
+    });
+    $('comm2CatSheetBody') && $('comm2CatSheetBody').addEventListener('focusout', function (e) {
+      var renameInput = e.target.closest('[data-comm2-station-inline-input]');
+      if (renameInput) {
+        setTimeout(function () {
+          if (store._stationInlineEditId !== renameInput.getAttribute('data-comm2-station-inline-input')) return;
+          commitStationRename(renameInput.getAttribute('data-comm2-station-inline-input'), renameInput.value);
+        }, 80);
+      }
     });
 
     $('comm2CatSheetCancel') && $('comm2CatSheetCancel').addEventListener('click', closeCatSheet);
