@@ -1217,7 +1217,11 @@
     var input = $('comm2NameInput');
     var ok = $('comm2NameOk');
     if (title) title.textContent = mode === 'rename' ? '重命名方案' : '方案名称';
-    if (input) input.value = mode === 'rename' && sch ? sch.name : '';
+    if (input) {
+      input.value = mode === 'rename' && sch ? sch.name : '';
+      input.setAttribute('maxlength', '20');
+      input.placeholder = '请输入方案名称';
+    }
     if (ok) ok.textContent = mode === 'rename' ? '确定' : '创建';
     openDialog('comm2NameMask');
     setTimeout(function () { if (input) input.focus(); }, 60);
@@ -1226,6 +1230,27 @@
   function applyComm2Name() {
     var input = $('comm2NameInput');
     var name = input ? String(input.value).trim() : '';
+    if (store._nameMode === 'rename-override') {
+      if (!name) { toast('名称不能为空', true); return; }
+      if (titleCharCount(name) > 6) { toast('标题最多 6 个字', true); return; }
+      var editSch = editing();
+      var ovId = store._overrideActionId;
+      var hit = editSch && ovId
+        ? (editSch.overrides || []).find(function (o) { return o.id === ovId; })
+        : null;
+      closeDialog('comm2NameMask');
+      store._overrideActionId = null;
+      if (input) {
+        input.setAttribute('maxlength', '20');
+        input.placeholder = '请输入方案名称';
+      }
+      if (!hit) return;
+      hit.title = name;
+      markDirty();
+      renderEditCards(editSch);
+      toast('已重命名');
+      return;
+    }
     if (!name) { toast('请输入方案名称', true); return; }
     closeDialog('comm2NameMask');
     if (store._nameMode === 'rename') {
@@ -1957,14 +1982,6 @@
     softDeleteOverride(id);
   }
 
-  function confirmOverrideDelete() {
-    /* 保留 Dialog 入口兼容；卡片删除已改为直接删 + 撤销 */
-    var id = store._overrideDelId;
-    closeDialog('comm2OverrideDelMask');
-    store._overrideDelId = null;
-    if (id) softDeleteOverride(id);
-  }
-
   var RULE_LONG_MS = 480;
   var RULE_UNDO_MS = 2500;
   var _undoToastTimer = null;
@@ -2028,8 +2045,8 @@
     if (isQuickOverride(hit)) { toast('系统规则不可删除', true); return; }
     closeRuleCardMenus();
     closeAllRuleSwipes();
-    if (!confirm('确定删除该规则项？删除后不可撤销。')) return;
-    softDeleteOverride(id);
+    store._overrideDelId = id;
+    openDialog('comm2OverrideDelMask');
   }
 
   function renameOverrideTitle(id) {
@@ -2038,16 +2055,20 @@
     var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
     if (!hit || isQuickOverride(hit)) return;
     closeRuleCardMenus();
-    var cur = hit.title || '';
-    var next = window.prompt('重命名规则项（最多 6 字）', cur);
-    if (next == null) return;
-    next = String(next).trim();
-    if (!next) { toast('名称不能为空', true); return; }
-    if (titleCharCount(next) > 6) { toast('标题最多 6 个字', true); return; }
-    hit.title = next;
-    markDirty();
-    renderEditCards(sch);
-    toast('已重命名');
+    store._nameMode = 'rename-override';
+    store._overrideActionId = id;
+    var title = $('comm2NameTitle');
+    var input = $('comm2NameInput');
+    var ok = $('comm2NameOk');
+    if (title) title.textContent = '重命名规则项';
+    if (input) {
+      input.value = hit.title || '';
+      input.setAttribute('maxlength', '6');
+      input.placeholder = '最多 6 个字';
+    }
+    if (ok) ok.textContent = '确定';
+    openDialog('comm2NameMask');
+    setTimeout(function () { if (input) { input.focus(); input.select && input.select(); } }, 60);
   }
 
   function openOverrideRetarget(id) {
@@ -2190,8 +2211,11 @@
 
   function runOverrideAction(act) {
     var id = store._overrideActionId;
+    if (!id || !act) {
+      closeRuleCardMenus();
+      return;
+    }
     closeRuleCardMenus();
-    if (!id) return;
     if (act === 'retarget') openOverrideRetarget(id);
     else if (act === 'rename') renameOverrideTitle(id);
     else if (act === 'delete') requestDeleteOverride(id);
@@ -2344,10 +2368,12 @@
     });
 
     document.addEventListener('pointerdown', function (e) {
-      if (!e.target.closest('#comm2EditCards')) {
-        closeRuleCardMenus();
-        closeAllRuleSwipes();
+      /* Sheet / 删除确认上的点按不能当作「点外面」——否则会先清掉 _overrideActionId，三项点击无反应 */
+      if (e.target.closest('#comm2EditCards, #comm2OverrideActionMask, #comm2OverrideDelMask')) {
+        return;
       }
+      closeRuleCardMenus();
+      closeAllRuleSwipes();
     }, true);
   }
 
@@ -2543,10 +2569,28 @@
     });
 
     /* 命名弹窗（新建 / 重命名） */
-    $('comm2NameCancel') && $('comm2NameCancel').addEventListener('click', function () { closeDialog('comm2NameMask'); });
+    $('comm2NameCancel') && $('comm2NameCancel').addEventListener('click', function () {
+      var input = $('comm2NameInput');
+      if (input) {
+        input.setAttribute('maxlength', '20');
+        input.placeholder = '请输入方案名称';
+      }
+      store._overrideActionId = null;
+      if (store._nameMode === 'rename-override') store._nameMode = null;
+      closeDialog('comm2NameMask');
+    });
     $('comm2NameOk') && $('comm2NameOk').addEventListener('click', applyComm2Name);
     $('comm2NameMask') && $('comm2NameMask').addEventListener('click', function (e) {
-      if (e.target === $('comm2NameMask')) closeDialog('comm2NameMask');
+      if (e.target === $('comm2NameMask')) {
+        var input = $('comm2NameInput');
+        if (input) {
+          input.setAttribute('maxlength', '20');
+          input.placeholder = '请输入方案名称';
+        }
+        store._overrideActionId = null;
+        if (store._nameMode === 'rename-override') store._nameMode = null;
+        closeDialog('comm2NameMask');
+      }
     });
 
     /* 删除确认 */
