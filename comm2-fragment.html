@@ -95,7 +95,7 @@
       <h4>不分工位</h4>
       <p>开单无需选择工位，按点客/散客统一提成。</p>
       <h4>按工位分配</h4>
-      <p>按大/中/小工分别设置提成，各工位在方案中单独配置。</p>
+      <p>固定大/中/小工，可改名，不可增减；改名全局同步。</p>
     </div>
     <div class="dialog__actions dialog__actions--single">
       <button type="button" class="btn-main" id="comm2PickHelpOk">知道了</button>
@@ -210,19 +210,6 @@
       <button type="button" class="btn-main secondary" id="comm2OverrideDelCancel">取消</button>
       <button type="button" class="btn-main" id="comm2OverrideDelOk">确认删除</button>
     </div>
-  </div>
-</div>
-
-<div class="picker-mask picker-mask--bottom" id="comm2OverrideActionMask">
-  <div class="picker-sheet picker-sheet--menu">
-    <div class="catalog-action-card">
-      <div class="catalog-action-list">
-        <button type="button" class="catalog-action-item" data-comm2-ov-act="retarget">选择适用项</button>
-        <button type="button" class="catalog-action-item" data-comm2-ov-act="rename">重命名</button>
-        <button type="button" class="catalog-action-item catalog-action-item--danger" data-comm2-ov-act="delete">删除</button>
-      </div>
-    </div>
-    <div class="catalog-action-safe" aria-hidden="true"></div>
   </div>
 </div>
 

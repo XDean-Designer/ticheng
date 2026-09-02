@@ -24,7 +24,7 @@
   };
   var PICK_BRIEF = {
     avg: '开单不分工位，按点客/散客统一提成',
-    station: '大/中/小工在分类里分别设提成'
+    station: '固定大/中/小工，可改名，不可增减；改名全局同步'
   };
   var COMM2_QUICK_OV_ID = 'ov_sys_quick';
   var COMM2_QUICK_REF = 'quick';
@@ -808,6 +808,32 @@
     return Array.from(String(s || '')).length;
   }
 
+  /** 覆盖卡标题：整类优先，再按名称排序；1 项全名，2 项过长则「A等2项」，≥3「首项等N项」 */
+  function buildOverrideTitle(targets) {
+    var list = (targets || []).slice();
+    function displayName(t) {
+      if (!t) return '';
+      if (t.kind === 'group') return '整类·' + (t.name || '');
+      if (t.kind === 'card') return (t.name || '') + '·' + (t.cardRole === 'card' ? '充卡' : '办卡');
+      return t.name || '';
+    }
+    list.sort(function (a, b) {
+      var ag = a && a.kind === 'group' ? 0 : 1;
+      var bg = b && b.kind === 'group' ? 0 : 1;
+      if (ag !== bg) return ag - bg;
+      return String((a && a.name) || '').localeCompare(String((b && b.name) || ''), 'zh');
+    });
+    var names = list.map(displayName).filter(function (n) { return !!n; });
+    if (!names.length) return '未命名';
+    if (names.length === 1) return names[0];
+    if (names.length === 2) {
+      var joined = names[0] + '、' + names[1];
+      if (titleCharCount(joined) > 12) return names[0] + '等2项';
+      return joined;
+    }
+    return names[0] + '等' + names.length + '项';
+  }
+
   /* Stratis UI Icons · 线性：edit-02（提成参数可编辑） */
   function editIconSvg() {
     return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -1230,27 +1256,6 @@
   function applyComm2Name() {
     var input = $('comm2NameInput');
     var name = input ? String(input.value).trim() : '';
-    if (store._nameMode === 'rename-override') {
-      if (!name) { toast('名称不能为空', true); return; }
-      if (titleCharCount(name) > 6) { toast('标题最多 6 个字', true); return; }
-      var editSch = editing();
-      var ovId = store._overrideActionId;
-      var hit = editSch && ovId
-        ? (editSch.overrides || []).find(function (o) { return o.id === ovId; })
-        : null;
-      closeDialog('comm2NameMask');
-      store._overrideActionId = null;
-      if (input) {
-        input.setAttribute('maxlength', '20');
-        input.placeholder = '请输入方案名称';
-      }
-      if (!hit) return;
-      hit.title = name;
-      markDirty();
-      renderEditCards(editSch);
-      toast('已重命名');
-      return;
-    }
     if (!name) { toast('请输入方案名称', true); return; }
     closeDialog('comm2NameMask');
     if (store._nameMode === 'rename') {
@@ -1452,15 +1457,6 @@
             : '<button type="button" class="comm2-sheet-station__name" data-comm2-station-inline-edit="' + esc(sid) + '" aria-label="改名工位"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">' + esc(stationLabel(sch, sid)) + '</span><span class="comm2-sheet-station__edit" aria-hidden="true">' + editIconSvg() + '</span></button>') +
           twinHtml('st.' + sid + '.', st, isAmt, stationLabel(sch, sid)) + '</div>';
       });
-      if (ids.length < 3) {
-        if (store._stationAdding) {
-          html += '<div class="comm2-sheet-station-add is-editing">' +
-            '<input type="text" class="comm2-sheet-station__input" maxlength="6" placeholder="输入工位名称" data-comm2-station-add-input />' +
-            '<button type="button" class="comm2-sheet-station-add__ok" data-comm2-station-add-ok>添加</button></div>';
-        } else {
-          html += '<button type="button" class="comm2-sheet-station-add" data-comm2-station-add>+ 添加工位</button>';
-        }
-      }
     } else {
       html += twinHtml('base.', rule, isAmt, '点客散客');
     }
@@ -1508,7 +1504,6 @@
     store._cardTarget = target;
     store._sheetVariant = opts.variant === 'params' ? 'params' : 'full';
     store._stationInlineEditId = null;
-    store._stationAdding = false;
     var p = parseCardTarget(target);
     var title = p.type === 'default'
       ? ((COMM2_CATS.find(function (c) { return c.key === p.id; }) || {}).label || '')
@@ -1608,7 +1603,7 @@
     if (err) { toast(err, true); return; }
     b.rule = rule;
     if (!sch.overrides) sch.overrides = [];
-    var title = (b.targets || []).map(function (t) { return t.name; }).join('、') || (b.title || '未命名');
+    var title = buildOverrideTitle(b.targets) || b.title || '未命名';
     if (store._editOverrideId) {
       var hit = sch.overrides.find(function (o) { return o.id === store._editOverrideId; });
       if (hit) {
@@ -1856,7 +1851,6 @@
     if (!sch) return;
     var type = store._pickType || 'project';
     var items = pickVisibleItems();
-    var excludeOvId = store._editOverrideId || null;
     var sel = store._pickSel || {};
     var gid = store._pickGroup;
     var html = '';
@@ -1865,12 +1859,10 @@
       if (g) {
         var gkey = 'group:' + type + ':' + g.id;
         var gOn = !!sel[gkey];
-        var gCount = coveredTargetCount(sch, gkey, excludeOvId);
         html += '<div class="comm2-pick-item-wrap comm2-pick-group-row' + (gOn ? ' on' : '') + '">' +
           '<button type="button" class="comm2-pick-item' + (gOn ? ' on' : '') + '" data-comm2-pick-group-item="' + esc(g.id) + '">' +
           pickCheckHtml(gOn, false) +
           '<span class="comm2-pick-item__text"><span class="comm2-pick-item__name-row"><span class="comm2-pick-item__name">整类 · ' + esc(g.name) + '</span>' +
-          (gCount ? '<span class="comm2-pick-item__badge">已被添加设置' + gCount + '次</span>' : '') +
           '</span></span></button></div>';
       }
     }
@@ -1882,14 +1874,12 @@
           ? ('card:' + it.id + ':' + (store._pickBundle && store._pickBundle.cardRole || 'issue'))
           : ('item:' + type + ':' + it.id);
         var on = !!sel[ikey];
-        var coverN = pickItemCoverCount(sch, type, it.id, store._pickBundle && store._pickBundle.cardRole, excludeOvId);
         var blocked = pickItemBlocked(sch, type, it.id, sel);
         return '<div class="comm2-pick-item-wrap' + (on ? ' on' : '') + '">' +
           '<button type="button" class="comm2-pick-item' + (on ? ' on' : '') + (blocked ? ' disabled' : '') + '" data-comm2-pick-item="' + esc(it.id) + '"' + (blocked ? ' disabled' : '') + '>' +
           pickCheckHtml(on, false) +
           '<span class="comm2-pick-item__text">' +
           '<span class="comm2-pick-item__name-row"><span class="comm2-pick-item__name">' + esc(it.name) + '</span>' +
-          (coverN ? '<span class="comm2-pick-item__badge">已被添加设置' + coverN + '次</span>' : '') +
           '</span>' +
           (it.sub ? '<span class="comm2-pick-item__sub">' + esc(it.sub) + '</span>' : '') +
           '</span></button></div>';
@@ -1923,7 +1913,6 @@
     var key = type === 'card'
       ? ('card:' + id + ':' + store._pickBundle.cardRole)
       : ('item:' + type + ':' + id);
-    if (coveredTargetKeys(sch)[key]) return;
     if (store._pickSel[key]) delete store._pickSel[key];
     else {
       clearGroupsContainingItem(type, id);
@@ -1982,7 +1971,6 @@
     softDeleteOverride(id);
   }
 
-  var RULE_LONG_MS = 480;
   var RULE_UNDO_MS = 2500;
   var _undoToastTimer = null;
 
@@ -2028,7 +2016,6 @@
     }
     if (!hit) return;
     if (isQuickOverride(hit)) { toast('系统规则不可删除', true); return; }
-    closeRuleCardMenus();
     closeAllRuleSwipes();
     sch.overrides = list.slice(0, idx).concat(list.slice(idx + 1));
     store._undoOverride = null;
@@ -2043,71 +2030,12 @@
     var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
     if (!hit) return;
     if (isQuickOverride(hit)) { toast('系统规则不可删除', true); return; }
-    closeRuleCardMenus();
     closeAllRuleSwipes();
     store._overrideDelId = id;
     openDialog('comm2OverrideDelMask');
   }
 
-  function renameOverrideTitle(id) {
-    var sch = editing();
-    if (!sch || !id) return;
-    var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
-    if (!hit || isQuickOverride(hit)) return;
-    closeRuleCardMenus();
-    store._nameMode = 'rename-override';
-    store._overrideActionId = id;
-    var title = $('comm2NameTitle');
-    var input = $('comm2NameInput');
-    var ok = $('comm2NameOk');
-    if (title) title.textContent = '重命名规则项';
-    if (input) {
-      input.value = hit.title || '';
-      input.setAttribute('maxlength', '6');
-      input.placeholder = '最多 6 个字';
-    }
-    if (ok) ok.textContent = '确定';
-    openDialog('comm2NameMask');
-    setTimeout(function () { if (input) { input.focus(); input.select && input.select(); } }, 60);
-  }
-
-  function openOverrideRetarget(id) {
-    var sch = editing();
-    if (!sch || !id) return;
-    var hit = (sch.overrides || []).find(function (o) { return o.id === id; });
-    if (!hit || isQuickOverride(hit)) return;
-    closeRuleCardMenus();
-    store._editOverrideId = id;
-    store._pickType = (hit.targets && hit.targets[0] && hit.targets[0].kind === 'product')
-      ? 'product'
-      : ((hit.targets && hit.targets[0] && hit.targets[0].kind === 'card') ? 'card' : 'project');
-    store._pickGroup = 'all';
-    store._pickSel = {};
-    (hit.targets || []).forEach(function (t) {
-      var key;
-      if (t.kind === 'group') key = 'group:' + (t.groupKind || 'project') + ':' + t.refId;
-      else if (t.kind === 'card') key = 'card:' + t.refId + ':' + (t.cardRole || 'issue');
-      else key = 'item:' + t.kind + ':' + t.refId;
-      store._pickSel[key] = t;
-    });
-    store._pickBundle = {
-      targets: (hit.targets || []).slice(),
-      payScope: JSON.parse(JSON.stringify(hit.payScope || defaultPayScope())),
-      baseMode: hit.baseMode || 'list',
-      pickMode: hit.pickMode || 'avg',
-      rule: JSON.parse(JSON.stringify(ensureCat(hit.rule, getStationIds(sch)))),
-      belongCat: hit.belongCat || 'labor',
-      cardRole: hit.cardRole || 'issue',
-      title: hit.title || ''
-    };
-    show('screen-comm2-pick');
-    goNav('comm2-pick');
-    var t = $('comm2PickScreenTitle');
-    if (t) t.textContent = '选择适用项';
-    renderPickScreen();
-  }
-
-  /** 工位改名/新增全局同步到本店全部方案 */
+  /** 工位改名全局同步；不可新增 */
   function applyStationsGlobal(stationIds, stationLabels) {
     function applyOne(sch) {
       if (!sch) return;
@@ -2140,39 +2068,6 @@
     maybeRefreshOpenCardSheet();
   }
 
-  function beginAddStation() {
-    var sch = editing();
-    if (!sch) return;
-    if (getStationIds(sch).length >= 3) { toast('最多 3 个工位', true); return; }
-    store._stationAdding = true;
-    store._stationInlineEditId = null;
-    refreshCardSheetBody();
-    setTimeout(function () {
-      var input = document.querySelector('[data-comm2-station-add-input]');
-      if (input) { input.focus(); input.select(); }
-    }, 30);
-  }
-
-  function commitAddStation(name) {
-    var sch = editing();
-    if (!sch) return;
-    name = String(name || '').trim();
-    if (!name) { toast('名称不能为空', true); return; }
-    if (titleCharCount(name) > 6) { toast('工位名最多 6 个字', true); return; }
-    var ids = getStationIds(sch);
-    if (ids.length >= 3) { toast('最多 3 个工位', true); return; }
-    var newId = 'stn_' + Date.now().toString(36);
-    ids.push(newId);
-    if (!sch.stationLabels) sch.stationLabels = defaultStationLabels();
-    sch.stationLabels[newId] = { label: name };
-    store._stationAdding = false;
-    applyStationsGlobal(ids, sch.stationLabels);
-    markDirty();
-    renderEditCards(sch);
-    maybeRefreshOpenCardSheet();
-    toast('已添加工位');
-  }
-
   function undoOverrideDelete() {
     var u = store._undoOverride;
     var sch = editing();
@@ -2195,30 +2090,6 @@
     document.querySelectorAll('.comm2-rule-swipe-wrap.is-menu-host, .comm2-rule-swipe.is-menu-host').forEach(function (el) {
       el.classList.remove('is-menu-host');
     });
-    closeSheet('comm2OverrideActionMask');
-    store._overrideActionId = null;
-  }
-
-  function openRuleCardMenu(card) {
-    if (!card || !card.classList.contains('is-override')) return;
-    var id = card.getAttribute('data-comm2-ov-id');
-    if (!id) return;
-    closeAllRuleSwipes();
-    store._overrideActionId = id;
-    store._gestureConsumed = true;
-    openSheet('comm2OverrideActionMask');
-  }
-
-  function runOverrideAction(act) {
-    var id = store._overrideActionId;
-    if (!id || !act) {
-      closeRuleCardMenus();
-      return;
-    }
-    closeRuleCardMenus();
-    if (act === 'retarget') openOverrideRetarget(id);
-    else if (act === 'rename') renameOverrideTitle(id);
-    else if (act === 'delete') requestDeleteOverride(id);
   }
 
   function setRuleSwipeX(swipe, x, dragging) {
@@ -2266,18 +2137,10 @@
     root._ruleGesturesWired = true;
     var st = null;
 
-    function clearLong() {
-      if (st && st.longTimer) {
-        clearTimeout(st.longTimer);
-        st.longTimer = null;
-      }
-    }
-
     function endGesture(e) {
       if (!st) return;
-      clearLong();
       var gesture = st;
-      var doClick = !gesture.longFired && !gesture.swiping && gesture.target && !(e && e.type === 'pointercancel');
+      var doClick = !gesture.swiping && gesture.target && !(e && e.type === 'pointercancel');
       if (gesture.swiping && gesture.swipe && !gesture.swipe.classList.contains('is-exiting')) {
         var shouldOpen = gesture.dx <= -48 || (gesture.dx < -24 && gesture.vx < -0.35);
         var swipeEl = gesture.swipe;
@@ -2318,18 +2181,9 @@
         vx: 0,
         moved: false,
         swiping: false,
-        longFired: false,
-        longTimer: null,
         lastX: e.clientX,
         lastT: Date.now()
       };
-      if (st.card) {
-        st.longTimer = setTimeout(function () {
-          if (!st || st.moved || st.swiping) return;
-          st.longFired = true;
-          openRuleCardMenu(st.card);
-        }, RULE_LONG_MS);
-      }
       try { root.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
     });
 
@@ -2345,12 +2199,10 @@
       st.dx = dx;
       if (!st.moved && (Math.abs(dx) > 6 || Math.abs(dy) > 6)) {
         st.moved = true;
-        clearLong();
       }
       if (!st.swipe) return;
       if (!st.swiping && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.15) {
         st.swiping = true;
-        clearLong();
         closeRuleCardMenus();
         closeAllRuleSwipes(st.swipe);
       }
@@ -2368,8 +2220,7 @@
     });
 
     document.addEventListener('pointerdown', function (e) {
-      /* Sheet / 删除确认上的点按不能当作「点外面」——否则会先清掉 _overrideActionId，三项点击无反应 */
-      if (e.target.closest('#comm2EditCards, #comm2OverrideActionMask, #comm2OverrideDelMask')) {
+      if (e.target.closest('#comm2EditCards, #comm2OverrideDelMask')) {
         return;
       }
       closeRuleCardMenus();
@@ -2412,7 +2263,7 @@
     ids.forEach(function (sid) {
       if (store._stationEditId === sid) {
         html += '<div class="comm2-station-sheet-edit">' +
-          '<input type="text" maxlength="4" data-comm2-station-input="' + esc(sid) + '" value="' + esc(stationLabel(sch, sid)) + '" />' +
+          '<input type="text" maxlength="6" data-comm2-station-input="' + esc(sid) + '" value="' + esc(stationLabel(sch, sid)) + '" />' +
           '<div class="comm2-station-sheet-edit__acts">' +
           '<button type="button" class="comm2-station-sheet-edit__reset" data-comm2-station-reset="' + esc(sid) + '"' + (isStationDefault(sch, sid) ? ' disabled' : '') + '>恢复为默认</button>' +
           '<button type="button" class="comm2-station-sheet-edit__ok" data-comm2-station-ok="' + esc(sid) + '">确定</button></div></div>';
@@ -2421,7 +2272,6 @@
           '<span class="comm2-station-sheet-row__name">' + esc(stationLabel(sch, sid)) + '</span>' +
           '<span class="comm2-station-sheet-row__acts">' +
           '<button type="button" data-comm2-rename="' + esc(sid) + '">改名</button>' +
-          '<button type="button" class="danger" data-comm2-station-del="' + esc(sid) + '"' + (ids.length <= 1 ? ' disabled' : '') + '>删除</button>' +
           '</span></div>';
       }
     });
@@ -2437,10 +2287,6 @@
     store._stationEditId = null;
     renderStationSheet();
     openSheet('comm2StationMask');
-  }
-
-  function addStationRow() {
-    toast('不可新增工位', true);
   }
 
   function deleteStationRow(id) {
@@ -2575,8 +2421,6 @@
         input.setAttribute('maxlength', '20');
         input.placeholder = '请输入方案名称';
       }
-      store._overrideActionId = null;
-      if (store._nameMode === 'rename-override') store._nameMode = null;
       closeDialog('comm2NameMask');
     });
     $('comm2NameOk') && $('comm2NameOk').addEventListener('click', applyComm2Name);
@@ -2587,8 +2431,6 @@
           input.setAttribute('maxlength', '20');
           input.placeholder = '请输入方案名称';
         }
-        store._overrideActionId = null;
-        if (store._nameMode === 'rename-override') store._nameMode = null;
         closeDialog('comm2NameMask');
       }
     });
@@ -2641,17 +2483,8 @@
     $('comm2OverrideDelMask') && $('comm2OverrideDelMask').addEventListener('click', function (e) {
       if (e.target === $('comm2OverrideDelMask')) closeDialog('comm2OverrideDelMask');
     });
-    $('comm2OverrideActionMask') && $('comm2OverrideActionMask').addEventListener('click', function (e) {
-      if (e.target === $('comm2OverrideActionMask')) {
-        closeRuleCardMenus();
-        return;
-      }
-      var actBtn = e.target.closest('[data-comm2-ov-act]');
-      if (actBtn) runOverrideAction(actBtn.getAttribute('data-comm2-ov-act'));
-    });
 
     $('comm2StationOk') && $('comm2StationOk').addEventListener('click', function () { closeSheet('comm2StationMask'); });
-    $('comm2StationAdd') && $('comm2StationAdd').addEventListener('click', addStationRow);
     $('comm2StationSheet') && $('comm2StationSheet').addEventListener('click', function (e) {
       var sch = editing();
       if (!sch) return;
@@ -2671,14 +2504,9 @@
         var okId = ok.getAttribute('data-comm2-station-ok');
         var input = document.querySelector('[data-comm2-station-input="' + okId + '"]');
         var val = input ? input.value.trim() : '';
-        if (!val) { toast('名称不能为空', true); return; }
-        if (!sch.stationLabels[okId]) sch.stationLabels[okId] = {};
-        sch.stationLabels[okId].label = val;
+        commitStationRename(okId, val);
         store._stationEditId = null;
-        markDirty();
         renderStationSheet();
-        renderEditCards(sch);
-        maybeRefreshOpenCardSheet();
         return;
       }
       var rst = e.target.closest('[data-comm2-station-reset]');
@@ -2686,14 +2514,13 @@
         var rstId = rst.getAttribute('data-comm2-station-reset');
         if (sch.stationLabels[rstId]) delete sch.stationLabels[rstId].label;
         store._stationEditId = null;
+        applyStationsGlobal(getStationIds(sch), sch.stationLabels);
         markDirty();
         renderStationSheet();
         renderEditCards(sch);
         maybeRefreshOpenCardSheet();
         return;
       }
-      var del = e.target.closest('[data-comm2-station-del]');
-      if (del && !del.disabled) deleteStationRow(del.getAttribute('data-comm2-station-del'));
     });
     $('comm2StationSheet') && $('comm2StationSheet').addEventListener('focusin', function (e) {
       var input = e.target.closest('[data-comm2-station-input]');
@@ -2713,23 +2540,11 @@
       var stEdit = e.target.closest('[data-comm2-station-inline-edit]');
       if (stEdit) {
         store._stationInlineEditId = stEdit.getAttribute('data-comm2-station-inline-edit');
-        store._stationAdding = false;
         refreshCardSheetBody();
         setTimeout(function () {
           var input = document.querySelector('[data-comm2-station-inline-input]');
           if (input) { input.focus(); input.select(); }
         }, 30);
-        return;
-      }
-      var stAdd = e.target.closest('[data-comm2-station-add]');
-      if (stAdd && !stAdd.closest('.is-editing')) {
-        beginAddStation();
-        return;
-      }
-      var stAddOk = e.target.closest('[data-comm2-station-add-ok]');
-      if (stAddOk) {
-        var addInput = document.querySelector('[data-comm2-station-add-input]');
-        commitAddStation(addInput ? addInput.value : '');
         return;
       }
       var cardRoleBtn = e.target.closest('[data-comm2-sheet-card-role]');
@@ -2745,12 +2560,6 @@
       if (renameInput) {
         e.preventDefault();
         commitStationRename(renameInput.getAttribute('data-comm2-station-inline-input'), renameInput.value);
-        return;
-      }
-      var addInput = e.target.closest('[data-comm2-station-add-input]');
-      if (addInput) {
-        e.preventDefault();
-        commitAddStation(addInput.value);
       }
     });
     $('comm2CatSheetBody') && $('comm2CatSheetBody').addEventListener('focusout', function (e) {
@@ -2798,12 +2607,10 @@
       var sch = editing();
       if (!sch || !store._pickBundle) return;
       var type = store._pickType || 'project';
-      var covered = coveredTargetKeys(sch);
       pickVisibleItems().forEach(function (it) {
         var key = type === 'card'
           ? ('card:' + it.id + ':' + store._pickBundle.cardRole)
           : ('item:' + type + ':' + it.id);
-        if (covered[key]) return;
         store._pickSel[key] = type === 'card'
           ? { kind: 'card', refId: it.id, name: it.name, cardRole: store._pickBundle.cardRole }
           : { kind: type, refId: it.id, name: it.name };
@@ -2817,13 +2624,12 @@
       if (!sch || !store._pickBundle) return;
       var type = store._pickType || 'project';
       var visible = pickVisibleItems();
-      var prefix = type === 'card' ? ('card:') : ('item:' + type + ':');
       visible.forEach(function (it) {
         var key = type === 'card'
           ? ('card:' + it.id + ':' + store._pickBundle.cardRole)
           : ('item:' + type + ':' + it.id);
         if (store._pickSel[key]) delete store._pickSel[key];
-        else if (!coveredTargetKeys(sch)[key]) {
+        else {
           store._pickSel[key] = type === 'card'
             ? { kind: 'card', refId: it.id, name: it.name, cardRole: store._pickBundle.cardRole }
             : { kind: type, refId: it.id, name: it.name };

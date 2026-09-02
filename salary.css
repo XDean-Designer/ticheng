@@ -664,6 +664,11 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
   font-size: 11px; line-height: 16px; font-weight: 500;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+.emp-scheme-pill--more {
+  border: none; cursor: pointer; font-family: inherit;
+  flex: 0 0 auto; color: #666; background: #ECECEC;
+}
+.emp-scheme-pill--more:active { opacity: .75; }
 .emp-pay-detail__card {
   background: #fff; border-radius: 12px; padding: 14px 16px;
 }

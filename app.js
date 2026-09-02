@@ -39,12 +39,6 @@
     if (id === 'screen-comm2-list') return 'comm2-list';
     if (id === 'screen-comm2-edit') return 'comm2-edit';
     if (id === 'screen-comm2-pick') return 'comm2-pick';
-    if (id === 'screen-comm2-staff') {
-      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.getFlow === 'function') {
-        return g.Comm2StaffDemo.getFlow();
-      }
-      return 'comm2-staff-3';
-    }
     if (id === 'screen-emp-list') return 'staff-list';
     if (id === 'screen-emp-roles') return 'staff-roles';
     if (id === 'screen-emp-role-perms') return 'staff-role-perms';
@@ -81,7 +75,7 @@
   g.setFlowNavHighlight = setNavHighlight;
 
   function dismissOverlays() {
-    if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.dismissMask === 'function') g.Comm2StaffDemo.dismissMask();
+    /* no-op: 选工位演示已下线 */
   }
 
   var STAFF_FLOW_IDS = [
@@ -195,10 +189,6 @@
           g.Comm2Demo.closeCatSheet();
           return;
         }
-        if (mask.id === 'comm2StaffSheetMask' && g.Comm2StaffDemo && typeof g.Comm2StaffDemo.close === 'function') {
-          g.Comm2StaffDemo.close();
-          return;
-        }
         if (mask.id === 'empSchemePickMask' && g.EmployeeDemo && typeof g.EmployeeDemo.resetSchemePickSheetChrome === 'function') {
           g.EmployeeDemo.resetSchemePickSheetChrome();
         }
@@ -229,22 +219,6 @@
         var btn = document.getElementById('comm2BtnAddRule');
         if (btn) btn.click();
       }, 80);
-    },
-    'comm2-staff': function () {
-      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(3);
-      else g.showOnlyScreen('screen-comm2-staff');
-    },
-    'comm2-staff-3': function () {
-      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(3);
-      else g.showOnlyScreen('screen-comm2-staff');
-    },
-    'comm2-staff-2': function () {
-      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(2);
-      else g.showOnlyScreen('screen-comm2-staff');
-    },
-    'comm2-staff-1': function () {
-      if (g.Comm2StaffDemo && typeof g.Comm2StaffDemo.open === 'function') g.Comm2StaffDemo.open(1);
-      else g.showOnlyScreen('screen-comm2-staff');
     }
   };
 

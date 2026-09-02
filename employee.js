@@ -1184,6 +1184,17 @@
     var end = parts.end.split('-');
     return Number(end[1]) + '期 · ' + shortMd(parts.start) + '–' + shortMd(parts.end);
   }
+  /** 员工薪资列表顶卡 pill：跨自然月时仅显示首尾日期 */
+  function salaryListPeriodPillLabel(key) {
+    var parts = periodParts(key);
+    if (parts.kind === 'calendar') return monthLabel(parts.monthKey || key);
+    var s = String(parts.start).split('-');
+    var e = String(parts.end).split('-');
+    if (Number(s[0]) !== Number(e[0]) || Number(s[1]) !== Number(e[1])) {
+      return shortMd(parts.start) + '–' + shortMd(parts.end);
+    }
+    return periodLabel(key);
+  }
   function periodRangeText(key) {
     var parts = periodParts(key);
     return shortMd(parts.start) + '–' + shortMd(parts.end);
@@ -2003,15 +2014,23 @@
     return schemesAssignedToStaff(staffId).map(function (sch) { return sch.name || ''; }).filter(Boolean);
   }
 
-  /** 名字下方方案胶囊：一方案一胶囊；无方案显示「未分配」 */
+  /** 名字下方方案胶囊：≤3 全展示；≥4 前 2 个 + +N（点 toast 全文） */
   function staffSchemePillsHtml(staffId) {
     var names = staffSchemeNames(staffId);
     if (!names.length) {
       return '<div class="emp-scheme-pills"><span class="emp-scheme-pill">未分配</span></div>';
     }
-    return '<div class="emp-scheme-pills">' + names.map(function (n) {
+    var all = names.join('、');
+    var show = names.length <= 3 ? names : names.slice(0, 2);
+    var html = '<div class="emp-scheme-pills">' + show.map(function (n) {
       return '<span class="emp-scheme-pill" title="' + esc(n) + '">' + esc(n) + '</span>';
-    }).join('') + '</div>';
+    }).join('');
+    if (names.length > 3) {
+      var more = names.length - 2;
+      html += '<button type="button" class="emp-scheme-pill emp-scheme-pill--more" data-emp-scheme-more="' +
+        esc(all) + '" title="' + esc(all) + '" aria-label="全部提成方案：' + esc(all) + '">+' + more + '</button>';
+    }
+    return html + '</div>';
   }
 
   function syncAllStaffSchemeFields() {
@@ -3120,7 +3139,7 @@
     syncSalaryPeriodToCycle();
     var mk = state.salaryMonth;
     var pc = ensurePayCycle();
-    if (lbl) lbl.innerHTML = periodLabel(mk) + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
+    if (lbl) lbl.innerHTML = salaryListPeriodPillLabel(mk) + '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>';
     var staffOnly = isStaffSelfViewer();
     if (sumLbl) sumLbl.textContent = staffOnly ? '我的薪酬' : '合计薪酬';
     if (settleVal) settleVal.textContent = pc.settleDay + '日';
@@ -9099,6 +9118,11 @@
     });
 
     $('empSalaryDetailBody')?.addEventListener('click', function (e) {
+      var more = e.target.closest('[data-emp-scheme-more]');
+      if (more) {
+        toast(more.getAttribute('data-emp-scheme-more') || '提成方案');
+        return;
+      }
       var helpBtn = e.target.closest('[data-metric-help]');
       if (helpBtn) {
         openMetricHelp(helpBtn.getAttribute('data-metric-help'));
@@ -9148,6 +9172,11 @@
     });
 
     $('empPayDetailBody')?.addEventListener('click', function (e) {
+      var more = e.target.closest('[data-emp-scheme-more]');
+      if (more) {
+        toast(more.getAttribute('data-emp-scheme-more') || '提成方案');
+        return;
+      }
       var helpBtn = e.target.closest('[data-metric-help]');
       if (helpBtn) {
         openMetricHelp(helpBtn.getAttribute('data-metric-help'));

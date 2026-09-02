@@ -98,9 +98,6 @@
   </div>
   <div class="nav-group">
     <div class="g-t">关联页面</div>
-    <button type="button" class="nav-item" data-flow="comm2-staff-3"><span class="idx">3</span>选择员工（3工位）</button>
-    <button type="button" class="nav-item" data-flow="comm2-staff-2"><span class="idx">2</span>选择员工（2工位）</button>
-    <button type="button" class="nav-item" data-flow="comm2-staff-1"><span class="idx">1</span>选择员工（1工位）</button>
     <button type="button" class="nav-item" data-flow="staff-empty-role"><span class="idx">·</span>头衔空态 sheet</button>
     <button type="button" class="nav-item" data-flow="staff-empty-scheme"><span class="idx">·</span>方案空态 sheet</button>
   </div>
@@ -231,11 +228,6 @@
   </div>
 </div>
 
-<!-- 关联页面 · 选择员工：独立灰底宿主（Sheet 叠在其上，不叠方案列表/编辑） -->
-<div class="screen hidden" id="screen-comm2-staff">
-  <div class="page-body page-body--staff-host" aria-hidden="true"></div>
-</div>
-
 <div class="picker-mask picker-mask--bottom" id="comm2CatSheetMask">
   <div class="picker-sheet tall">
     <div class="picker-head" id="comm2CatSheetTitle">分类提成</div>
@@ -269,7 +261,7 @@
       <h4>不分工位</h4>
       <p>开单无需选择工位，按点客/散客统一提成。</p>
       <h4>按工位分配</h4>
-      <p>按大/中/小工分别设置提成，各工位在方案中单独配置。</p>
+      <p>固定大/中/小工，可改名，不可增减；改名全局同步。</p>
     </div>
     <div class="dialog__actions dialog__actions--single">
       <button type="button" class="btn-main" id="comm2PickHelpOk">知道了</button>
@@ -407,38 +399,12 @@
   </div>
 </div>
 
-<div class="picker-mask picker-mask--bottom" id="comm2OverrideActionMask">
-  <div class="picker-sheet picker-sheet--menu">
-    <div class="catalog-action-card">
-      <div class="catalog-action-list">
-        <button type="button" class="catalog-action-item" data-comm2-ov-act="retarget">选择适用项</button>
-        <button type="button" class="catalog-action-item" data-comm2-ov-act="rename">重命名</button>
-        <button type="button" class="catalog-action-item catalog-action-item--danger" data-comm2-ov-act="delete">删除</button>
-      </div>
-    </div>
-    <div class="catalog-action-safe" aria-hidden="true"></div>
-  </div>
-</div>
-
 <div class="picker-mask picker-mask--bottom" id="comm2StationMask">
   <div class="picker-sheet">
     <div class="picker-head">工位设置</div>
     <div class="comm2-station-sheet" id="comm2StationSheet"></div>
     <div class="picker-foot picker-foot--row">
       <button type="button" class="btn-main" id="comm2StationOk">完成</button>
-    </div>
-  </div>
-</div>
-<div class="picker-mask picker-mask--bottom" id="comm2StaffSheetMask">
-  <div class="picker-sheet tall">
-    <div class="picker-head" id="comm2StaffSheetTitle">选择员工（3工位）</div>
-    <div class="comm2-staff-sheet__body">
-      <div class="detail-item__staff-block detail-item__staff-block--cards" data-staff-root data-ctx="linked">
-        <div class="staff-grid" id="comm2StaffGrid"></div>
-      </div>
-    </div>
-    <div class="picker-foot picker-foot--row">
-      <button type="button" class="btn-main" id="comm2StaffOk">完成</button>
     </div>
   </div>
 </div>
@@ -1009,7 +975,6 @@
 <script src="seed-data.js"></script>
 <script src="amount-keypad.js"></script>
 <script src="comm2.js"></script>
-<script src="staff-picker.js"></script>
 <script src="employee.js"></script>
 <script src="app.js"></script>
 </body>
