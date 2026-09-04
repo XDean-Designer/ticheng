@@ -155,3 +155,10 @@ html.prd-capture .stage { margin-left: 0; padding: 0; }
 
 html.figma-capture-comm2-advisor .site-nav { display: none !important; }
 html.figma-capture-comm2-advisor .stage { margin-left: 0; padding: 0; }
+
+/* run-to-figma 通用 capture：隐藏左侧导航与台面留白，去掉手机框投影 */
+html.figma-capture .site-nav { display: none !important; }
+html.figma-capture .stage { margin-left: 0; padding: 0; display: block; }
+html.figma-capture #frame { box-shadow: none; border: none; }
+html.figma-capture .phone-inner.phone { border: none; }
+html.figma-capture body { background: var(--bg-page, #F7F7F7); }

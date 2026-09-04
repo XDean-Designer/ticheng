@@ -263,6 +263,114 @@
     return true;
   }
 
+  /* ==== run-to-figma 抓取路由：?view=desktop&capture=<key> ==== */
+  function runCaptureSteps(steps) {
+    var i = 0;
+    function next() {
+      if (i >= steps.length) return;
+      var s = steps[i++];
+      setTimeout(function () {
+        try { s.run(); } catch (e) { console.warn('[capture] step error:', e); }
+        next();
+      }, s.wait == null ? 30 : s.wait);
+    }
+    next();
+  }
+
+  function getFigmaCaptureKey() {
+    var v = new URLSearchParams(location.search).get('capture');
+    return v && v !== '1' && v !== 'comm2-advisor' ? v : '';
+  }
+
+  function applyFigmaCapture(key) {
+    document.documentElement.classList.add('figma-capture');
+    /* 桌面浏览器中的 390×844 画板：强制桌面壳（保留假状态栏与底部安全区），
+       避免窄视口把页面切到 view-mobile 全幅手机预览模式 */
+    document.documentElement.classList.add('view-desktop');
+    document.documentElement.classList.remove('view-mobile');
+    document.documentElement.style.removeProperty('--app-h');
+    document.documentElement.style.removeProperty('--app-w');
+    document.documentElement.style.removeProperty('--app-top');
+    document.documentElement.style.removeProperty('--app-left');
+    var step = function (run, wait) { return { run: run, wait: wait }; };
+    function go(flowId, wait) {
+      return step(function () {
+        if (g.FLOW_NAV && typeof g.FLOW_NAV[flowId] === 'function') g.FLOW_NAV[flowId]();
+        else console.warn('[capture] unknown flow:', flowId);
+      }, wait == null ? 60 : wait);
+    }
+    function click(sel, wait) {
+      return step(function () {
+        var el = document.querySelector(sel);
+        if (el) el.click();
+        else console.warn('[capture] missing click target:', sel);
+      }, wait == null ? 60 : wait);
+    }
+    function openFlagshipEdit() {
+      return step(function () {
+        if (g.Comm2Demo && typeof g.Comm2Demo.openEdit === 'function') g.Comm2Demo.openEdit('c2_flagship');
+      }, 60);
+    }
+    function openListThen(firstSel, extra) {
+      var out = [go('comm2-list', 60), click(firstSel, 220)];
+      return (extra || []).length ? out.concat(extra) : out;
+    }
+
+    var routes = {
+      /* 全屏页面 */
+      'hub': [go('hub', 60)],
+      'comm2-list': [go('comm2-list', 60)],
+      'comm2-edit': [openFlagshipEdit()],
+      'comm2-pick': [go('comm2-pick', 60)],
+      'emp-list': [go('staff-list', 60)],
+      'emp-roles': [go('staff-roles', 60)],
+      'emp-role-perms': [go('staff-role-perms', 60)],
+      'emp-role-perm-edit': [go('staff-role-perms', 60), click('#empRolePermList [data-role-perm]', 240)],
+      'emp-detail': [go('staff-list', 60), click('#empListRoot [data-staff-id]', 240)],
+      'emp-form-create': [go('staff-create', 60)],
+      'emp-empty-role': [go('staff-empty-role', 60)],
+      'emp-empty-scheme': [go('staff-empty-scheme', 60)],
+      'emp-salary': [go('staff-salary', 60)],
+      'emp-pay-detail': [go('staff-salary', 60), click('#empSalaryList .emp-salary-card', 260)],
+      'emp-pay-cycle': [go('staff-pay-cycle', 60)],
+      'emp-salary-detail': [go('staff-salary', 60), click('#empSalaryList [data-detail-kind="comm"]', 260)],
+      'emp-rewards': [go('staff-rewards', 60)],
+      'emp-reward-detail': [go('staff-salary', 60), click('#empSalaryList [data-detail-kind="reward"]', 260)],
+
+      /* 提成设置弹层 */
+      'comm2-cat-sheet': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 260)],
+      'comm2-assign': openListThen('#comm2List [data-comm2-assign]'),
+      'comm2-menu': openListThen('#comm2List [data-comm2-menu]'),
+      'comm2-name': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="rename"]', 240)]),
+      'comm2-delete': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="delete"]', 240)]),
+      'comm2-unsaved': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-bar-base-toggle]', 240), click('#comm2EditBack', 200)],
+      'comm2-override-del': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-swipe-del]', 260)],
+      'comm2-help': [go('comm2-list', 60), click('#comm2HelpBtn', 220)],
+      'comm2-unassigned': [go('comm2-list', 60), click('#comm2UnassignedTip', 220)],
+
+      /* 员工弹层 */
+      'emp-role-pick': [go('staff-refine', 60), click('#empRowRole', 240)],
+      'emp-role-name': [go('staff-roles', 60), click('#empBtnAddRolePage', 240)],
+      'emp-perm-pick': [go('staff-refine', 60), click('#empRowPerm', 240)],
+      'emp-perm-help': [go('staff-refine', 60), click('#empPermInfo', 240)],
+      'emp-status': [go('staff-refine', 60), click('#empRowStatus', 240)],
+      'emp-detail-status': [go('staff-list', 60), click('#empListRoot [data-staff-id]', 240), click('[data-emp-status-chip]', 200)],
+      'emp-staff-field': [go('staff-list', 60), click('#empListRoot [data-staff-id]', 240), click('[data-detail-edit="name"]', 200)],
+
+      /* 薪资弹层 */
+      'emp-month': [go('staff-salary', 60), click('#empMonthLabel', 260)],
+      'emp-comm-date': [go('staff-salary', 60), click('#empSalaryList [data-detail-kind="comm"]', 260), click('#empCommDetailDateBtn', 220)],
+      'emp-line-edit': [go('staff-salary', 60), click('#empSalaryList [data-detail-kind="comm"]', 260), click('#empSalaryDetailBody [data-comm-edit]', 220)],
+      'emp-keypad': [go('staff-salary', 60), click('#empSalaryList [data-detail-kind="comm"]', 260), click('#empSalaryDetailBody [data-comm-edit]', 220), click('#empCommLineEditComm', 240)],
+      'emp-scheme-pick': [go('staff-refine', 60), click('#empRowScheme', 240)],
+      'emp-reward-staff': [go('staff-rewards', 60), click('#empRewardStaffBtn', 260)]
+    };
+
+    var steps = routes[key];
+    if (!steps) { console.warn('[capture] unknown key:', key); return; }
+    runCaptureSteps(steps);
+  }
+
   function wireSiteNav() {
     document.querySelectorAll('.site-nav .nav-item[data-flow]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -323,6 +431,12 @@
 
     var flow = getFlowDeepLinkId();
     if (flow && applyFlowDeepLink(flow)) return;
+
+    var captureKey = getFigmaCaptureKey();
+    if (captureKey) {
+      applyFigmaCapture(captureKey);
+      return;
+    }
 
     /* 手机默认功能入口；桌面默认提成方案列表 */
     if (isMobileView()) {
