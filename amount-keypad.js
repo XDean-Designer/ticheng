@@ -13,6 +13,38 @@
 
   function formatMoneyLimitLabel() { return '999,999.99'; }
 
+  /** 金额纯文本：一律两位小数（展示/ aria / toast） */
+  function fmtMoney(n) {
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /** 金额 HTML：小数点及之后小 1 号 */
+  function fmtMoneyHtml(n) {
+    var neg = false;
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    if (v < 0) { neg = true; v = -v; }
+    var plain = v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var dot = plain.lastIndexOf('.');
+    var body = dot < 0
+      ? plain
+      : (plain.slice(0, dot) + '<span class="money-frac">' + plain.slice(dot) + '</span>');
+    return (neg ? '-' : '') + body;
+  }
+
+  function fmtYen(n) {
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    return (v < 0 ? '-' : '') + '¥' + fmtMoney(Math.abs(v));
+  }
+  function fmtYenHtml(n) {
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    return (v < 0 ? '-' : '') + '¥' + fmtMoneyHtml(Math.abs(v));
+  }
+
   function moneyBufferExceedsLimit(buf, mode) {
     var s = String(buf || '').trim();
     if (!s || s === '.' || s === '0.') return false;
@@ -200,6 +232,11 @@
   g.closeAmountKeypad = closeAmountKeypad;
   g.wireAmountKeypadInputs = wireAmountKeypadInputs;
   g.wireAmountKeypadControls = wireAmountKeypadControls;
+  g.formatMoneyLimitLabel = formatMoneyLimitLabel;
+  g.fmtMoney = fmtMoney;
+  g.fmtMoneyHtml = fmtMoneyHtml;
+  g.fmtYen = fmtYen;
+  g.fmtYenHtml = fmtYenHtml;
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', wireAmountKeypadControls);

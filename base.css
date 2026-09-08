@@ -82,6 +82,11 @@
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
 }
+/* 金额小数段小 1 号（相对父级字号） */
+.money-frac {
+  font-size: 0.875em;
+  font-variant-numeric: tabular-nums;
+}
 .phone-shell { display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
 .status-bar { height: 53px; background: var(--card); flex-shrink: 0; display: flex; align-items: flex-end; justify-content: space-between; box-sizing: border-box; padding: 0 24px 10px; color: #000; }
 .status-bar__time { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; line-height: 1; min-width: 54px; }

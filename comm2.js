@@ -487,8 +487,22 @@
   function pairVal(rule, isAmt, pctKey, amtKey) {
     return isAmt ? (Number(rule[amtKey]) || 0) : (Number(rule[pctKey]) || 0);
   }
+  function fmtMoney(n) {
+    return typeof window.fmtMoney === 'function'
+      ? window.fmtMoney(n)
+      : Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtMoneyHtml(n) {
+    return typeof window.fmtMoneyHtml === 'function' ? window.fmtMoneyHtml(n) : fmtMoney(n);
+  }
+  function fmtYenHtml(n) {
+    return typeof window.fmtYenHtml === 'function' ? window.fmtYenHtml(n) : ('¥' + fmtMoneyHtml(n));
+  }
   function fmtVal(v, isAmt) {
-    return isAmt ? ('¥' + v) : (v + '%');
+    return isAmt ? ('¥' + fmtMoney(v)) : (v + '%');
+  }
+  function fmtValHtml(v, isAmt) {
+    return isAmt ? fmtYenHtml(v) : (v + '%');
   }
   function formatPairFlat(rule, isAmt) {
     rule = ensureCat(rule);
@@ -500,14 +514,19 @@
     rule = ensureCat(rule);
     var des = pairVal(rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return '<span class="comm2-cat__lbl">点客</span><strong>' + fmtVal(des, isAmt) + '</strong>' +
+    return '<span class="comm2-cat__lbl">点客</span><strong>' + fmtValHtml(des, isAmt) + '</strong>' +
       '<span class="comm2-cat__dot">·</span>' +
-      '<span class="comm2-cat__lbl">散客</span><strong>' + fmtVal(non, isAmt) + '</strong>';
+      '<span class="comm2-cat__lbl">散客</span><strong>' + fmtValHtml(non, isAmt) + '</strong>';
   }
   function formatStationPair(sch, st, isAmt) {
     var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     return fmtVal(des, isAmt) + '·' + fmtVal(non, isAmt);
+  }
+  function formatStationPairHtml(sch, st, isAmt) {
+    var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
+    var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
+    return fmtValHtml(des, isAmt) + '·' + fmtValHtml(non, isAmt);
   }
   function formatBlockSummary(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
@@ -525,7 +544,7 @@
     if (block.pickMode === 'station') {
       return getStationIds(sch).map(function (sid) {
         var st = block.rule.stations[sid] || defaultPair();
-        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + esc(formatStationPair(sch, st, isAmt)) + '</strong></div>';
+        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st, isAmt) + '</strong></div>';
       }).join('');
     }
     return '<div class="comm2-rule-card__params-row comm2-rule-card__params-row--flat"><span>提成参数</span><strong>' + formatPairFlatHtml(block.rule, isAmt) + '</strong></div>';
@@ -791,7 +810,7 @@
       var st = block.rule.stations[sid] || defaultPair();
       var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
       var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-      return barParamSegHtml(stationShortLabel(sch, sid), esc(fmtVal(des, isAmt) + '·' + fmtVal(non, isAmt)));
+      return barParamSegHtml(stationShortLabel(sch, sid), fmtValHtml(des, isAmt) + '·' + fmtValHtml(non, isAmt));
     }).join('');
   }
 
@@ -801,7 +820,7 @@
     if (block.pickMode === 'station') return barStationParamsHtml(sch, block);
     var des = pairVal(block.rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(block.rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return barParamSegHtml('点客', esc(fmtVal(des, isAmt))) + barParamSegHtml('散客', esc(fmtVal(non, isAmt)));
+    return barParamSegHtml('点客', fmtValHtml(des, isAmt)) + barParamSegHtml('散客', fmtValHtml(non, isAmt));
   }
 
   function titleCharCount(s) {
@@ -1141,7 +1160,7 @@
       return {
         amount: amountS,
         skipped: '',
-        rateLabel: isAmtS ? ('¥' + rateS) : (rateS + '%'),
+        rateLabel: isAmtS ? ('¥' + fmtMoney(rateS)) : (rateS + '%'),
         base: baseS
       };
     }
@@ -1167,7 +1186,7 @@
       return {
         amount: amtFixed,
         skipped: '',
-        rateLabel: '¥' + rate,
+        rateLabel: '¥' + fmtMoney(rate),
         base: inScope
       };
     }
@@ -1696,7 +1715,7 @@
         return {
           id: t.id,
           name: t.name || '未命名卡',
-          sub: t.shelved ? '已下架' : ('面值 ¥' + (t.recharge || 0))
+          sub: t.shelved ? '已下架' : ('面值 ¥' + fmtMoney(t.recharge || 0))
         };
       });
     }
@@ -1707,7 +1726,7 @@
       return {
         id: it.id,
         name: it.name || '未命名',
-        sub: '¥' + (it.price != null ? it.price : 0)
+        sub: '¥' + fmtMoney(it.price != null ? it.price : 0)
       };
     });
   }

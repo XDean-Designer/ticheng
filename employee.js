@@ -521,6 +521,7 @@
     rewardDraft: null,
     editingRewardId: null,
     rewardDetailStaffId: null,
+    rewardDetailFrom: null, // 'salary-list' | 'pay-detail'
     rewardFormReturn: 'salary',
     rewardStaffPicking: false,
     rewardRecentOpen: false,
@@ -827,13 +828,15 @@
     if (toastMsg) toast(toastMsg);
     return true;
   }
-  function detailClickRow(key, label, val) {
+  function detailClickRow(key, label, val, opts) {
+    opts = opts || {};
+    var valHtml = opts.html ? String(val) : esc(String(val));
     if (!canEditStaffProfile()) {
-      return row(label, val, true);
+      return row(label, val, true, opts);
     }
     return '<button type="button" class="form-row clickable" data-detail-edit="' + esc(key) + '">' +
       '<span class="label">' + esc(label) + '</span>' +
-      '<span class="form-row__trail"><span class="value has-val">' + esc(String(val)) + '</span>' +
+      '<span class="form-row__trail"><span class="value has-val">' + valHtml + '</span>' +
       navChevHtml() + '</span></button>';
   }
   function detailSwordRow(sw) {
@@ -960,7 +963,35 @@
     ['empHelpMask', 'empAchHelpMask', 'empPermHelpMask', 'empNameDialogMask', 'empRoleNameMask', 'empRoleDelConfirmMask', 'empLeaveConfirmMask', 'empCalcModeConfirmMask', 'empSchemeTypeMask', 'empLadderCalcHelpMask', 'empAchInfoHelpMask', 'empLadderResetConfirmMask', 'empStaffFieldMask'].forEach(closeEmpDialog);
   }
   function fmtMoney(n) {
-    return Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    var fn = window.fmtMoney;
+    if (typeof fn === 'function' && fn !== fmtMoney) return fn(n);
+    return Number(n || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function fmtMoneyHtml(n) {
+    var fn = window.fmtMoneyHtml;
+    if (typeof fn === 'function' && fn !== fmtMoneyHtml) return fn(n);
+    var plain = fmtMoney(n);
+    var neg = plain.charAt(0) === '-';
+    var body = neg ? plain.slice(1) : plain;
+    var dot = body.lastIndexOf('.');
+    var html = dot < 0
+      ? body
+      : (body.slice(0, dot) + '<span class="money-frac">' + body.slice(dot) + '</span>');
+    return (neg ? '-' : '') + html;
+  }
+  function fmtYen(n) {
+    var fn = window.fmtYen;
+    if (typeof fn === 'function' && fn !== fmtYen) return fn(n);
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    return (v < 0 ? '-' : '') + '¥' + fmtMoney(Math.abs(v));
+  }
+  function fmtYenHtml(n) {
+    var fn = window.fmtYenHtml;
+    if (typeof fn === 'function' && fn !== fmtYenHtml) return fn(n);
+    var v = Number(n);
+    if (!Number.isFinite(v)) v = 0;
+    return (v < 0 ? '-' : '') + '¥' + fmtMoneyHtml(Math.abs(v));
   }
   function monthLabel(key) {
     var p = String(key || '').split('-');
@@ -1127,7 +1158,7 @@
       var color = it.color || MORANDI.labor;
       return '<div class="emp-pay-bar"><span class="emp-pay-bar__lbl">' + esc(it.label) + '</span>' +
         '<div class="emp-pay-bar__track"><div class="emp-pay-bar__fill' + zeroCls + '" style="' + widthStyle + 'background:' + color + '"></div></div>' +
-        '<span class="emp-pay-bar__val emp-num">' + fmtMoney(v) + '</span></div>';
+        '<span class="emp-pay-bar__val emp-num">' + fmtMoneyHtml(v) + '</span></div>';
     }).join('');
   }
   function pad2(n) { return String(n).padStart(2, '0'); }
@@ -2892,7 +2923,7 @@
       (hideSalary
         ? '<div class="form-row is-readonly"><span class="label">薪资信息</span>' +
           '<span class="form-row__trail"><span class="value has-val">当前权限不可见</span></span></div>'
-        : detailClickRow('base', '基本工资', s.baseSalary ? fmtMoney(s.baseSalary) + ' 元' : '0 元') +
+        : detailClickRow('base', '基本工资', (s.baseSalary ? fmtMoneyHtml(s.baseSalary) : fmtMoneyHtml(0)) + ' 元', { html: true }) +
           detailClickRow('scheme', '提成方案', s.scheme || '暂未分配')) +
       '</div>';
   }
@@ -2905,10 +2936,12 @@
       '<span class="form-row__trail">' + thumb + '</span></div>';
   }
 
-  function row(label, val, readonly) {
+  function row(label, val, readonly, opts) {
+    opts = opts || {};
     var ro = readonly ? ' is-readonly' : '';
+    var valHtml = opts.html ? String(val) : esc(String(val));
     return '<div class="form-row' + ro + '"><span class="label">' + label + '</span>' +
-      '<span class="form-row__trail"><span class="value has-val">' + esc(String(val)) + '</span></span></div>';
+      '<span class="form-row__trail"><span class="value has-val">' + valHtml + '</span></span></div>';
   }
 
   function esc(s) {
@@ -3114,7 +3147,7 @@
       ? navChevHtml()
       : '<span class="emp-salary-card__row-chev" aria-hidden="true"></span>';
     var isNeg = value < 0;
-    var display = isNeg ? ('-' + fmtMoney(Math.abs(value))) : fmtMoney(value);
+    var display = fmtMoneyHtml(value);
     var valClass = 'emp-salary-card__row-val' + (isNeg ? ' is-neg' : '');
     var meterColor = opts.color || SALARY_ROW_BARS.base;
     var fillCls = 'emp-salary-card__meter-fill' + (pct <= 0 && opts.showZeroDot ? ' is-zero' : '');
@@ -3169,7 +3202,7 @@
       }
       return '<div class="emp-salary-card" data-salary-staff="' + s.id + '">' +
         '<div class="emp-salary-card__top"><div class="emp-salary-card__who">' + empAvatarHtml(s, 'emp-avatar--sm') + '<span class="emp-salary-card__name">' + esc(s.name) + '</span></div>' +
-        '<div class="emp-salary-card__total-wrap"><span class="emp-salary-card__total-lbl">合计</span><span class="emp-salary-card__total-line"><span class="emp-salary-card__total">' + fmtMoney(total) + '</span>' + navChevHtml() + '</span></div></div>' +
+        '<div class="emp-salary-card__total-wrap"><span class="emp-salary-card__total-lbl">合计</span><span class="emp-salary-card__total-line"><span class="emp-salary-card__total">' + fmtMoneyHtml(total) + '</span>' + navChevHtml() + '</span></div></div>' +
         '<div class="emp-salary-card__rows">' +
         salaryRowHtml({ label: '基本工资', value: baseAmt, pct: rowPct(baseAmt), color: MORANDI.base, showZeroDot: meterMax > 0 }) +
         salaryRowHtml({ label: '提成合计', value: commission, pct: rowPct(commission), color: MORANDI.commission, showZeroDot: meterMax > 0 }) +
@@ -3180,14 +3213,14 @@
         '</div>' +
         '<div class="emp-salary-card__split" aria-hidden="true"></div>' +
         '<div class="emp-salary-card__grid">' +
-        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('labor') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">项目</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.labor) + '</span></div></button>' +
-        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('sales') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">产品</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.sales) + '</span></div></button>' +
-        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('issue') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">办卡/充卡</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.issueCard) + '</span></div></button>' +
-        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('quick') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">快速消费</span><span class="emp-salary-card__cell-val">' + fmtMoney(split.quick) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('labor') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">项目</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.labor) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('sales') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">产品</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.sales) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('issue') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">办卡/充卡</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.issueCard) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('quick') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">快速消费</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.quick) + '</span></div></button>' +
         navChevHtml() +
         '</div></div>';
     }).join('');
-    if (sumEl) sumEl.textContent = fmtMoney(storeTotal);
+    if (sumEl) sumEl.innerHTML = fmtMoneyHtml(storeTotal);
   }
 
   function storeActiveStaff() {
@@ -3798,7 +3831,7 @@
     return '<div class="emp-comm-channels">' + payChannelDefs().map(function (ch) {
       return '<div class="emp-comm-channel">' +
         '<span class="emp-comm-channel__lbl">' + esc(ch.label) + '</span>' +
-        '<span class="emp-comm-channel__val">' + fmtMoney(map[ch.key] || 0) + '</span></div>';
+        '<span class="emp-comm-channel__val">' + fmtMoneyHtml(map[ch.key] || 0) + '</span></div>';
     }).join('') + '</div>';
   }
 
@@ -3832,7 +3865,7 @@
     var achEl = $('empCommLineEditAch');
     var commIn = $('empCommLineEditComm');
     var reasonIn = $('empCommLineEditReason');
-    if (achEl) achEl.textContent = fmtMoney(ln.ach);
+    if (achEl) achEl.innerHTML = fmtMoneyHtml(ln.ach);
     if (commIn) commIn.value = String(ln.comm);
     if (reasonIn) reasonIn.value = '';
     var okBtn = $('empCommLineEditOk');
@@ -3862,7 +3895,7 @@
         body.innerHTML = logs.map(function (log) {
           return '<div class="emp-comm-edit-log">' +
             '<div class="emp-comm-edit-log__row"><span>提成</span><span class="emp-num">' +
-            fmtMoney(log.from) + ' → ' + fmtMoney(log.to) + '</span></div>' +
+            fmtMoney(log.from) + ' → ' + fmtMoneyHtml(log.to) + '</span></div>' +
             '<div class="emp-comm-edit-log__meta">' + esc(log.byName || log.by || '') +
             (log.at ? ' · ' + esc(log.at) : '') + '</div>' +
             (log.reason ? '<div class="emp-comm-edit-log__reason">' + esc(log.reason) + '</div>' : '') +
@@ -3960,14 +3993,14 @@
         : '';
       body.innerHTML =
         '<div class="emp-comm-edit-meta"><strong>' + esc(ln.name) + '</strong> · ' + esc(ln.orderTime) +
-        '<br>售价 ' + fmtMoney(ln.price) + ' · ' + esc(ln.channel) + '</div>' +
+        '<br>售价 ' + fmtMoneyHtml(ln.price) + ' · ' + esc(ln.channel) + '</div>' +
         '<div class="emp-comm-consent-diff">' +
         '<div class="emp-comm-consent-diff__box"><div class="emp-comm-consent-diff__lbl">业绩</div>' +
-        '<div class="emp-comm-consent-diff__from">' + fmtMoney(ln.pending.prevAch != null ? ln.pending.prevAch : ln.ach) + '</div>' +
-        '<div class="emp-comm-consent-diff__to">' + fmtMoney(ln.pending.ach) + '</div></div>' +
+        '<div class="emp-comm-consent-diff__from">' + fmtMoneyHtml(ln.pending.prevAch != null ? ln.pending.prevAch : ln.ach) + '</div>' +
+        '<div class="emp-comm-consent-diff__to">' + fmtMoneyHtml(ln.pending.ach) + '</div></div>' +
         '<div class="emp-comm-consent-diff__box"><div class="emp-comm-consent-diff__lbl">提成</div>' +
-        '<div class="emp-comm-consent-diff__from">' + fmtMoney(ln.pending.prevComm != null ? ln.pending.prevComm : ln.comm) + '</div>' +
-        '<div class="emp-comm-consent-diff__to">' + fmtMoney(ln.pending.comm) + '</div></div></div>' +
+        '<div class="emp-comm-consent-diff__from">' + fmtMoneyHtml(ln.pending.prevComm != null ? ln.pending.prevComm : ln.comm) + '</div>' +
+        '<div class="emp-comm-consent-diff__to">' + fmtMoneyHtml(ln.pending.comm) + '</div></div></div>' +
         editor +
         '<div class="emp-comm-line__reason">原因：' + esc(ln.pending.reason || '—') + '</div>';
     }
@@ -4057,9 +4090,9 @@
       '<span class="emp-comm-line__time">' + esc(formatCommLineTime(ln.orderTime)) + '</span></div>' +
       '<div class="emp-comm-line__vals">' +
       '<div class="emp-comm-line__val"><span class="emp-comm-line__val-lbl">业绩</span>' +
-      '<span class="emp-comm-line__val-num">' + fmtMoney(ln.ach) + '</span></div>' +
+      '<span class="emp-comm-line__val-num">' + fmtMoneyHtml(ln.ach) + '</span></div>' +
       '<div class="emp-comm-line__val"><span class="emp-comm-line__val-lbl">提成</span>' +
-      '<span class="emp-comm-line__val-num">' + fmtMoney(ln.comm) + '</span>' + editBtn + '</div>' +
+      '<span class="emp-comm-line__val-num">' + fmtMoneyHtml(ln.comm) + '</span>' + editBtn + '</div>' +
       '</div></button>';
   }
 
@@ -4234,12 +4267,12 @@
       '<div class="emp-comm-sum__block"><div class="emp-comm-sum__label-row">' +
       '<span class="emp-comm-sum__label"><span class="emp-comm-sum__bar emp-comm-sum__bar--ach"></span>业绩' +
       metricHelpBtn('ach') + '</span>' +
-      '<span class="emp-comm-sum__amt-wrap"><span class="emp-comm-sum__amt">' + fmtMoney(achTotal) + '</span>' +
+      '<span class="emp-comm-sum__amt-wrap"><span class="emp-comm-sum__amt">' + fmtMoneyHtml(achTotal) + '</span>' +
       trendAch + '</span></div>' + achBars + '</div>' +
       '<div class="emp-comm-sum__block"><div class="emp-comm-sum__label-row">' +
       '<span class="emp-comm-sum__label"><span class="emp-comm-sum__bar emp-comm-sum__bar--comm"></span>提成' +
       metricHelpBtn('comm') + '</span>' +
-      '<span class="emp-comm-sum__amt-wrap"><span class="emp-comm-sum__amt">' + fmtMoney(commTotal) + '</span>' +
+      '<span class="emp-comm-sum__amt-wrap"><span class="emp-comm-sum__amt">' + fmtMoneyHtml(commTotal) + '</span>' +
       trendComm + '</span></div>' + commBars + '</div></div>' +
       daysHtml;
   }
@@ -4299,7 +4332,7 @@
             (isDeduct ? '扣' : '奖') + '</span></div>' +
             '<div class="emp-pay-rw-item__note">' + esc(r.title || r.note || r.reason || '') + '</div></div>' +
             '<span class="emp-pay-rw-item__amt' + (amt < 0 ? ' is-deduct' : '') + '">' +
-            (amt >= 0 ? '+' : '') + fmtMoney(amt) + '</span></div>';
+            (amt >= 0 ? '+' : '') + fmtMoneyHtml(amt) + '</span></div>';
         }).join('')
       : '<div class="emp-pay-rw-empty">本期暂无奖惩</div>';
     body.innerHTML =
@@ -4311,15 +4344,15 @@
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg></button></div>' +
       '<div class="emp-pay-detail__card"><div class="emp-pay-detail__card-row">' +
       '<div class="emp-pay-detail__card-lbl">当月合计薪资' + metricHelpBtn('totalPay') + '</div>' +
-      '<div class="emp-pay-detail__card-amt emp-num">' + fmtMoney(total) + '</div></div>' +
+      '<div class="emp-pay-detail__card-amt emp-num">' + fmtMoneyHtml(total) + '</div></div>' +
       '<div class="emp-pay-detail__tri">' +
-      '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">基本薪资</div><div class="emp-pay-detail__tri-val emp-num">' + fmtMoney(baseAmt) + '</div></div>' +
-      '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">提成总计</div><div class="emp-pay-detail__tri-val emp-num">' + fmtMoney(commission) + '</div></div>' +
+      '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">基本薪资</div><div class="emp-pay-detail__tri-val emp-num">' + fmtMoneyHtml(baseAmt) + '</div></div>' +
+      '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">提成总计</div><div class="emp-pay-detail__tri-val emp-num">' + fmtMoneyHtml(commission) + '</div></div>' +
       '<div class="emp-pay-detail__tri-item"><div class="emp-pay-detail__tri-lbl">奖惩总计</div><div class="emp-pay-detail__tri-val emp-num' + (rewardNet < 0 ? ' is-neg' : '') + '">' +
-      (rewardNet > 0 ? '+' : '') + fmtMoney(rewardNet) + '</div></div></div></div>' +
+      (rewardNet > 0 ? '+' : '') + fmtMoneyHtml(rewardNet) + '</div></div></div></div>' +
       '<div class="emp-pay-stat"><div class="emp-pay-stat__title">业绩统计' + metricHelpBtn('ach') + '</div>' +
       '<div class="emp-pay-stat__total"><span class="emp-pay-stat__total-lbl">总计</span>' +
-      '<span class="emp-pay-stat__total-amt emp-num">¥' + fmtMoney(achPay.total) + '</span></div>' +
+      '<span class="emp-pay-stat__total-amt emp-num">¥' + fmtMoneyHtml(achPay.total) + '</span></div>' +
       renderRatioBarsHtml([
         { label: '现金', value: achPay.cash, color: MORANDI.cash },
         { label: '卡付', value: achPay.card, color: MORANDI.cardPay },
@@ -4328,7 +4361,7 @@
       ]) + '</div>' +
       '<div class="emp-pay-stat"><div class="emp-pay-stat__title">提成统计' + metricHelpBtn('comm') + '</div>' +
       '<div class="emp-pay-stat__total"><span class="emp-pay-stat__total-lbl">总计</span>' +
-      '<span class="emp-pay-stat__total-amt emp-num">¥' + fmtMoney(split.total) + '</span></div>' +
+      '<span class="emp-pay-stat__total-amt emp-num">¥' + fmtMoneyHtml(split.total) + '</span></div>' +
       renderRatioBarsHtml([
         { label: '项目', value: split.labor, color: MORANDI.labor },
         { label: '产品', value: split.sales, color: MORANDI.sales },
@@ -4339,10 +4372,10 @@
       '<div class="emp-pay-svc">' +
       '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">服务' + metricHelpBtn('svcSales') + '</div>' +
       '<div class="emp-pay-svc__row"><span>人次</span><strong>' + svc.serviceCount + '</strong></div>' +
-      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.serviceAmt) + '</strong></div></div>' +
+      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoneyHtml(svc.serviceAmt) + '</strong></div></div>' +
       '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">售卡' + metricHelpBtn('svcSales') + '</div>' +
       '<div class="emp-pay-svc__row"><span>数量</span><strong>' + svc.salesCount + '</strong></div>' +
-      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoney(svc.salesAmt) + '</strong></div></div></div>' +
+      '<div class="emp-pay-svc__row"><span>金额</span><strong>¥' + fmtMoneyHtml(svc.salesAmt) + '</strong></div></div></div>' +
       '<div class="emp-pay-stat emp-pay-rw-card" data-pay-rewards-card role="button" tabindex="0">' +
       '<div class="emp-pay-rw-head"><span class="emp-pay-rw-head__t">奖惩明细</span></div>' +
       rwHtml + '</div></div>';
@@ -4350,7 +4383,7 @@
 
   function line(lbl, val) {
     return '<div class="emp-detail-line"><span class="emp-detail-line__lbl">' + lbl + '</span>' +
-      '<span class="emp-detail-line__val">' + fmtMoney(val) + '</span></div>';
+      '<span class="emp-detail-line__val">' + fmtMoneyHtml(val) + '</span></div>';
   }
 
   function rewardMonthItems(monthKey) {
@@ -4522,7 +4555,7 @@
               '<span class="emp-reward-item__main">' + rewardTypeBadgeHtml(rType) +
               '<span class="emp-reward-item__title">' + esc((ss ? ss.name + ' · ' : '') + r.title) + '</span></span>' +
               '<span class="emp-reward-item__amt' + (r.amount < 0 ? ' is-deduct' : '') + '">' +
-              sign + fmtMoney(r.amount) + '</span></div>';
+              sign + fmtMoneyHtml(r.amount) + '</span></div>';
           }).join('') : '<div class="emp-reward-item"><span class="emp-reward-item__title" style="color:var(--text-sec)">本月暂无记录</span></div>') +
           '</div>';
       }
@@ -4604,7 +4637,7 @@
         '<div class="emp-rw-item__top">' +
         '<span class="emp-rw-item__date">' + esc(r.date || '') + '</span>' +
         '<span class="emp-rw-badge emp-rw-badge--' + (isDeduct ? 'deduct' : 'reward') + '">' + (isDeduct ? '扣' : '奖') + '</span>' +
-        '<span class="emp-rw-item__amt">' + fmtMoney(r.amount) + '</span></div>' +
+        '<span class="emp-rw-item__amt">' + fmtMoneyHtml(r.amount) + '</span></div>' +
         '<div class="emp-rw-item__note">' + esc(r.title || '') + '</div>' +
         '<div class="emp-rw-item__acts">' +
         '<button type="button" class="emp-rw-item__act" data-reward-edit="' + esc(r.id) + '">编辑</button>' +
@@ -4721,8 +4754,8 @@
     if (valueMode === 'amount') {
       var a = Number(pair.designatedAmt) || 0;
       var b = Number(pair.nonDesignatedAmt) || 0;
-      if (a === b) return '¥' + a;
-      return '¥' + a + '/' + b;
+      if (a === b) return fmtYen(a);
+      return fmtYen(a) + '/' + fmtYen(b);
     }
     return String(pair.designated != null ? pair.designated : '—') + '/' +
       String(pair.nonDesignated != null ? pair.nonDesignated : '—');
@@ -5067,8 +5100,8 @@
     if (scheme.valueMode === 'amount') {
       var a = Number(scheme.designatedAmt) || 0;
       var b = Number(scheme.nonDesignatedAmt) || 0;
-      if (a === b) return '¥' + a;
-      return '¥' + a + ' / ¥' + b;
+      if (a === b) return fmtYen(a);
+      return fmtYen(a) + ' / ' + fmtYen(b);
     }
     return String(scheme.designated) + '% / ' + String(scheme.nonDesignated) + '%';
   }
@@ -5086,7 +5119,7 @@
     if (opts.cardDefault) attrs += ' data-ach-cap-card-default="1"';
     if (opts.tabDefault) attrs += ' data-ach-cap-tab-default="1"';
     var valHtml = isAmt
-      ? '<em>¥</em>' + esc(String(val))
+      ? '<em>¥</em>' + fmtMoneyHtml(val)
       : esc(String(val)) + '<em>%</em>';
     return '<button type="button" class="emp-ach-cap emp-ach-cap--' + kind + '"' + attrs + '>' +
       '<span class="emp-ach-cap__label">' + label + '</span>' +
@@ -5255,9 +5288,7 @@
   }
 
   function fmtAchPrice(n) {
-    var v = Number(n);
-    if (isNaN(v)) return '¥0';
-    return '¥' + v.toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+    return fmtYenHtml(isNaN(Number(n)) ? 0 : n);
   }
 
   function renderAchEditBody(scheme) {
@@ -6071,7 +6102,7 @@
   function formatCommUnitValue(val, mode) {
     var n = Number(val);
     if (!Number.isFinite(n)) n = 0;
-    return normalizeCommMode(mode) === 'amount' ? ('¥' + n) : (n + '%');
+    return normalizeCommMode(mode) === 'amount' ? fmtYen(n) : (n + '%');
   }
   function parseCommInputValue(raw) {
     if (raw == null) return NaN;
@@ -6223,7 +6254,7 @@
       return {
         id: p.id,
         name: p.name || '未命名',
-        sub: '¥' + (p.price != null ? p.price : 0),
+        sub: fmtYen(p.price != null ? p.price : 0),
         isSimpleTimes: true,
       };
     });
@@ -6244,7 +6275,7 @@
         return {
           id: t.id,
           name: t.name || '未命名卡',
-          sub: t.shelved ? '已下架' : ('面值 ¥' + (t.recharge || 0)),
+          sub: t.shelved ? '已下架' : ('面值 ' + fmtYen(t.recharge || 0)),
         };
       });
     }
@@ -6255,7 +6286,7 @@
       return {
         id: it.id,
         name: it.name || '未命名',
-        sub: '¥' + (it.price != null ? it.price : 0),
+        sub: fmtYen(it.price != null ? it.price : 0),
       };
     });
     if (type === 'project') {
@@ -6736,7 +6767,11 @@
     if (ovSec) ovSec.classList.toggle('is-disabled', !ovOn);
   }
   function formatItemCommPairShort(des, non, isAmt) {
-    if (isAmt) return '点客 ¥' + des + ' · 散客 ¥' + non;
+    if (isAmt) return '点客 ' + fmtYen(des) + ' · 散客 ' + fmtYen(non);
+    return '点客 ' + des + '% · 散客 ' + non + '%';
+  }
+  function formatItemCommPairShortHtml(des, non, isAmt) {
+    if (isAmt) return '点客 ' + fmtYenHtml(des) + ' · 散客 ' + fmtYenHtml(non);
     return '点客 ' + des + '% · 散客 ' + non + '%';
   }
   function formatItemCommRuleShort(rule) {
@@ -6765,7 +6800,7 @@
         var non = isAmt ? (Number(block.nonDesignatedAmt) || 0) : (Number(block.nonDesignated) || 0);
         return '<div class="emp-item-comm-pay-sum__row">' +
           '<span class="emp-item-comm-pay-sum__name">' + esc(def.label) + '</span>' +
-          '<span class="emp-item-comm-pay-sum__val">' + esc(formatItemCommPairShort(des, non, isAmt)) + '</span>' +
+          '<span class="emp-item-comm-pay-sum__val">' + formatItemCommPairShortHtml(des, non, isAmt) + '</span>' +
           '</div>';
       }).join('') +
       '</div>';
@@ -6797,8 +6832,8 @@
     var isAmt = rule.valueMode === 'amount';
     var des = isAmt ? (Number(rule.designatedAmt) || 0) : (Number(rule.designated) || 0);
     var non = isAmt ? (Number(rule.nonDesignatedAmt) || 0) : (Number(rule.nonDesignated) || 0);
-    var desVal = isAmt ? ('¥' + des) : (des + '<em>%</em>');
-    var nonVal = isAmt ? ('¥' + non) : (non + '<em>%</em>');
+    var desVal = isAmt ? fmtYenHtml(des) : (des + '<em>%</em>');
+    var nonVal = isAmt ? fmtYenHtml(non) : (non + '<em>%</em>');
     return '<div class="emp-ach-twins"><div class="emp-ach-twins__pair">' +
       '<span class="emp-ach-cap emp-ach-cap--des emp-ach-cap--static" aria-hidden="true">' +
       '<span class="emp-ach-cap__label">点客</span>' +
@@ -7261,7 +7296,14 @@
     var mode = normalizeCommMode(tier && tier.mode);
     var v = Number(tier && tier.pct);
     if (!Number.isFinite(v)) v = 0;
-    if (mode === 'amount') return '¥' + fmtMoney(v);
+    if (mode === 'amount') return fmtYenHtml(v);
+    return String(v) + '%';
+  }
+  function ladderTierRewardLabelPlain(tier) {
+    var mode = normalizeCommMode(tier && tier.mode);
+    var v = Number(tier && tier.pct);
+    if (!Number.isFinite(v)) v = 0;
+    if (mode === 'amount') return fmtYen(v);
     return String(v) + '%';
   }
 
@@ -7372,8 +7414,8 @@
       return '<div class="' + cls + '" data-ladder-step="' + i + '" role="listitem" style="flex:' + flexes[i].toFixed(3) + ' 1 0;">' +
         '<span class="emp-ladder-step__range">' + esc(rangeLbl) + '</span>' +
         (canDel ? '<button type="button" class="emp-ladder-step__del" data-ladder-del="' + i + '" aria-label="删除第' + (i + 1) + '档">' + delSvg + '</button>' : '') +
-        '<button type="button" class="emp-ladder-step__bar" data-ladder-step-tap="' + i + '" aria-label="第' + (i + 1) + '档 ' + esc(reward) + ' ' + esc(rangeLbl) + '" style="height:' + heights[i] + 'px;">' +
-        '<span class="emp-ladder-step__val">' + esc(reward) + '</span>' +
+        '<button type="button" class="emp-ladder-step__bar" data-ladder-step-tap="' + i + '" aria-label="第' + (i + 1) + '档 ' + esc(ladderTierRewardLabelPlain(tier)) + ' ' + esc(rangeLbl) + '" style="height:' + heights[i] + 'px;">' +
+        '<span class="emp-ladder-step__val">' + reward + '</span>' +
         '<span class="emp-ladder-step__lbl">第' + (i + 1) + '档</span>' +
         '</button></div>';
     }).join('');
@@ -8438,8 +8480,14 @@
           nav('staff-reward-detail');
           return;
         }
-        if (scr && scr.id === 'screen-emp-reward-detail' && state.currentStaffId) {
-          openEmpPayDetail(state.currentStaffId);
+        if (scr && scr.id === 'screen-emp-reward-detail') {
+          var from = state.rewardDetailFrom;
+          state.rewardDetailFrom = null;
+          if (from === 'pay-detail' && state.currentStaffId) {
+            openEmpPayDetail(state.currentStaffId);
+            return;
+          }
+          openSalary();
           return;
         }
         openSalary();
@@ -9193,6 +9241,7 @@
       if (e.target.closest('[data-pay-rewards-card]')) {
         var sid = state.currentStaffId;
         if (sid) {
+          state.rewardDetailFrom = 'pay-detail';
           renderRewardDetail(sid);
           showScreen('screen-emp-reward-detail');
           nav('staff-reward-detail');
@@ -9305,6 +9354,7 @@
         var sid = link.dataset.salaryDetail;
         var kind = link.dataset.detailKind;
         if (kind === 'reward') {
+          state.rewardDetailFrom = 'salary-list';
           renderRewardDetail(sid);
           showScreen('screen-emp-reward-detail');
           nav('staff-reward-detail');
