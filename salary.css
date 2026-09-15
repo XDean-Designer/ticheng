@@ -3740,9 +3740,6 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
   margin-right: 12px;
   gap: 4px;
 }
-.page-title-bar .action.emp-title-link.emp-title-link--text {
-  color: var(--text, #1f2329) !important;
-}
 .page-title-bar .action.emp-title-icon {
   color: #666 !important;
   display: inline-flex;
@@ -3797,28 +3794,11 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
 .page-title-bar .emp-staff-settings .action.emp-title-link {
   margin-left: 0;
   margin-right: 0;
-  height: 44px;
-  padding: 0 4px 0 8px;
-  gap: 5px;
-  align-self: stretch;
-  box-sizing: border-box;
-}
-.page-title-bar .emp-staff-settings__ico,
-.page-title-bar .emp-staff-settings .emp-staff-settings__ico {
-  width: 16px;
-  height: 16px;
-  display: block;
-  flex-shrink: 0;
-  color: inherit;
-}
-.page-title-bar .emp-staff-settings__ico path,
-.page-title-bar .emp-staff-settings .emp-staff-settings__ico path {
-  fill: currentColor;
 }
 .emp-staff-settings__menu {
   position: absolute;
   right: 0;
-  top: calc(100% - 4px);
+  top: calc(100% + 6px);
   z-index: 30;
   min-width: 132px;
   padding: 4px;
