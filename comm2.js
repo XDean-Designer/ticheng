@@ -63,11 +63,51 @@
   function defaultPair() {
     return { designated: 10, nonDesignated: 10, designatedAmt: 0, nonDesignatedAmt: 0 };
   }
+  function pairValsDiffer(pair, isAmt) {
+    pair = pair || defaultPair();
+    if (isAmt) return Number(pair.designatedAmt) !== Number(pair.nonDesignatedAmt);
+    return Number(pair.designated) !== Number(pair.nonDesignated);
+  }
+  function detectGuestSplit(rule, stationIds) {
+    if (!rule) return false;
+    var isAmt = rule.valueMode === 'amount';
+    if (pairValsDiffer(rule, isAmt)) return true;
+    var ids = stationIds || [];
+    for (var i = 0; i < ids.length; i++) {
+      var st = rule.stations && rule.stations[ids[i]];
+      if (st && pairValsDiffer(st, isAmt)) return true;
+    }
+    return false;
+  }
+  function syncPairUnified(pair, preferDes) {
+    pair = pair || defaultPair();
+    if (preferDes !== false) {
+      pair.nonDesignated = pair.designated;
+      pair.nonDesignatedAmt = pair.designatedAmt;
+    } else {
+      pair.designated = pair.nonDesignated;
+      pair.designatedAmt = pair.nonDesignatedAmt;
+    }
+    return pair;
+  }
+  function applyGuestSplitFlag(rule, stationIds) {
+    var ids = stationIds || COMM2_STATIONS.map(function (s) { return s.id; });
+    if (rule.guestSplit == null) rule.guestSplit = detectGuestSplit(rule, ids);
+    else rule.guestSplit = !!rule.guestSplit;
+    if (!rule.guestSplit) {
+      /* 关点客：以散客侧为统一值写入两端 */
+      syncPairUnified(rule, false);
+      ids.forEach(function (sid) {
+        if (rule.stations && rule.stations[sid]) syncPairUnified(rule.stations[sid], false);
+      });
+    }
+    return rule;
+  }
   function defaultCatRule(stationIds) {
     var ids = stationIds || COMM2_STATIONS.map(function (s) { return s.id; });
     var stations = {};
     ids.forEach(function (id) { stations[id] = defaultPair(); });
-    return Object.assign(defaultPair(), { valueMode: 'pct', stations: stations });
+    return Object.assign(defaultPair(), { valueMode: 'pct', guestSplit: false, stations: stations });
   }
   function defaultStationLabels() {
     var o = {};
@@ -96,7 +136,7 @@
     ['designated', 'nonDesignated', 'designatedAmt', 'nonDesignatedAmt'].forEach(function (k) {
       if (!Number.isFinite(Number(rule[k]))) rule[k] = defaultPair()[k];
     });
-    return rule;
+    return applyGuestSplitFlag(rule, ids);
   }
   function defaultPayScope() {
     return { cash: true, memberCard: true, groupBuy: true };
@@ -140,8 +180,8 @@
     if (!line) return false;
     return line.kind === 'quick' ||
       line.refId === COMM2_QUICK_REF ||
-      line.name === '快速消费' ||
-      line.category === '快速消费';
+      line.name === '快捷开单' ||
+      line.category === '快捷开单';
   }
 
   function userOverrides(sch) {
@@ -174,8 +214,8 @@
       existing.system = true;
       existing.id = COMM2_QUICK_OV_ID;
       existing.belongCat = 'labor';
-      existing.title = '快速消费';
-      existing.targets = [{ kind: 'project', refId: COMM2_QUICK_REF, name: '快速消费' }];
+      existing.title = '快捷开单';
+      existing.targets = [{ kind: 'project', refId: COMM2_QUICK_REF, name: '快捷开单' }];
       ensurePayScopeBlock(existing);
       existing.rule = ensureCat(existing.rule, ids);
       return existing;
@@ -185,12 +225,12 @@
       id: COMM2_QUICK_OV_ID,
       system: true,
       belongCat: 'labor',
-      title: '快速消费',
+      title: '快捷开单',
       payScope: snap.payScope,
       baseMode: snap.baseMode,
       pickMode: snap.pickMode,
       rule: snap.rule,
-      targets: [{ kind: 'project', refId: COMM2_QUICK_REF, name: '快速消费' }]
+      targets: [{ kind: 'project', refId: COMM2_QUICK_REF, name: '快捷开单' }]
     };
     sch.overrides.unshift(row);
     return row;
@@ -258,7 +298,8 @@
         r.stations[s.id] = { designated: des, nonDesignated: non, designatedAmt: 0, nonDesignatedAmt: 0 };
       }
     });
-    return r;
+    r.guestSplit = null;
+    return applyGuestSplitFlag(r, COMM2_STATIONS.map(function (s) { return s.id; }));
   }
   function catRuleAmt(desAmt, nonAmt) {
     var r = defaultCatRule();
@@ -268,7 +309,8 @@
     COMM2_STATIONS.forEach(function (s) {
       r.stations[s.id] = { designated: 0, nonDesignated: 0, designatedAmt: desAmt, nonDesignatedAmt: nonAmt };
     });
-    return r;
+    r.guestSplit = null;
+    return applyGuestSplitFlag(r, COMM2_STATIONS.map(function (s) { return s.id; }));
   }
   function scopeOnly(keys) {
     return {
@@ -508,32 +550,41 @@
     rule = ensureCat(rule);
     var des = pairVal(rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return '点客' + fmtVal(des, isAmt) + '·散客' + fmtVal(non, isAmt);
+    if (!rule.guestSplit) return fmtVal(non, isAmt);
+    return fmtVal(non, isAmt) + '·点' + fmtVal(des, isAmt);
   }
   function formatPairFlatHtml(rule, isAmt) {
     rule = ensureCat(rule);
     var des = pairVal(rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return '<span class="comm2-cat__lbl">点客</span><strong>' + fmtValHtml(des, isAmt) + '</strong>' +
+    if (!rule.guestSplit) return '<strong>' + fmtValHtml(non, isAmt) + '</strong>';
+    return '<strong>' + fmtValHtml(non, isAmt) + '</strong>' +
       '<span class="comm2-cat__dot">·</span>' +
-      '<span class="comm2-cat__lbl">散客</span><strong>' + fmtValHtml(non, isAmt) + '</strong>';
+      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
+      '<strong>' + fmtValHtml(des, isAmt) + '</strong>';
   }
-  function formatStationPair(sch, st, isAmt) {
+  function formatStationPair(sch, st, isAmt, guestSplit) {
     var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return fmtVal(des, isAmt) + '·' + fmtVal(non, isAmt);
+    if (!guestSplit) return fmtVal(non, isAmt);
+    return fmtVal(non, isAmt) + '·点' + fmtVal(des, isAmt);
   }
-  function formatStationPairHtml(sch, st, isAmt) {
+  function formatStationPairHtml(sch, st, isAmt, guestSplit) {
     var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return fmtValHtml(des, isAmt) + '·' + fmtValHtml(non, isAmt);
+    if (!guestSplit) return fmtValHtml(non, isAmt);
+    return fmtValHtml(non, isAmt) +
+      '<span class="comm2-cat__dot">·</span>' +
+      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
+      fmtValHtml(des, isAmt);
   }
   function formatBlockSummary(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var isAmt = block.rule.valueMode === 'amount';
+    var split = !!block.rule.guestSplit;
     if (block.pickMode === 'station') {
       return getStationIds(sch).map(function (sid) {
-        return stationLabel(sch, sid) + ' ' + formatStationPair(sch, block.rule.stations[sid] || defaultPair(), isAmt);
+        return stationLabel(sch, sid) + ' ' + formatStationPair(sch, block.rule.stations[sid] || defaultPair(), isAmt, split);
       }).join('；');
     }
     return formatPairFlat(block.rule, isAmt);
@@ -541,10 +592,11 @@
   function formatBlockSummaryHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var isAmt = block.rule.valueMode === 'amount';
+    var split = !!block.rule.guestSplit;
     if (block.pickMode === 'station') {
       return getStationIds(sch).map(function (sid) {
         var st = block.rule.stations[sid] || defaultPair();
-        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st, isAmt) + '</strong></div>';
+        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st, isAmt, split) + '</strong></div>';
       }).join('');
     }
     return '<div class="comm2-rule-card__params-row comm2-rule-card__params-row--flat"><span>提成参数</span><strong>' + formatPairFlatHtml(block.rule, isAmt) + '</strong></div>';
@@ -650,8 +702,9 @@
     }
     root.innerHTML = store.schemes.map(function (s) {
       var n = (s.assigneeIds || []).length;
-      var assignLabel = n ? s.assigneeIds.map(comm2StaffName).join(' · ') : '未分配';
+      var assignLabel = n ? s.assigneeIds.map(comm2StaffName).join(' · ') : '请配置';
       var menuSvg = '<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>';
+      var assignChev = '<span class="ui-nav-chev" aria-hidden="true">' + chevronSvg() + '</span>';
       return '<div class="emp-comm-card comm2-scheme" data-comm2-card="' + esc(s.id) + '">' +
         '<button type="button" class="emp-comm-card__edit" data-comm2-open="' + esc(s.id) + '">' +
         '<div class="emp-comm-card__top"><div class="emp-comm-card__who">' +
@@ -660,32 +713,79 @@
         '<span class="emp-comm-card__name">' + esc(s.name) + '</span>' +
         '</span></div></div></button>' +
         '<button type="button" class="emp-comm-card__assign" data-comm2-assign="' + esc(s.id) + '">' +
-        '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + '</span></button>' +
+        '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + assignChev + '</span></button>' +
         '<button type="button" class="emp-comm-card__menu" data-comm2-menu="' + esc(s.id) + '" aria-label="更多">' + menuSvg + '</button></div>';
     }).join('');
   }
 
-  function twinHtml(prefix, pair, isAmt, aria) {
+  function chevronSvg() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+  }
+  function smallChevronSvg() {
+    return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+  }
+
+  /** 单值输入卡（未开点客 / 按工位单参） */
+  function singleCapHtml(prefix, pair, isAmt, title, opts) {
+    opts = opts || {};
+    pair = pair || defaultPair();
+    var key = isAmt ? 'designatedAmt' : 'designated';
+    /* 单提成展示/编辑用散客侧数值（与 guestSplit 关时两端已同步） */
+    var val = isAmt ? pair.nonDesignatedAmt : pair.nonDesignated;
+    if (opts.useDes) val = pair[key];
+    var ph = isAmt ? '请输入金额' : '请输入比例';
+    var headExtra = opts.headExtra || '';
+    return '<div class="comm2-cap comm2-cap--single' + (opts.extraClass ? (' ' + opts.extraClass) : '') + '">' +
+      '<div class="comm2-cap__head"><span class="comm2-cap__title">' + esc(title) + '</span>' + headExtra + '</div>' +
+      '<div class="comm2-cap__field">' +
+      (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
+      '<input class="input-amount" type="text" data-comm2-field="' + prefix + (isAmt ? 'nonDesignatedAmt' : 'nonDesignated') + '" value="' + esc(val) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="' + esc(title) + '" />' +
+      (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
+      '</div></div>';
+  }
+
+  function guestCloseSvg() {
+    return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+  }
+
+  /** 点客开启后：散客 + 点客双卡左右等比；点客卡用 × 关闭 */
+  function twinHtml(prefix, pair, isAmt, aria, opts) {
+    opts = opts || {};
     pair = pair || defaultPair();
     var desKey = isAmt ? 'designatedAmt' : 'designated';
     var nonKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
     var desVal = pair[desKey];
     var nonVal = pair[nonKey];
-    var desLbl = isAmt ? '点客金额' : '点客比例';
-    var nonLbl = isAmt ? '散客金额' : '散客比例';
-    return '<div class="comm2-twins" role="group" aria-label="' + esc(aria || '点客与散客') + '">' +
-      '<div class="comm2-cap comm2-cap--des"><span class="comm2-cap__label">' + esc(desLbl) + '</span>' +
+    var ph = isAmt ? '请输入金额' : '请输入比例';
+    var cancelBtn = opts.hideCancel
+      ? ''
+      : '<button type="button" class="comm2-guest-close" data-comm2-guest-split="off" aria-label="取消点客提成">' + guestCloseSvg() + '</button>';
+    return '<div class="comm2-twins" role="group" aria-label="' + esc(aria || '散客与点客') + '">' +
+      '<div class="comm2-cap comm2-cap--non"><div class="comm2-cap__head"><span class="comm2-cap__title">散客</span></div>' +
       '<div class="comm2-cap__field">' +
       (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
-      '<input class="input-amount" type="text" data-comm2-field="' + prefix + desKey + '" value="' + esc(desVal) + '" inputmode="decimal" aria-label="' + esc(desLbl) + '" />' +
+      '<input class="input-amount" type="text" data-comm2-field="' + prefix + nonKey + '" value="' + esc(nonVal) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="散客" />' +
       (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
       '</div></div>' +
-      '<div class="comm2-cap comm2-cap--non"><span class="comm2-cap__label">' + esc(nonLbl) + '</span>' +
+      '<div class="comm2-cap comm2-cap--des"><div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' + cancelBtn + '</div>' +
       '<div class="comm2-cap__field">' +
       (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
-      '<input class="input-amount" type="text" data-comm2-field="' + prefix + nonKey + '" value="' + esc(nonVal) + '" inputmode="decimal" aria-label="' + esc(nonLbl) + '" />' +
+      '<input class="input-amount" type="text" data-comm2-field="' + prefix + desKey + '" value="' + esc(desVal) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="点客" />' +
       (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
       '</div></div></div>';
+  }
+
+  function guestSplitLinkHtml() {
+    return '<button type="button" class="comm2-guest-link" data-comm2-guest-split="on">' +
+      '设置点客提成<span class="comm2-guest-link__chev" aria-hidden="true">' + smallChevronSvg() + '</span></button>';
+  }
+
+  function commissionParamsHtml(prefix, pair, isAmt, guestSplit, aria) {
+    if (guestSplit) return twinHtml(prefix, pair, isAmt, aria);
+    return '<div class="comm2-guest-row">' +
+      singleCapHtml(prefix, pair, isAmt, '提成') +
+      guestSplitLinkHtml() +
+      '</div>';
   }
 
   function flashEl(el) {
@@ -742,31 +842,27 @@
     return block.baseMode === 'paid' ? '实收' : '原价';
   }
 
-  /** 卡上：原价/实收整段点击切换；固定金额时只读「固定」 */
-  function barBaseCtrlHtml(block, target) {
+  /** 卡上：原价/实收/固定 · 只读展示（仅 Sheet 可改） */
+  function barBaseCtrlHtml(block) {
     var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
     if (isAmt) {
       return '<span class="comm2-rule-bar__base is-fixed" aria-label="固定金额">固定</span>';
     }
     var isPaid = block.baseMode === 'paid';
-    return '<button type="button" class="comm2-rule-bar__seg" role="switch" aria-checked="' +
-      (isPaid ? 'true' : 'false') + '" aria-label="计算基数，点击切换原价/实收" data-comm2-bar-base-toggle="' +
-      esc(target) + '">' +
+    return '<span class="comm2-rule-bar__seg is-ro" role="text" aria-label="计算基数 ' + (isPaid ? '实收' : '原价') + '">' +
       '<span class="comm2-rule-bar__chip' + (!isPaid ? ' on' : '') +
       (!isPaid ? ' comm2-rule-bar__base is-list' : '') + '" aria-hidden="true">原价</span>' +
       '<span class="comm2-rule-bar__chip' + (isPaid ? ' on' : '') +
-      (isPaid ? ' comm2-rule-bar__base is-paid' : '') + '" aria-hidden="true">实收</span></button>';
+      (isPaid ? ' comm2-rule-bar__base is-paid' : '') + '" aria-hidden="true">实收</span></span>';
   }
 
-  /** 卡上：现金/卡付/团购 · 独立 chip 多选（与基数段控区分） */
-  function barPayCtrlHtml(block, target) {
+  /** 卡上：现金/卡付/团购 · 只读 chip */
+  function barPayCtrlHtml(block) {
     ensurePayScopeBlock(block);
-    return '<div class="comm2-rule-bar__scope-chips" role="group" aria-label="适用范围">' +
+    return '<div class="comm2-rule-bar__scope-chips is-ro" role="group" aria-label="适用范围">' +
       COMM2_PAY_SCOPE.map(function (d) {
         var on = !!block.payScope[d.key];
-        return '<button type="button" class="comm2-scope-chip' + (on ? ' on' : '') +
-          '" data-comm2-bar-scope="' + esc(d.key) + '" data-comm2-bar-target="' + esc(target) +
-          '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(d.label) + '</button>';
+        return '<span class="comm2-scope-chip' + (on ? ' on' : '') + '" aria-hidden="true">' + esc(d.label) + '</span>';
       }).join('') + '</div>';
   }
 
@@ -797,20 +893,32 @@
       '</button></div>';
   }
 
-  function barParamSegHtml(lbl, valHtml) {
-    return '<span class="comm2-rule-bar__param-seg">' +
-      '<span class="comm2-rule-bar__p-lbl">' + esc(lbl) + '</span>' +
+  function barParamSegHtml(lbl, valHtml, opts) {
+    opts = opts || {};
+    var tag = opts.tag
+      ? ('<span class="comm2-rule-bar__p-tag" aria-hidden="true">' + esc(opts.tag) + '</span>')
+      : '';
+    var lblHtml = lbl
+      ? ('<span class="comm2-rule-bar__p-lbl">' + tag + esc(lbl) + '</span>')
+      : '';
+    return '<span class="comm2-rule-bar__param-seg' + (opts.extraClass ? (' ' + opts.extraClass) : '') + '">' +
+      lblHtml +
       '<strong class="comm2-rule-bar__p-val">' + valHtml + '</strong></span>';
   }
 
   function barStationParamsHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var isAmt = block.rule.valueMode === 'amount';
+    var split = !!block.rule.guestSplit;
     return getStationIds(sch).map(function (sid) {
       var st = block.rule.stations[sid] || defaultPair();
       var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
       var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-      return barParamSegHtml(stationShortLabel(sch, sid), fmtValHtml(des, isAmt) + '·' + fmtValHtml(non, isAmt));
+      var valHtml = split
+        ? (fmtValHtml(non, isAmt) + '<span class="comm2-rule-bar__p-dot">·</span>' +
+          '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' + fmtValHtml(des, isAmt))
+        : fmtValHtml(non, isAmt);
+      return barParamSegHtml(stationShortLabel(sch, sid), valHtml);
     }).join('');
   }
 
@@ -820,7 +928,14 @@
     if (block.pickMode === 'station') return barStationParamsHtml(sch, block);
     var des = pairVal(block.rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(block.rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    return barParamSegHtml('点客', fmtValHtml(des, isAmt)) + barParamSegHtml('散客', fmtValHtml(non, isAmt));
+    if (!block.rule.guestSplit) {
+      return barParamSegHtml('', fmtValHtml(non, isAmt), { extraClass: 'is-single' });
+    }
+    var valHtml = fmtValHtml(non, isAmt) +
+      '<span class="comm2-rule-bar__p-dot">·</span>' +
+      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
+      fmtValHtml(des, isAmt);
+    return barParamSegHtml('', valHtml, { extraClass: 'is-guest-sum' });
   }
 
   function titleCharCount(s) {
@@ -868,20 +983,25 @@
     var isStation = block.pickMode === 'station';
     var ovId = opts.ovId || '';
     var titleEllipsis = titleCharCount(title) > 6;
-    /* 两行：①标题+基数 ②参数+范围；按工位时参数竖排三行 */
-    var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') + '" data-comm2-rule-card="' + esc(target) + '"' +
+    /* 主区两行 + 最右 chevron 列；整卡进全量 Sheet；基数/范围只读 */
+    var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') +
+      (block.rule && block.rule.guestSplit ? ' is-guest-split' : '') +
+      '" data-comm2-rule-card="' + esc(target) + '" data-comm2-card-open="' + esc(target) + '" role="button" tabindex="0" aria-label="编辑规则 ' + esc(title) + '"' +
       (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
+      '<div class="comm2-rule-bar__main">' +
       '<div class="comm2-rule-bar__row comm2-rule-bar__row--1">' +
-      '<button type="button" class="comm2-rule-bar__title-hit" data-comm2-card-open="' + esc(target) + '">' +
+      '<div class="comm2-rule-bar__title-hit">' +
       '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
-      '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></button>' +
-      barFieldHtml(barBaseCtrlHtml(block, target)) +
+      '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></div>' +
+      barFieldHtml(barBaseCtrlHtml(block)) +
       '</div>' +
       '<div class="comm2-rule-bar__row comm2-rule-bar__row--2">' +
-      '<button type="button" class="comm2-rule-bar__params" data-comm2-card-open-params="' + esc(target) + '" aria-label="编辑提成参数">' +
-      barParamsHtml(sch, block) + '<span class="comm2-rule-bar__p-edit" aria-hidden="true">' + editIconSvg() + '</span></button>' +
-      barFieldHtml(barPayCtrlHtml(block, target)) +
+      '<div class="comm2-rule-bar__params" aria-label="提成参数">' +
+      barParamsHtml(sch, block) + '</div>' +
+      barFieldHtml(barPayCtrlHtml(block)) +
       '</div>' +
+      '</div>' +
+      '<span class="comm2-rule-bar__chev" aria-hidden="true">' + chevronSvg() + '</span>' +
       '</article>';
     if (!isOv) return card;
     return '<div class="comm2-rule-swipe-wrap" data-comm2-swipe-ov="' + esc(ovId) + '">' +
@@ -907,7 +1027,7 @@
     html += renderRuleCard(sch, {
       block: quick,
       target: 'override:' + COMM2_QUICK_OV_ID,
-      title: '快速消费',
+      title: '快捷开单',
       iconKey: 'quick',
       deletable: false
     });
@@ -1055,7 +1175,7 @@
     { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, designated: true },
     { id: 'tl6', name: '团购体验 · 洗头', cat: 'labor', kind: 'project', refId: 'p19', pay: 'groupBuy', list: 28, paid: 28, designated: false },
     { id: 'tl7', name: '卡付 · 时尚洗吹', cat: 'labor', kind: 'project', refId: 'p1', pay: 'memberCard', list: 58, paid: 58, designated: false },
-    { id: 'tl8', name: '快速消费', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true },
+    { id: 'tl8', name: '快捷开单', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true },
     { id: 'tl9', name: '经理签单 · 深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', sign: true, list: 268, paid: 0, designated: true }
   ];
 
@@ -1091,7 +1211,7 @@
           }
           continue;
         }
-        /* 快速消费：业务上是项目覆盖项；开单行可能是 kind=quick */
+        /* 快捷开单：业务上是项目覆盖项；开单行可能是 kind=quick */
         if (t.kind === 'project' && t.refId === COMM2_QUICK_REF && isQuickLine(line)) return ov;
         if (t.kind === line.kind && t.refId === line.refId) return ov;
       }
@@ -1460,6 +1580,7 @@
   function renderRuleSheetBody(sch, block, rule) {
     rule = ensureCat(rule, getStationIds(sch));
     var isAmt = store._sheetMode === 'amount';
+    var guestSplit = !!rule.guestSplit;
     var modeHtml = '<div class="comm2-sheet-mode comm2-sheet-mode--inline comm2-sheet-ctrl" role="radiogroup" aria-label="提成取值">' +
       '<button type="button" class="comm2-sheet-mode__btn' + (!isAmt ? ' on' : '') + '" data-comm2-valmode="pct">按比例 %</button>' +
       '<button type="button" class="comm2-sheet-mode__btn' + (isAmt ? ' on' : '') + '" data-comm2-valmode="amount">固定金额 ¥</button></div>';
@@ -1474,10 +1595,16 @@
           (editingName
             ? '<div class="comm2-sheet-station__name is-editing"><input type="text" class="comm2-sheet-station__input" maxlength="6" data-comm2-station-inline-input="' + esc(sid) + '" value="' + esc(stationLabel(sch, sid)) + '" /></div>'
             : '<button type="button" class="comm2-sheet-station__name" data-comm2-station-inline-edit="' + esc(sid) + '" aria-label="改名工位"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">' + esc(stationLabel(sch, sid)) + '</span><span class="comm2-sheet-station__edit" aria-hidden="true">' + editIconSvg() + '</span></button>') +
-          twinHtml('st.' + sid + '.', st, isAmt, stationLabel(sch, sid)) + '</div>';
+          (guestSplit
+            ? twinHtml('st.' + sid + '.', st, isAmt, stationLabel(sch, sid))
+            : singleCapHtml('st.' + sid + '.', st, isAmt, '提成')) +
+          '</div>';
       });
+      if (!guestSplit) {
+        html += '<div class="comm2-guest-row comm2-guest-row--tail">' + guestSplitLinkHtml() + '</div>';
+      }
     } else {
-      html += twinHtml('base.', rule, isAmt, '点客散客');
+      html += commissionParamsHtml('base.', rule, isAmt, guestSplit, '提成');
     }
     html += '</div>';
     return html;
@@ -1489,10 +1616,9 @@
     ensurePayScopeBlock(block);
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var html = '';
-    if (variant === 'full') {
-      html += sheetRowHtml('适用范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
-        sheetRowHtml('计算基数', sheetSegHtml('base', block));
-    }
+    /* 仅全量 Sheet；params 变体已废弃，一律按 full 渲染 */
+    html += sheetRowHtml('适用范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
+      sheetRowHtml('计算基数', sheetSegHtml('base', block));
     html += sheetRowHtml('分配模式', sheetSegHtml('pick', block));
     if (opts.showCardRole) {
       html += sheetRowHtml('会员卡', sheetCardRoleHtml(block));
@@ -1521,7 +1647,7 @@
     block.rule = ensureCat(block.rule, getStationIds(sch));
     store._sheetContext = 'edit';
     store._cardTarget = target;
-    store._sheetVariant = opts.variant === 'params' ? 'params' : 'full';
+    store._sheetVariant = 'full';
     store._stationInlineEditId = null;
     var p = parseCardTarget(target);
     var title = p.type === 'default'
@@ -1529,11 +1655,10 @@
       : (block.title || '覆盖');
     store._sheetMode = block.rule.valueMode === 'amount' ? 'amount' : 'pct';
     var titleEl = $('comm2CatSheetTitle');
-    if (titleEl) titleEl.textContent = store._sheetVariant === 'params' ? (title + ' · 提成参数') : title;
+    if (titleEl) titleEl.textContent = title;
     refreshCardSheetBody();
     var mask = $('comm2CatSheetMask');
     if (mask) mask.classList.add('open');
-    if (store._sheetVariant === 'params') return;
     if (opts.focus === 'params') {
       var body = $('comm2CatSheetBody');
       if (!body) return;
@@ -1548,25 +1673,33 @@
     }
   }
 
-  /** 整段点击：原价 ↔ 实收 */
-  function toggleBarBase(target) {
+  function setSheetGuestSplit(on) {
     var sch = editing();
-    var block = sch ? getCardBlock(sch, target) : null;
+    var block = sch ? getSheetBlock(sch) : null;
     if (!sch || !block) return;
-    if (block.rule && block.rule.valueMode === 'amount') return;
-    block.baseMode = block.baseMode === 'paid' ? 'list' : 'paid';
-    markDirty();
-    renderEditCards(sch);
+    block.rule = ensureCat(block.rule, getStationIds(sch));
+    var ids = getStationIds(sch);
+    if (on) {
+      block.rule.guestSplit = true;
+      /* 开启时点客默认跟散客当前值 */
+      block.rule.designated = block.rule.nonDesignated;
+      block.rule.designatedAmt = block.rule.nonDesignatedAmt;
+      ids.forEach(function (sid) {
+        var st = block.rule.stations[sid] || defaultPair();
+        st.designated = st.nonDesignated;
+        st.designatedAmt = st.nonDesignatedAmt;
+        block.rule.stations[sid] = st;
+      });
+    } else {
+      block.rule.guestSplit = false;
+      applyGuestSplitFlag(block.rule, ids);
+    }
+    refreshCardSheetBody();
   }
 
-  function toggleBarScope(target, key) {
-    var sch = editing();
-    var block = sch ? getCardBlock(sch, target) : null;
-    if (!sch || !block) return;
-    if (!toggleBlockScope(block, key)) return;
-    markDirty();
-    renderEditCards(sch);
-  }
+  /** @deprecated 卡面直改已移除，保留空实现防外部调用 */
+  function toggleBarBase() {}
+  function toggleBarScope() {}
 
   function openPickSettingsSheet() {
     var sch = editing();
@@ -1594,19 +1727,21 @@
   }
 
   function applySheetPairs(block, sch, rule, isAmt) {
+    var guestSplit = !!rule.guestSplit;
     if (block.pickMode === 'station') {
       var ids = getStationIds(sch);
       for (var i = 0; i < ids.length; i++) {
         var id = ids[i];
-        var got = readPairFromPrefix('st.' + id + '.', isAmt);
+        var got = readPairFromPrefix('st.' + id + '.', isAmt, guestSplit);
         if (got.error) return stationLabel(sch, id) + '：' + got.error;
         rule.stations[id] = Object.assign(rule.stations[id] || defaultPair(), got.pair);
       }
     } else {
-      var base = readPairFromPrefix('base.', isAmt);
+      var base = readPairFromPrefix('base.', isAmt, guestSplit);
       if (base.error) return base.error;
       Object.assign(rule, base.pair);
     }
+    if (!guestSplit) applyGuestSplitFlag(rule, getStationIds(sch));
     return null;
   }
 
@@ -1685,15 +1820,26 @@
     if (mask && mask.classList.contains('open') && (store._cardTarget || store._sheetContext === 'pick')) refreshCardSheetBody();
   }
 
-  function readPairFromPrefix(prefix, isAmt) {
+  function readPairFromPrefix(prefix, isAmt, guestSplit) {
     var desKey = isAmt ? 'designatedAmt' : 'designated';
     var nonKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
+    var unitLbl = isAmt ? '金额' : '比例';
+    if (!guestSplit) {
+      var uniEl = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + nonKey + '"]');
+      var uni = parseFloat(uniEl && uniEl.value);
+      if (!Number.isFinite(uni) || uni < 0) return { error: '请输入有效的提成' + unitLbl };
+      if (!isAmt && uni > 100) return { error: '比例需在 0–100%' };
+      var u = defaultPair();
+      if (isAmt) { u.designatedAmt = uni; u.nonDesignatedAmt = uni; }
+      else { u.designated = uni; u.nonDesignated = uni; }
+      return { pair: u };
+    }
     var desEl = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + desKey + '"]');
     var nonEl = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + nonKey + '"]');
     var des = parseFloat(desEl && desEl.value);
     var non = parseFloat(nonEl && nonEl.value);
-    if (!Number.isFinite(des) || des < 0) return { error: '请输入有效的点客' + (isAmt ? '金额' : '比例') };
-    if (!Number.isFinite(non) || non < 0) return { error: '请输入有效的散客' + (isAmt ? '金额' : '比例') };
+    if (!Number.isFinite(des) || des < 0) return { error: '请输入有效的点客' + unitLbl };
+    if (!Number.isFinite(non) || non < 0) return { error: '请输入有效的散客' + unitLbl };
     if (!isAmt && (des > 100 || non > 100)) return { error: '比例需在 0–100%' };
     var o = defaultPair();
     if (isAmt) { o.designatedAmt = des; o.nonDesignatedAmt = non; }
@@ -1810,8 +1956,6 @@
 
   function syncPickCount() {
     var n = store._pickBundle && store._pickBundle.targets ? store._pickBundle.targets.length : 0;
-    var cnt = $('comm2PickCount');
-    if (cnt) cnt.innerHTML = '已选 <strong>' + n + '</strong> 项';
     var ok = $('comm2PickOkCount');
     if (ok) ok.textContent = n ? '（' + n + '）' : '';
     var okBtn = $('comm2PickOk');
@@ -2177,7 +2321,7 @@
 
     root.addEventListener('pointerdown', function (e) {
       if (e.button != null && e.button !== 0) return;
-      if (e.target.closest('[data-comm2-bar-base-toggle], [data-comm2-bar-scope], [data-comm2-swipe-del]')) {
+      if (e.target.closest('[data-comm2-swipe-del]')) {
         return;
       }
       var wrap = e.target.closest('.comm2-rule-swipe-wrap');
@@ -2354,7 +2498,7 @@
       var badCat = COMM2_CATS.find(function (c) { return payScopeCountBlock(sch.defaults[c.key]) < 1; });
       if (badCat) { toast('「' + badCat.label + '」至少选一种支付方式', true); return; }
       var badOv = (sch.overrides || []).find(function (o) { return payScopeCountBlock(o) < 1; });
-      if (badOv) { toast((isQuickOverride(badOv) ? '「快速消费」' : ('覆盖规则「' + (badOv.title || '未命名') + '」')) + '至少选一种支付方式', true); return; }
+      if (badOv) { toast((isQuickOverride(badOv) ? '「快捷开单」' : ('覆盖规则「' + (badOv.title || '未命名') + '」')) + '至少选一种支付方式', true); return; }
       if (store._draft) {
         store.schemes.unshift(store._draft);
         store._draft = null;
@@ -2381,29 +2525,18 @@
         e.preventDefault(); e.stopPropagation();
         return;
       }
-      var baseToggle = e.target.closest('[data-comm2-bar-base-toggle]');
-      if (baseToggle) {
-        e.preventDefault(); e.stopPropagation();
-        toggleBarBase(baseToggle.getAttribute('data-comm2-bar-base-toggle'));
-        return;
-      }
-      var scopeBtn = e.target.closest('[data-comm2-bar-scope]');
-      if (scopeBtn) {
-        e.preventDefault(); e.stopPropagation();
-        toggleBarScope(scopeBtn.getAttribute('data-comm2-bar-target'), scopeBtn.getAttribute('data-comm2-bar-scope'));
-        return;
-      }
-      var paramsBtn = e.target.closest('[data-comm2-card-open-params]');
-      if (paramsBtn) {
-        e.preventDefault(); e.stopPropagation();
-        openCardSheet(paramsBtn.getAttribute('data-comm2-card-open-params'), { variant: 'params' });
-        return;
-      }
       var openBtn = e.target.closest('[data-comm2-card-open]');
       if (openBtn) {
         e.preventDefault(); e.stopPropagation();
         openCardSheet(openBtn.getAttribute('data-comm2-card-open'), { variant: 'full' });
       }
+    });
+    $('comm2EditCards') && $('comm2EditCards').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var openBtn = e.target.closest('[data-comm2-card-open]');
+      if (!openBtn) return;
+      e.preventDefault();
+      openCardSheet(openBtn.getAttribute('data-comm2-card-open'), { variant: 'full' });
     });
 
     wireRuleCardGestures();
@@ -2568,6 +2701,11 @@
       }
       var cardRoleBtn = e.target.closest('[data-comm2-sheet-card-role]');
       if (cardRoleBtn) { setSheetCardRole(cardRoleBtn.getAttribute('data-comm2-sheet-card-role')); return; }
+      var guestBtn = e.target.closest('[data-comm2-guest-split]');
+      if (guestBtn) {
+        setSheetGuestSplit(guestBtn.getAttribute('data-comm2-guest-split') === 'on');
+        return;
+      }
       var btn = e.target.closest('[data-comm2-valmode]');
       if (!btn) return;
       store._sheetMode = btn.getAttribute('data-comm2-valmode') === 'amount' ? 'amount' : 'pct';
@@ -2621,41 +2759,6 @@
       if (gbtn) { togglePickGroup(gbtn.getAttribute('data-comm2-pick-group-item')); return; }
       var itemBtn = e.target.closest('[data-comm2-pick-item]');
       if (itemBtn && !itemBtn.disabled) togglePickItem(itemBtn.getAttribute('data-comm2-pick-item'));
-    });
-    $('comm2PickSelectAll') && $('comm2PickSelectAll').addEventListener('click', function () {
-      var sch = editing();
-      if (!sch || !store._pickBundle) return;
-      var type = store._pickType || 'project';
-      pickVisibleItems().forEach(function (it) {
-        var key = type === 'card'
-          ? ('card:' + it.id + ':' + store._pickBundle.cardRole)
-          : ('item:' + type + ':' + it.id);
-        store._pickSel[key] = type === 'card'
-          ? { kind: 'card', refId: it.id, name: it.name, cardRole: store._pickBundle.cardRole }
-          : { kind: type, refId: it.id, name: it.name };
-      });
-      rebuildPickTargets();
-      store._pickBundle.belongCat = pickBelongCat(type, store._pickBundle.cardRole);
-      renderPickScreen();
-    });
-    $('comm2PickInvert') && $('comm2PickInvert').addEventListener('click', function () {
-      var sch = editing();
-      if (!sch || !store._pickBundle) return;
-      var type = store._pickType || 'project';
-      var visible = pickVisibleItems();
-      visible.forEach(function (it) {
-        var key = type === 'card'
-          ? ('card:' + it.id + ':' + store._pickBundle.cardRole)
-          : ('item:' + type + ':' + it.id);
-        if (store._pickSel[key]) delete store._pickSel[key];
-        else {
-          store._pickSel[key] = type === 'card'
-            ? { kind: 'card', refId: it.id, name: it.name, cardRole: store._pickBundle.cardRole }
-            : { kind: type, refId: it.id, name: it.name };
-        }
-      });
-      rebuildPickTargets();
-      renderPickScreen();
     });
   }
 

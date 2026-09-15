@@ -1,4 +1,4 @@
-﻿<!-- ==== COMM2 提成设置（可整段删除；不改动旧提成/业绩） ==== -->
+<!-- ==== COMM2 提成设置（可整段删除；不改动旧提成/业绩） ==== -->
 <div class="screen hidden" id="screen-comm2-list">
   <div class="page-title-bar">
     <button type="button" class="back" id="comm2ListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -43,11 +43,6 @@
       <button type="button" class="comm2-pick-types__btn" data-comm2-pick-type="card" role="tab" aria-selected="false">会员卡</button>
     </div>
     <div class="comm2-pick-groups" id="comm2PickGroups"></div>
-    <div class="comm2-pick-tools">
-      <button type="button" id="comm2PickSelectAll">全选</button>
-      <span class="comm2-pick-tools__count" id="comm2PickCount">已选 <strong>0</strong> 项</span>
-      <button type="button" id="comm2PickInvert">反选</button>
-    </div>
     <div class="comm2-pick-bundle-edit hidden" id="comm2PickBundle"></div>
     <div class="comm2-pick-body">
       <div class="comm2-pick-list" id="comm2PickList"></div>
@@ -78,7 +73,7 @@
     <div class="dialog__title" id="comm2BaseHelpTitle">计算基数说明</div>
     <div class="dialog__scroll emp-help-body">
       <h4>原价模式</h4>
-      <p>范围内开单（项目、产品、会员卡开卡、快速消费、商城订单、充卡/续次/延期）按<strong>原价</strong>加总作为提成基数。快速消费原价=实收；商城订单按订单原价；充卡/续次/延期按其原价。</p>
+      <p>范围内开单（项目、产品、会员卡开卡、快捷开单、商城订单、充卡/续次/延期）按<strong>原价</strong>加总作为提成基数。快捷开单原价=实收；商城订单按订单原价；充卡/续次/延期按其原价。</p>
       <h4>实收模式</h4>
       <p>上述开单范围相同，但按<strong>实收金额</strong>加总作为提成基数。</p>
     </div>
@@ -182,7 +177,7 @@
       <h4>按项分摊 · 适用范围</h4>
       <p>「适用范围」指对应到开单中每一个项目/产品/会员卡的金额分摊，不是整单是否命中某种支付方式。混合支付时：计算基数=原价 → 基数 = 原价 ×（范围内实付 ÷ 该行全部实付）；计算基数=实收 → 基数 = 范围内实付之和；固定金额 → 固定额 ×（范围内实付 ÷ 全部实付）。卡付含会员卡面值（充值+赠送）与计次（购买+赠送次数/数量）；计次按卡内成本/均价折算为卡付实付。</p>
       <h4>覆盖优先</h4>
-      <p>方案内覆盖规则项（含系统「快速消费」）优先于分类默认；命中覆盖后不再吃分类默认。覆盖之间允许重复添加同一项，再比金额取高。方案之间再比金额取高。</p>
+      <p>方案内覆盖规则项（含系统「快捷开单」）优先于分类默认；命中覆盖后不再吃分类默认。覆盖之间允许重复添加同一项，再比金额取高。方案之间再比金额取高。</p>
       <h4>不同行可相加</h4>
       <p>不同业务行分别取高后，行与行之间可相加汇总。</p>
     </div>

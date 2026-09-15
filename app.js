@@ -43,7 +43,10 @@
     if (id === 'screen-emp-roles') return 'staff-roles';
     if (id === 'screen-emp-role-perms') return 'staff-role-perms';
     if (id === 'screen-emp-role-perm-edit') return 'staff-role-perm-edit';
-    if (id === 'screen-emp-detail') return 'staff-detail';
+    if (id === 'screen-emp-detail') {
+      if (g.__staffDetailFlow) return g.__staffDetailFlow;
+      return 'staff-detail';
+    }
     if (id === 'screen-emp-form') {
       if (g.__staffFormFlow) return g.__staffFormFlow;
       return 'staff-create';
@@ -326,7 +329,8 @@
       'emp-roles': [go('staff-roles', 60)],
       'emp-role-perms': [go('staff-role-perms', 60)],
       'emp-role-perm-edit': [go('staff-role-perms', 60), click('#empRolePermList [data-role-perm]', 240)],
-      'emp-detail': [go('staff-list', 60), click('#empListRoot [data-staff-id]', 240)],
+      'emp-detail': [go('staff-list', 60), click('#empListRoot [data-staff-id="st1"]', 240)],
+      'emp-my-profile': [go('staff-my-profile', 60)],
       'emp-form-create': [go('staff-create', 60)],
       'emp-empty-role': [go('staff-empty-role', 60)],
       'emp-empty-scheme': [go('staff-empty-scheme', 60)],

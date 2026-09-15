@@ -73,7 +73,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>同目录 <code>PRD-项目创建与管理.md</code>（价目）；<code>PRD-会员卡管理.md</code>（卡模板）</td>
 </tr>
 <tr>
-<td>修订（2026-09-07）</td>
+<td>修订（2026-09-15）</td><td>规则卡只读整卡；guestSplit；删参数精简与选择工具条；头衔/角色；社区形象</td></tr><tr><td>修订（2026-09-07）</td>
 <td>金额展示：一律两位小数；小数点及之后数字小一号（仅展示态；见 §5.1 / §11）</td>
 </tr>
 </tbody>
@@ -193,11 +193,11 @@ tr:nth-child(even) td{background:#fafbfc}
 </table>
 <p><strong>先读这几条（贯穿全文）</strong></p>
 <ol>
-<li>本期为<strong>新版提成设置</strong>（原型「提成设置」），采用 <strong>多方案</strong> 模型：每个提成方案可整体分配给若干员工，方案内按「项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>」<strong>5 项默认</strong> + N 条<strong>覆盖规则项</strong>配置提成。<strong>每人可分配多个提成方案</strong>；开单计提时对该员工所属全部方案按<strong>订单行</strong>分别计算，<strong>计算项重叠时取提成金额更高者</strong>（并列按方案列表顺序先出现者胜出；见 §8）。不同行分别取高后可相加。<strong>快速消费</strong>在 UI 为第 5 张默认卡，数据上是系统项目覆盖项（<code>system: true</code>，<code>refId=quick</code>），不可删除。</li>
+<li>本期为<strong>新版提成设置</strong>（原型「提成设置」），采用 <strong>多方案</strong> 模型：每个提成方案可整体分配给若干员工，方案内按「项目 / 产品 / 办卡 / 充卡 / <strong>快捷开单</strong>」<strong>5 项默认</strong> + N 条<strong>覆盖规则项</strong>配置提成。<strong>每人可分配多个提成方案</strong>；开单计提时对该员工所属全部方案按<strong>订单行</strong>分别计算，<strong>计算项重叠时取提成金额更高者</strong>（并列按方案列表顺序先出现者胜出；见 §8）。不同行分别取高后可相加。<strong>快捷开单</strong>在 UI 为第 5 张默认卡，数据上是系统项目覆盖项（<code>system: true</code>，<code>refId=quick</code>），不可删除。</li>
 <li><strong>提成计算不再依赖旧「业绩设置」</strong>：旧「业绩设置」功能（简单模式 / 进阶基础设置）<strong>本期被完全移除</strong>，工作台不再提供入口；其“按业绩计算提成”的旧口径一律废除。试点门店存量配置由<strong>线下人工</strong>处理，<strong>本期不做数据迁移方案</strong>。</li>
-<li>系统内「业绩」与「业绩提成」<strong>解耦</strong>：业绩<strong>只作为经营统计维度</strong>，<strong>不参与提成计算</strong>，也<strong>不可人工编辑</strong>（见 §8 规则 16）。业绩统计金额口径为对应项的<strong>开单原价（标价）加总</strong>（不用实收）。展示分列：「员工薪资明细 · 业绩统计」与「员工业绩提成明细 · 月合计业绩」按支付方式 <strong>现金 / 卡付 / 团购 / 签单</strong>（签单 = 经理签单 + 记为欠款）；「提成统计」按提成设置 5 类（项目 / 产品 / 办卡 / 充卡 / 快速消费，项目列扣快消）。服务摘要 = 项目 + 快速消费（人次 / <strong>实收</strong>）；售卡摘要 = 办卡 + 充卡（数量 / <strong>实收</strong>，不含产品）。见 §6.10。</li>
+<li>系统内「业绩」与「业绩提成」<strong>解耦</strong>：业绩<strong>只作为经营统计维度</strong>，<strong>不参与提成计算</strong>，也<strong>不可人工编辑</strong>（见 §8 规则 16）。业绩统计金额口径为对应项的<strong>开单原价（标价）加总</strong>（不用实收）。展示分列：「员工薪资明细 · 业绩统计」与「员工业绩提成明细 · 月合计业绩」按支付方式 <strong>现金 / 卡付 / 团购 / 签单</strong>（签单 = 经理签单 + 记为欠款）；「提成统计」按提成设置 5 类（项目 / 产品 / 办卡 / 充卡 / 快捷开单，项目列扣快消）。服务摘要 = 项目 + 快捷开单（人次 / <strong>实收</strong>）；售卡摘要 = 办卡 + 充卡（数量 / <strong>实收</strong>，不含产品）。见 §6.10。</li>
 <li><strong>流水订单 / 提成明细</strong>：订单行「业绩」<strong>只读</strong>；「提成」可编辑（<strong>店主 / 合伙人 / 店长</strong>），<strong>保存即生效</strong>，写入 <code>commEditLogs</code>（操作人 / 时间 / 前后值 / 原因选填）；<strong>无</strong>待确认 / 同意 / 驳回。覆盖页：开单流水详情、流水订单修改、项目流水修改、员工业绩提成明细（见 §6.8、§6.10、§8 规则 18–19）。</li>
-<li><strong>提成生效时点</strong>：开单（结算）时按员工所属方案自动计算提成并<strong>写入订单行</strong> <code>staffCommissions</code>；此后可在流水 / 业绩提成明细人工修正（有权限者，直接生效）。薪资侧「提成统计 / 提成分列」字段对齐提成设置 5 类，且 <strong>「项目」列 = 项目类提成合计 − 快速消费提成</strong>（快速消费另列；五列之和 = 提成总计）；详见 §6.10。</li>
+<li><strong>提成生效时点</strong>：开单（结算）时按员工所属方案自动计算提成并<strong>写入订单行</strong> <code>staffCommissions</code>；此后可在流水 / 业绩提成明细人工修正（有权限者，直接生效）。薪资侧「提成统计 / 提成分列」字段对齐提成设置 5 类，且 <strong>「项目」列 = 项目类提成合计 − 快捷开单提成</strong>（快捷开单另列；五列之和 = 提成总计）；详见 §6.10。</li>
 <li>每条提成规则的<strong>适用范围</strong>为支付方式多选：<strong>现金 / 卡付 / 团购</strong> 三类。按订单行内<strong>范围内实付金额分摊</strong>计提（非整单命中/整单过滤）；经理签单仍特殊，不走三类适用范围（见 §8）。</li>
 <li>原型工具栏「无数据 / 有数据」造数<strong>仅演示</strong>，不进正式产品。接口路径标 <code>【待联调确认】</code>，正式接口文档暂无交付时间；不臆造现网 URL。</li>
 <li>本期<strong>仅单店</strong>。<strong>本期不做阶梯提成方案</strong>（不在新模型新建 / 编辑阶梯）。试点门店相关历史配置问题线下解决，不提供迁移 Job / 结果弹窗。</li>
@@ -213,7 +213,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <p>本期重构为<strong>多方案提成设置</strong>：</p>
 <ul>
 <li><strong>方案化</strong>：一套提成规则即一个「提成方案」，可命名、复制、整方案分配员工；<strong>每人可分配多个方案</strong>，开单按行对多方案结果<strong>取高</strong>；适应多岗位（顾问 / 技师 / 销售）并存的门店。</li>
-<li><strong>规则块化</strong>：方案内 5 项默认（项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>）+ 用户覆盖规则项（指定项目、产品、会员卡、整类分组）；快速消费在数据上为系统项目覆盖项。</li>
+<li><strong>规则块化</strong>：方案内 5 项默认（项目 / 产品 / 办卡 / 充卡 / <strong>快捷开单</strong>）+ 用户覆盖规则项（指定项目、产品、会员卡、整类分组）；快捷开单在数据上为系统项目覆盖项。</li>
 <li><strong>口径独立</strong>：提成基数 = 订单行<strong>原价 / 实收</strong>（按规则配置），不再经过旧「业绩设置」；旧「业绩设置」整体移除。</li>
 <li><strong>业绩解耦</strong>：业绩按<strong>原价加总</strong>统计、只读、不参与提成；展示分列因页而异（支付方式或提成设置 5 类，见 §6.10）。</li>
 <li><strong>流水闭环</strong>：开单自动写提成 → 流水详情可查看 / 人工修正（店主 / 合伙人 / <strong>店长</strong>）→ 改动留痕可审计。</li>
@@ -233,7 +233,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>规则可分层</td>
-<td>5 项默认（含快速消费系统覆盖）+ 用户覆盖规则项</td>
+<td>5 项默认（含快捷开单系统覆盖）+ 用户覆盖规则项</td>
 </tr>
 <tr>
 <td>口径独立</td>
@@ -256,7 +256,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <h2>1.3 本期做（In）</h2>
 <ul>
 <li>提成方案列表（新建 / 重命名 / 复制 / 删除；未分配员工提示）</li>
-<li>方案编辑页：5 项默认规则卡（含快速消费）+ 覆盖规则项卡 + 「添加规则项」</li>
+<li>方案编辑页：5 项默认规则卡（含快捷开单）+ 覆盖规则项卡 + 「添加规则项」</li>
 <li>规则设置 Sheet：适用范围（3 类支付方式）、计算基数（原价 / 实收）、分配模式（不分工位 / 按工位）、提成取值（按比例 % / 固定金额 ¥）、点客 / 散客参数（按工位时逐工位）；按工位时工位名 + edit-02 行内改名（固定 3 工位，不可增减；改名全局同步）</li>
 <li>添加规则项页：类型 Tab（项目 / 产品 / 会员卡）+ 分组筛选 + 多选（含整类分组）；<strong>允许</strong>不同覆盖卡重复添加同一项目 / 产品 / 会员卡（选择页不禁用，可重复勾选（<strong>无</strong>「已被添加设置 N 次」标签））</li>
 <li>分配员工 Sheet（员工池多选、全选、清空；已在其他方案者可勾选，副文为 <strong>file-multiple 图标 + 方案名</strong>（无「也在：」字面））</li>
@@ -268,7 +268,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>工作台移除「业绩设置」入口；旧单项提成配置下线；<strong>本期不做阶梯提成方案</strong>（见 §1.4）</li>
 <li><strong>无数据迁移方案</strong>：试点门店存量问题线下解决</li>
 <li>权限：<code>achCommSet</code> 仅店主 / 合伙人；流水 / 业绩提成明细提成编辑：店主 / 合伙人 / <strong>店长</strong></li>
-<li><strong>hub 链路二 · 员工管理</strong>：员工列表（拖动排序；标题栏右侧「设置」主文字色下拉：头衔管理 / 角色管理；底栏次「创建员工」+ 主「邀请员工」；<strong>无</strong>列表内虚线「+ 创建员工」）/ <strong>头衔管理</strong> / <strong>角色管理</strong>（12 项敏感权限按角色配置）/ 员工详情 / 创建·编辑·完善员工；<strong>头衔</strong>与<strong>角色</strong>分离；敏感权限<strong>完全跟随角色</strong>（<code>EmployeeStore.roleSensitivePerms</code>），<strong>无</strong>个人覆盖；员工表单<strong>无</strong>敏感权限区</li>
+<li><strong>hub 链路二 · 员工管理</strong>：员工列表（拖动排序；标题栏右侧「头衔/角色」主文字色下拉：头衔管理 / 角色管理；底栏次「创建员工」+ 主「邀请员工」；<strong>无</strong>列表内虚线「+ 创建员工」；点店主 → <strong>我的资料</strong>，点他人 → 员工详情）/ <strong>头衔管理</strong> / <strong>角色管理</strong>（12 项敏感权限按角色配置）/ 员工详情 / <strong>我的资料</strong>（同详情内容；<strong>不做</strong>线上选填项：个人项目价格 / 个人说明）/ 创建·编辑·完善员工；详情/表单底部次要「社区形象」卡（剑号/宝剑）；<strong>头衔</strong>与<strong>角色</strong>分离；敏感权限<strong>完全跟随角色</strong>（<code>EmployeeStore.roleSensitivePerms</code>），<strong>无</strong>个人覆盖；员工表单<strong>无</strong>敏感权限区</li>
 <li><strong>hub 链路三 · 员工薪资</strong>：员工薪资列表 / <strong>员工薪资明细</strong> / 结算周期（发薪日）/ 员工业绩提成明细 / 设奖惩 / 奖惩明细；与提成设置 5 类及支付四格口径对齐（§6.12）</li>
 <li><strong>三链路数据联动</strong>：<code>EmployeeStore.staff</code> 为员工权威源；员工表单「提成方案」写回 <code>Comm2Demo</code> 方案 <code>assigneeIds</code>；薪资列表与提成分配共用员工池</li>
 </ul>
@@ -295,7 +295,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <tbody>
 <tr>
 <td>单一固定提成比例</td>
-<td>多方案：每方案 5 项默认规则（项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>）</td>
+<td>多方案：每方案 5 项默认规则（项目 / 产品 / 办卡 / 充卡 / <strong>快捷开单</strong>）</td>
 </tr>
 <tr>
 <td>按“业绩”计算提成</td>
@@ -318,8 +318,8 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>覆盖规则项：指定项目 / 产品 / 会员卡 / 整类分组</td>
 </tr>
 <tr>
-<td>快速消费单独提成</td>
-<td>第 5 项默认「快速消费」；数据为系统项目覆盖项（<code>ov_sys_quick</code>），不吃「项目」默认</td>
+<td>快捷开单单独提成</td>
+<td>第 5 项默认「快捷开单」；数据为系统项目覆盖项（<code>ov_sys_quick</code>），不吃「项目」默认</td>
 </tr>
 <tr>
 <td>按工位分别设提成</td>
@@ -385,7 +385,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>配 5 项默认提成</td>
-<td>项目 / 产品 / 办卡 / 充卡 / 快速消费分别设范围、基数、分配、参数</td>
+<td>项目 / 产品 / 办卡 / 充卡 / 快捷开单分别设范围、基数、分配、参数</td>
 <td>各规则卡摘要正确；保存后列表摘要更新</td>
 </tr>
 <tr>
@@ -409,7 +409,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>已在其他方案者可勾选并以图标+方案名提示；列表“已分配”显示人名</td>
 </tr>
 <tr>
-<td>快速消费独立计提</td>
+<td>快捷开单独立计提</td>
 <td>快消不吃「项目」默认</td>
 <td>命中系统覆盖 <code>ov_sys_quick</code>；不可删除</td>
 </tr>
@@ -431,7 +431,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <tr>
 <td>薪资明细对齐</td>
 <td>业绩 / 提成统计与提成设置口径一致</td>
-<td>业绩按原价加总；提成分列 5 类且「项目」扣快速消费（§6.10）</td>
+<td>业绩按原价加总；提成分列 5 类且「项目」扣快捷开单（§6.10）</td>
 </tr>
 </tbody>
 </table>
@@ -448,17 +448,17 @@ tr:nth-child(even) td{background:#fafbfc}
  │    │         · 分配入口 · ⋯ 菜单（重命名 / 复制方案 / 删除）
  │    └─ 底部「+ 添加提成方案」/ 空态
 ├─ 方案编辑
-│    ├─ 5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快速消费）
+│    ├─ 5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快捷开单）
 │    ├─ 覆盖规则项卡（可删除；不含系统快消）+「+ 添加规则项」
 │    └─ 底部「保存」
 ├─ 添加规则项
 │    ├─ 类型 Tab：项目 / 产品 / 会员卡
-│    ├─ 分组轨（全部 / 自定义组）+ 全选 · 已选 N 项 · 反选
+│    ├─ 分组轨（全部 / 自定义组）；**无**全选/已选/反选工具行
 │    ├─ 列表（名称 + 价格 / 面值；可重复添加；可重复勾选（**无**次数标签）；整类分组可勾）
 │    └─ 底部「取消 / 下一步(N)」
 ├─ 规则设置 Sheet（分类 / 覆盖 / 添加规则项共用；变体见 §6.3）
-│    ├─ 全量（点标题 / 添加规则项）：适用范围 + 基数 + 分配 + 提成参数…
-│    ├─ 参数精简（点提成参数区）：无适用范围/基数；含分配 + 提成取值 + 点客/散客
+│    ├─ 整卡进入：适用范围 + 基数 + 分配 + 提成取值 + 提成/点客（guestSplit）
+│    ├─ （已删参数精简；整卡仅全量 Sheet；guestSplit 单提成/可选点客）
 │    ├─ 按工位时：固定 3 工位；工位名 + edit-02 行内改名（不可增减；改名全局同步）
 │    └─ 取消 / 确定
 ├─ 分配员工 Sheet：员工卡多选（也在其他方案可勾选并提示）· 全选 / 清空 · 已选 N 人 · 确定
@@ -501,12 +501,12 @@ flowchart LR
 <tr>
 <td>方案编辑</td>
 <td>{方案名}</td>
-<td>5 默认规则卡（含快速消费）+ 用户覆盖规则项 +「+ 添加规则项」；底部「保存」</td>
+<td>5 默认规则卡（含快捷开单）+ 用户覆盖规则项 +「+ 添加规则项」；底部「保存」</td>
 </tr>
 <tr>
 <td>添加规则项</td>
 <td>添加规则项</td>
-<td>类型 Tab / 分组轨 / 全选·反选 / 下一步；可重复添加（无次数标签）</td>
+<td>类型 Tab / 分组轨 / 下一步（N）；无全选·反选；可重复添加（无次数标签）</td>
 </tr>
 <tr>
 <td>规则设置</td>
@@ -573,27 +573,29 @@ flowchart LR
  ├─ 员工列表（screen-emp-list）
  │    ├─ 行：拖动柄 · 头像 · 姓名 · 状态 chip · 副文（性别·头衔）
  │    ├─ incomplete →「去完善」
- │    ├─ 标题栏右侧「设置」（主文字色）下拉：头衔管理 / 角色管理
+ │    ├─ 标题栏右侧「头衔/角色」（主文字色）下拉：头衔管理 / 角色管理
  │    ├─ 底栏双按钮：次「创建员工」+ 主「邀请员工」（需 `staffCreate`；邀请 toast 原型）
- │    └─ 长按拖动排序 · 点行 → 员工详情（**无**列表内虚线「+ 创建员工」）
+ │    └─ 长按拖动排序 · 点非店主行 → 员工详情；点**店主**行 → 我的资料（**无**列表内虚线「+ 创建员工」）
  ├─ 头衔管理（screen-emp-roles）
  │    ├─ 头衔列表 · 添加 / 重命名 / 删除（≤6 字；被占用不可删）
  ├─ 角色管理（screen-emp-role-perms）
  │    ├─ 四角色：合伙人 / 店长 / 高级店员 / 店员（店主不出现）
  │    └─ 点行 → 角色权限编辑（screen-emp-role-perm-edit）：12 项敏感权限 Switch
  ├─ 员工详情（screen-emp-detail）：字段直编即时保存；无标题栏「编辑」
+ ├─ 我的资料（同屏 screen-emp-detail，标题「我的资料」）：本人固定为**店主**；内容与员工详情一致；**不展示**线上「选填项」（个人项目价格 / 个人说明）
  ├─ 创建员工（formMode=create）：无状态；隐藏性别/年龄/年限；头衔/提成方案 sheet 空态可跳转
  ├─ 编辑员工（formMode=edit）：含状态；无敏感权限折叠区（创建/完善仍用；详情不再经标题栏进入）
  └─ 完善员工（formMode=refine）：顶栏提示 · 保存后 incomplete=false
 </code></pre>
-<p><strong>FLOW</strong>：<code>staff-list</code> / <code>staff-roles</code> / <code>staff-role-perms</code> / <code>staff-role-perm-edit</code> / <code>staff-detail</code> / <code>staff-create</code> / <code>staff-refine</code>。</p>
+<p><strong>FLOW</strong>：<code>staff-list</code> / <code>staff-roles</code> / <code>staff-role-perms</code> / <code>staff-role-perm-edit</code> / <code>staff-detail</code> / <code>staff-my-profile</code> / <code>staff-create</code> / <code>staff-refine</code>。</p>
 <h3>3.2.0 页面流（示意）</h3>
 <p><div class="mermaid">
 flowchart LR
   W[工作台] -->|员工管理| L[员工列表]
   L -->|底栏·创建员工| C[创建员工表单]
   L -->|incomplete·去完善| RF[完善员工表单]
-  L -->|点行| D[员工详情]
+  L -->|点非店主行| D[员工详情]
+  L -->|点店主行| MP[我的资料]
   L -->|设置·头衔管理| R[头衔管理]
   L -->|设置·角色管理| P[角色管理]
   P -->|点角色行| PE[角色权限编辑]
@@ -605,6 +607,8 @@ flowchart LR
   RF -->|保存| L
   D -->|字段直编| DS[[头像/姓名/性别/年龄/工龄/头衔/角色/方案/状态 等 Sheet]]
   D -->|返回| L
+  MP -->|字段同员工详情| DS
+  MP -->|返回| L
 </div></p>
 <table>
 <thead>
@@ -618,7 +622,7 @@ flowchart LR
 <tr>
 <td>员工列表</td>
 <td>员工管理</td>
-<td>行拖动柄 · 头像 · 姓名 · 状态 chip · 副文；incomplete「去完善」；标题栏右侧「设置」（主文字色）下拉（头衔管理 / 角色管理）；底栏次「创建员工」+ 主「邀请员工」</td>
+<td>行拖动柄 · 头像 · 姓名 · 状态 chip · 副文；incomplete「去完善」；标题栏右侧「头衔/角色」（主文字色）下拉（头衔管理 / 角色管理）；底栏次「创建员工」+ 主「邀请员工」</td>
 </tr>
 <tr>
 <td>头衔管理</td>
@@ -638,7 +642,12 @@ flowchart LR
 <tr>
 <td>员工详情</td>
 <td>员工详情</td>
-<td>字段直编即时保存；<strong>无</strong>标题栏「编辑」；头像可换；状态切换（离职走确认 Dialog）</td>
+<td>字段直编即时保存；<strong>无</strong>标题栏「编辑」；头像可换；卡底「状态」行（在岗/休假/离职·注销，离职确认）；头部 chip 仅在岗/休假</td>
+</tr>
+<tr>
+<td>我的资料</td>
+<td>我的资料</td>
+<td>本人固定为<strong>店主</strong>；复用 <code>screen-emp-detail</code>；<strong>无</strong>「状态」表单行；头部 chip 保持原交互；<strong>不展示</strong>线上「选填项」（个人项目价格 / 个人说明）</td>
 </tr>
 <tr>
 <td>创建员工</td>
@@ -652,7 +661,7 @@ flowchart LR
 </tr>
 </tbody>
 </table>
-<p>实现路由建议（名称可调整）：<code>emp-list</code> / <code>emp-roles</code> / <code>emp-role-perms</code> / <code>emp-role-perm-edit</code> / <code>emp-detail</code> / <code>emp-create</code> / <code>emp-refine</code>；表单内字段直编与 picker sheet 复用现有 <code>emp*Mask</code> 弹层。</p>
+<p>实现路由建议（名称可调整）：<code>emp-list</code> / <code>emp-roles</code> / <code>emp-role-perms</code> / <code>emp-role-perm-edit</code> / <code>emp-detail</code> / <code>emp-my-profile</code> / <code>emp-create</code> / <code>emp-refine</code>；表单内字段直编与 picker sheet 复用现有 <code>emp*Mask</code> 弹层。</p>
 <h3>3.3 链路三：员工薪资</h3>
 <pre><code>员工薪资
  ├─ 列表（screen-emp-salary）：全店合计 · 月份 · 结算周期 · 员工卡 2×2 提成
@@ -864,10 +873,10 @@ flowchart LR
 <p><strong>约束对象</strong>：开单侧「选择服务员工」及相关嵌入式选人交互。本期<strong>仅在本 PRD 锁定口径</strong>；开单原型/实现按本条联调，<strong>不在本仓库改开单代码</strong>。</p>
 </blockquote>
 <p><strong>判定范围（门店维度）</strong>：对本店全部<strong>启用中</strong>的提成方案做判断（<strong>不</strong>按当前选中的服务员工过滤方案集合）。</p>
-<p><strong>类内 OR（按业务类）</strong>：对某一业务类（项目 / 产品 / 办卡 / 充卡 / 快速消费），同时考察：</p>
+<p><strong>类内 OR（按业务类）</strong>：对某一业务类（项目 / 产品 / 办卡 / 充卡 / 快捷开单），同时考察：</p>
 <ol>
 <li>该类<strong>默认卡</strong>的 <code>pickMode</code>；</li>
-<li>该方案内、归属该类的全部<strong>覆盖规则项</strong>的 <code>pickMode</code>（覆盖归属：项目类覆盖影响「项目」、产品类覆盖影响「产品」，依此类推；系统快速消费覆盖归属「快速消费」）。</li>
+<li>该方案内、归属该类的全部<strong>覆盖规则项</strong>的 <code>pickMode</code>（覆盖归属：项目类覆盖影响「项目」、产品类覆盖影响「产品」，依此类推；系统快捷开单覆盖归属「快捷开单」）。</li>
 </ol>
 <p>若上述任一处为 <code>pickMode=station</code>（按工位），则该类在开单选服务员工时<strong>整类</strong>需要选择工位（该类下所有可点选的项目/产品等，而非仅命中那条覆盖的目标）。</p>
 <p><strong>示例</strong>：默认「项目」=<code>avg</code>（不分工位），但存在一条<strong>项目类覆盖</strong>=<code>station</code> → 开单选择服务员工时，<strong>全部项目</strong>均需选工位。</p>
@@ -906,7 +915,8 @@ flowchart LR
 <pre><code>创建（formMode=create） ──保存──► 在岗（incomplete=false）
 完善（formMode=refine，incomplete=true） ──保存──► 在岗
 编辑（formMode=edit） ──保存──► 保持原状态（在岗/休假/离职均可）
-状态切换（在岗 ⇄ 休假 ⇄ 离职） ──详情页状态 chip / 编辑表单──► 即时保存
+状态切换（在岗 ⇄ 休假 ⇄ 离职） ──员工详情卡底「状态」行 / 编辑表单──► 即时保存（离职确认 Dialog）
+头部状态 chip（员工详情 / 我的资料） ──仅在岗 ⇄ 休假──► 即时保存
 </code></pre>
 <table>
 <thead>
@@ -926,7 +936,7 @@ flowchart LR
 </tr>
 <tr>
 <td>在岗 / 休假 / 离职</td>
-<td>员工列表状态 chip 展示三态；创建表单不可选「离职」；详情页/编辑表单可切换（离职走确认 Dialog）</td>
+<td>员工列表状态 chip 展示三态；创建表单不可选「离职」；<strong>员工详情</strong>卡底「状态」行可切三态（离职确认）；头部 chip <strong>仅</strong>在岗/休假；<strong>我的资料</strong>无状态行，chip 同仅在岗/休假</td>
 </tr>
 <tr>
 <td>待完善数据</td>
@@ -1122,7 +1132,7 @@ flowchart LR
 </tr>
 <tr>
 <td><strong>系统项</strong></td>
-<td>快速消费（<code>system</code>）不可删；无左滑宿主</td>
+<td>快捷开单（<code>system</code>）不可删；无左滑宿主</td>
 </tr>
 </tbody>
 </table>
@@ -1173,7 +1183,7 @@ flowchart LR
 <h2>6.2 方案编辑</h2>
 <ul>
 <li>标题 = 方案名。</li>
-<li>卡片区：5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快速消费）+ 用户覆盖规则项卡 + 底部「+ 添加规则项」。</li>
+<li>卡片区：5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快捷开单）+ 用户覆盖规则项卡 + 底部「+ 添加规则项」。</li>
 <li>交互分区见下；覆盖删除见 §5.5。</li>
 <li>底部「保存」：校验全部默认 / 覆盖范围 ≥1 类 → toast「提成方案已保存」→ 回列表。</li>
 </ul>
@@ -1225,7 +1235,7 @@ flowchart LR
 </tr>
 <tr>
 <td>提成参数区</td>
-<td>打开<strong>参数精简</strong> Sheet（<strong>无</strong>适用范围、基数；含分配模式 + 提成取值 + 点客/散客等）</td>
+<td>（卡面参数区不可单独打开精简 Sheet；整卡进全量）</td>
 </tr>
 <tr>
 <td>基数段控</td>
@@ -1368,7 +1378,7 @@ flowchart LR
 <td>分配模式 + 会员卡（覆盖卡时）+ 提成取值 + 点客/散客（+工位）</td>
 </tr>
 <tr>
-<td><strong>参数精简</strong> <code>params</code></td>
+<td><strong>参数精简</strong>（已删除） <code>params</code></td>
 <td>点规则卡<strong>提成参数区</strong></td>
 <td style="text-align: center;">✗</td>
 <td>分配模式 + 会员卡（覆盖卡时）+ 提成取值 + 点客/散客（+工位）；标题后缀「· 提成参数」</td>
@@ -1450,7 +1460,7 @@ flowchart LR
 <p><strong>页面</strong>：
 - 类型 Tab：<strong>项目 / 产品 / 会员卡</strong>（默认项目）。
 - 分组轨：全部 + 自定义分组（会员卡为卡分组），无分组时隐藏。
-- 工具行：全选 · 已选 N 项 · 反选。
+- **无**工具行（已删全选 / 已选 N 项 / 反选）。
 - 列表项：名称 + 副行（项目 / 产品为价格 <code>¥x</code>；会员卡为「面值 ¥x」/「已下架」）。
 - 整类行：当前分组顶部「整类 · {组名}」可整体勾选。
 - <strong>可重复添加</strong>：<strong>不禁用</strong>已在其它覆盖卡出现的项；<strong>无</strong>次数标签。
@@ -1578,15 +1588,15 @@ flowchart LR
 </tr>
 <tr>
 <td>提成分列 5 类</td>
-<td><strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>（对齐提成设置默认卡）</td>
+<td><strong>项目 / 产品 / 办卡 / 充卡 / 快捷开单</strong>（对齐提成设置默认卡）</td>
 </tr>
 <tr>
 <td>「项目」提成净值</td>
-<td><strong>项目列展示值 = 项目类提成合计 − 快速消费提成</strong>；「快速消费」单独成列；<strong>五列之和 = 提成总计</strong>（不加总两次）</td>
+<td><strong>项目列展示值 = 项目类提成合计 − 快捷开单提成</strong>；「快捷开单」单独成列；<strong>五列之和 = 提成总计</strong>（不加总两次）</td>
 </tr>
 <tr>
 <td>「项目」业绩（5 类场景）</td>
-<td><strong>项目列 = 项目类原价合计（不含快速消费）</strong>；快速消费单独成列；<strong>五列之和 = 业绩总计</strong></td>
+<td><strong>项目列 = 项目类原价合计（不含快捷开单）</strong>；快捷开单单独成列；<strong>五列之和 = 业绩总计</strong></td>
 </tr>
 <tr>
 <td>提成展示实时生成</td>
@@ -1621,11 +1631,11 @@ flowchart LR
 </tr>
 <tr>
 <td>提成统计</td>
-<td><strong>总计</strong> + 横向比例条：<strong>项目 / 产品 / 办卡 / 充卡 / 快速消费</strong>；项目列扣快消；五列之和 = 提成总计</td>
+<td><strong>总计</strong> + 横向比例条：<strong>项目 / 产品 / 办卡 / 充卡 / 快捷开单</strong>；项目列扣快消；五列之和 = 提成总计</td>
 </tr>
 <tr>
 <td>服务 / 售卡</td>
-<td>服务 = 项目 + 快速消费（人次 + <strong>实收</strong>金额）；售卡 = 办卡 + 充卡（数量 + <strong>实收</strong>，<strong>不含产品</strong>）；卡内金额标签写「<strong>金额</strong>」（不写「（实收）」）；<strong>服务 / 售卡</strong>标题旁均有 <strong>?</strong>，共用同一释义</td>
+<td>服务 = 项目 + 快捷开单（人次 + <strong>实收</strong>金额）；售卡 = 办卡 + 充卡（数量 + <strong>实收</strong>，<strong>不含产品</strong>）；卡内金额标签写「<strong>金额</strong>」（不写「（实收）」）；<strong>服务 / 售卡</strong>标题旁均有 <strong>?</strong>，共用同一释义</td>
 </tr>
 <tr>
 <td>奖惩</td>
@@ -1633,7 +1643,7 @@ flowchart LR
 </tr>
 <tr>
 <td>列表页配套</td>
-<td>删「生效中」；卡面「合计」左置 + 中部三行（基本工资 / 提成合计 / 奖惩合计带进度条，奖惩合计行 → 奖惩明细）+ 提成 2×2（项目 / 产品 / 办卡·充卡 / 快速消费，无进度条；点格可直达业绩提成明细，<strong>返回回员工薪资列表</strong>）；月份 pill 可点（选择月份/结算期 ±3 期；跨自然月仅首尾日期，见 §6.12.1）；结算周期页结算日/发薪日均可 <strong>1–31</strong>（当月无该日则 clamp 月末；<strong>仅店主/合伙人可改结算周期全部项</strong>）</td>
+<td>删「生效中」；卡面「合计」左置 + 中部三行（基本工资 / 提成合计 / 奖惩合计带进度条，奖惩合计行 → 奖惩明细）+ 提成 2×2（项目 / 产品 / 办卡·充卡 / 快捷开单，无进度条；点格可直达业绩提成明细，<strong>返回回员工薪资列表</strong>）；月份 pill 可点（选择月份/结算期 ±3 期；跨自然月仅首尾日期，见 §6.12.1）；结算周期页结算日/发薪日均可 <strong>1–31</strong>（当月无该日则 clamp 月末；<strong>仅店主/合伙人可改结算周期全部项</strong>）</td>
 </tr>
 </tbody>
 </table>
@@ -1757,7 +1767,7 @@ flowchart LR
 </tr>
 <tr>
 <td>点击</td>
-<td>进入员工详情</td>
+<td>点<strong>非店主</strong>行 → 员工详情；点<strong>店主</strong>行 → 我的资料（同屏，标题不同）</td>
 </tr>
 <tr>
 <td>「创建员工」</td>
@@ -1983,15 +1993,26 @@ flowchart LR
 </tr>
 </tbody>
 </table>
-<h3>6.11.6 员工详情</h3>
+<h3>6.11.6 员工详情 / 我的资料</h3>
 <ul>
 <li><strong>直编</strong>：有 <code>staffCreate</code> 权限时，点详情字段即可编辑并<strong>即时保存</strong>（无需标题栏「编辑」；该按钮已删除）。</li>
-<li><strong>可点字段</strong>：头像、姓名、剑号、宝剑、性别、年龄段、从业年限、手机号、头衔、角色、基本工资、提成方案；状态 chip 仍可改（在岗/休假）。</li>
+<li><strong>可点字段</strong>：头像、姓名、剑号、宝剑、性别、年龄段、从业年限、手机号、头衔、角色、基本工资、提成方案、<strong>状态</strong>（仅员工详情，见下）；头部状态 chip 仍可改。</li>
+<li><strong>状态（仅员工详情）</strong>：信息卡<strong>最后一行</strong>「状态」；点右侧唤出 Sheet，选项为 <strong>在岗 / 休假 / 离职（注销账号）</strong>（存储值 <code>在岗</code>/<code>休假</code>/<code>离职</code>）；选离职走确认 Dialog。</li>
+<li><strong>头部状态 chip</strong>（员工详情与我的资料相同）：保持原交互，Sheet <strong>仅</strong>「在岗 / 休假」，<strong>不含</strong>离职。</li>
+<li><strong>我的资料</strong>：<strong>无</strong>「状态」表单行；头部 chip 行为不变。</li>
 <li><strong>交互</strong>：选择类复用现有 Sheet；文本类（姓名/手机/年限/基本工资）用 Dialog，确定即写回；头像走相机/相册/裁剪后写回。</li>
-<li><strong>无权限</strong>：字段只读、无 chevron、不可点。</li>
+<li><strong>无权限</strong>：字段只读、无 chevron、不可点（含状态行）。</li>
 <li><strong>限制</strong>：店主角色/唯一头衔等规则与编辑表单一致（Y）。</li>
-<li><strong>薪资不可见</strong>时，基本工资 / 提成方案不展示为可编行（保持「薪资信息不可见」）。</li>
+<li><strong>薪资不可见</strong>时，基本工资 / 提成方案不展示为可编行（保持「薪资信息不可见」）；此时「状态」仍为卡内最后一行。</li>
 <li>离职等危险操作仍走确认 Dialog（以原型为准）。</li>
+<li><strong>我的资料</strong>：
+<ul>
+<li><strong>本人固定为店主</strong>（<code>perm === '店主'</code>；与演示会话身份切换无关）。</li>
+<li>员工列表点店主行，或侧栏「我的资料」→ 打开同屏 <code>screen-emp-detail</code>，标题为「我的资料」。</li>
+<li><strong>内容与员工详情一致，但无「状态」表单行</strong>；头部 chip 行为不变。</li>
+<li><strong>刻意不展示</strong>线上「我的资料」中的「选填项」区块及其字段：<strong>个人项目价格</strong>、<strong>个人说明</strong>（原型不做、不渲染）。</li>
+</ul>
+</li>
 </ul>
 <hr />
 <h2>6.12 员工薪资（hub 链路三）</h2>
@@ -2017,7 +2038,7 @@ flowchart LR
 </tr>
 <tr>
 <td>提成分列</td>
-<td>项目 / 产品 / 办卡 / 充卡 / 快速消费；<strong>项目列 = 项目类提成 − 快速消费提成</strong></td>
+<td>项目 / 产品 / 办卡 / 充卡 / 快捷开单；<strong>项目列 = 项目类提成 − 快捷开单提成</strong></td>
 </tr>
 <tr>
 <td>业绩分列（明细/提成页）</td>
@@ -2052,7 +2073,7 @@ flowchart LR
 </tr>
 <tr>
 <td>员工卡</td>
-<td>左：头像+姓名；<strong>合计</strong>金额左置同行；<strong>中部三行</strong>：基本工资 / 提成合计 / 奖惩合计（带横向进度条，奖惩合计行可点击 → 奖惩明细）；分隔线；下：<strong>2×2 提成四格</strong>（项目/产品/办卡·充卡/快速消费，<strong>无</strong>进度条；四格均带 chevron 可点）</td>
+<td>左：头像+姓名；<strong>合计</strong>金额左置同行；<strong>中部三行</strong>：基本工资 / 提成合计 / 奖惩合计（带横向进度条，奖惩合计行可点击 → 奖惩明细）；分隔线；下：<strong>2×2 提成四格</strong>（项目/产品/办卡·充卡/快捷开单，<strong>无</strong>进度条；四格均带 chevron 可点）</td>
 </tr>
 <tr>
 <td>点击卡体</td>
@@ -2115,7 +2136,7 @@ flowchart LR
 </tr>
 <tr>
 <td>提成统计</td>
-<td>总计 + 比例条：<strong>五类</strong>（项目扣快速消费；标签一律「快速消费」）；标题旁 <strong>?</strong></td>
+<td>总计 + 比例条：<strong>五类</strong>（项目扣快捷开单；标签一律「快捷开单」）；标题旁 <strong>?</strong></td>
 </tr>
 <tr>
 <td>服务/售卡</td>
@@ -2193,7 +2214,7 @@ flowchart LR
 </tr>
 <tr>
 <td>月合计</td>
-<td>业绩四格 + 提成五类（与 6.12.2 口径一致；标签一律「快速消费」，<strong>不</strong>用「快消」缩写）；标题旁 <strong>?</strong>；<strong>不展示</strong>较上期环比箭头</td>
+<td>业绩四格 + 提成五类（与 6.12.2 口径一致；标签一律「快捷开单」，<strong>不</strong>用「快消」缩写）；标题旁 <strong>?</strong>；<strong>不展示</strong>较上期环比箭头</td>
 </tr>
 <tr>
 <td>日列表</td>
@@ -2356,15 +2377,15 @@ flowchart LR
 </tr>
 <tr>
 <td>提成 / 提成统计</td>
-<td>提成设置五类：项目 / 产品 / 办卡 / 充卡 / <strong>快速消费</strong>（用户可见一律全称，不用「快消」）</td>
+<td>提成设置五类：项目 / 产品 / 办卡 / 充卡 / <strong>快捷开单</strong>（用户可见一律全称，不用「快消」）</td>
 </tr>
 <tr>
 <td>提成「项目」列</td>
-<td><strong>项目类提成合计 − 快速消费提成</strong>；快速消费另列；五列之和 = 提成总计</td>
+<td><strong>项目类提成合计 − 快捷开单提成</strong>；快捷开单另列；五列之和 = 提成总计</td>
 </tr>
 <tr>
 <td>服务</td>
-<td>项目 + 快速消费；人次 + <strong>实收</strong>金额；卡内金额标签写「金额」（不写「（实收）」）</td>
+<td>项目 + 快捷开单；人次 + <strong>实收</strong>金额；卡内金额标签写「金额」（不写「（实收）」）</td>
 </tr>
 <tr>
 <td>售卡</td>
@@ -2423,7 +2444,7 @@ flowchart LR
 <tr>
 <td>overrides</td>
 <td>OverrideRule[]</td>
-<td>覆盖规则项（见 7.3）；<strong>必含</strong>系统项 <code>ov_sys_quick</code>（快速消费，<code>system: true</code>）</td>
+<td>覆盖规则项（见 7.3）；<strong>必含</strong>系统项 <code>ov_sys_quick</code>（快捷开单，<code>system: true</code>）</td>
 </tr>
 <tr>
 <td>assigneeIds</td>
@@ -2534,7 +2555,7 @@ flowchart LR
 <tr>
 <td>system</td>
 <td>boolean</td>
-<td>可选；<code>true</code> 表示系统项（快速消费），UI 进默认区、不可删</td>
+<td>可选；<code>true</code> 表示系统项（快捷开单），UI 进默认区、不可删</td>
 </tr>
 <tr>
 <td>belongCat</td>
@@ -2544,7 +2565,7 @@ flowchart LR
 <tr>
 <td>title</td>
 <td>string</td>
-<td>目标名「、」连接；长标题省略号截断；快消固定「快速消费」</td>
+<td>目标名「、」连接；长标题省略号截断；快消固定「快捷开单」</td>
 </tr>
 <tr>
 <td>payScope / baseMode / pickMode / rule</td>
@@ -2554,7 +2575,7 @@ flowchart LR
 <tr>
 <td>targets</td>
 <td>Target[]</td>
-<td>命中目标（见 7.3.1）；快消为 <code>[{ kind:'project', refId:'quick', name:'快速消费' }]</code></td>
+<td>命中目标（见 7.3.1）；快消为 <code>[{ kind:'project', refId:'quick', name:'快捷开单' }]</code></td>
 </tr>
 </tbody>
 </table>
@@ -2853,7 +2874,7 @@ flowchart LR
    - <strong>经理签单行（<code>sign=true</code>，实收=0）不走三类适用范围</strong>，是否计提由命中块 <code>baseMode</code> / <code>valueMode</code> 决定（规则 32）。</li>
 <li><strong>重叠取最高（按行 · 比金额）</strong>：同一员工、同一订单行，对各所属方案分别解析块并算出提成金额后，取 <strong>金额最大</strong> 者写入本行；多方案<strong>不加总</strong>。比较单位为最终金额（<code>pct</code> 与 <code>amount</code>、原价与实收均先算完再比）。金额并列时按方案在列表中的顺序，<strong>先出现的方案胜出</strong>。建议落库字段含 <code>winnerSchemeId</code>（原型试算已带；正式流水 UI 本期可不强调展示）。</li>
 <li><strong>不同行可相加</strong>：不同业务行各自取高后，行与行之间可相加汇总。</li>
-<li><strong>覆盖优先于默认（方案内）</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快速消费 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），<strong>命中任一条覆盖即不再回落默认分类</strong>（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快速消费行（<code>kind=quick</code> / 名称「快速消费」）<strong>只命中系统覆盖</strong>，不吃项目默认。方案之间再执行规则 3。</li>
+<li><strong>覆盖优先于默认（方案内）</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快捷开单 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），<strong>命中任一条覆盖即不再回落默认分类</strong>（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快捷开单行（<code>kind=quick</code> / 名称「快捷开单」）<strong>只命中系统覆盖</strong>，不吃项目默认。方案之间再执行规则 3。</li>
 <li><strong>计算基数</strong>：见规则 2 分摊公式；§6.9 帮助口径与此一致。<code>valueMode=amount</code> 时按规则 2 对固定额乘分摊系数（不再整单直接取固定额）。</li>
 <li><strong>分配取值</strong>：<code>pickMode=avg</code>（UI「不分工位」）用规则级点客 / 散客；<code>pickMode=station</code> 用订单行 <code>station</code> 对应工位参数；<strong>工位缺失</strong>：用方案 <code>stationIds[0]</code> 对应参数，若无则 <code>defaultPair()</code>（与原型 <code>schemeLineAmount</code> 一致）。</li>
 <li><strong>开单「选择工位」展示（类内 OR · 门店维度）</strong>：对本店<strong>启用中</strong>方案（不按当前服务员工过滤），按业务类考察「默认卡 + 该类全部覆盖」的 <code>pickMode</code>；<strong>任一</strong>为 <code>station</code> → 该类在开单「选择服务员工」（及内嵌选人 Sheet）时<strong>整类</strong>需选工位。覆盖归属按规则目标类别（项目覆盖→项目类等）。详见 §4.5.1。本条约束 UI 采集；计提仍按规则 7。</li>
@@ -2863,14 +2884,14 @@ flowchart LR
 <li><strong>整类与单项互斥</strong>：添加规则项勾选整类组会清掉组内单项勾选；勾选单项会清掉涵盖它的整类勾选。</li>
 <li><strong>工位</strong>：固定 <strong>3</strong> 个；<strong>可改名、不可增减</strong>；改名<strong>全局同步</strong>本店全部方案同 id 显示名。</li>
 <li><strong>未分配提示</strong>：员工池中存在不属于<strong>任何</strong>方案的员工 → 列表提示「还有 N 人未分配任何提成方案」；全部至少有一个方案则隐藏。</li>
-<li><strong>复制语义</strong>：复制方案清空分配（<code>assigneeIds=[]</code>），规则与工位原样（含系统快速消费）。</li>
+<li><strong>复制语义</strong>：复制方案清空分配（<code>assigneeIds=[]</code>），规则与工位原样（含系统快捷开单）。</li>
 <li><strong>适用范围三类</strong>：现金、卡付、团购；原型 <code>COMM2_PAY_SCOPE</code> 与此一致。<strong>经理签单为独立支付方式（相当于免单），不进入三类多选</strong>；计提见规则 32。</li>
-<li><strong>业绩与提成解耦</strong>：业绩<strong>不参与提成计算</strong>、<strong>不可人工编辑</strong>；金额口径为对应项<strong>开单原价加总</strong>（见 §6.10.0）。展示分列：员工薪资明细 / 员工业绩提成明细的业绩按支付四格（现金 / 卡付 / 团购 / 签单）；提成按 5 类且「项目」列扣减快速消费提成（§6.10）。服务 / 售卡摘要金额为<strong>实收</strong>。</li>
+<li><strong>业绩与提成解耦</strong>：业绩<strong>不参与提成计算</strong>、<strong>不可人工编辑</strong>；金额口径为对应项<strong>开单原价加总</strong>（见 §6.10.0）。展示分列：员工薪资明细 / 员工业绩提成明细的业绩按支付四格（现金 / 卡付 / 团购 / 签单）；提成按 5 类且「项目」列扣减快捷开单提成（§6.10）。服务 / 售卡摘要金额为<strong>实收</strong>。</li>
 <li><strong>旧「业绩设置」移除</strong>：工作台「业绩设置」入口删除；旧口径（按业绩算提成）一律不再使用。</li>
 <li><strong>流水提成编辑权限</strong>：<strong>店主 / 合伙人 / 店长</strong>；高级店员 / 店员点击提成编辑被 toast 拦截。</li>
 <li><strong>流水修改日志</strong>：提成每次人工改动写 <code>editLogs</code>（复用现有修改记录，结构 <code>{id, time, operator, summary}</code>），<code>summary</code> 记录前后值（如「修改提成：8.00→10.00」），详情「修改记录」可查。</li>
 <li><strong>本期仅单店</strong>；方案数据不跨店同步。</li>
-<li><strong>快速消费系统卡</strong>：UI 为第 5 张默认卡；数据为 <code>overrides</code> 中 <code>id=ov_sys_quick</code>、<code>system:true</code>、<code>targets=[{kind:'project', refId:'quick'}]</code>；初始参数与「项目」默认相同；<strong>不可删除</strong>。</li>
+<li><strong>快捷开单系统卡</strong>：UI 为第 5 张默认卡；数据为 <code>overrides</code> 中 <code>id=ov_sys_quick</code>、<code>system:true</code>、<code>targets=[{kind:'project', refId:'quick'}]</code>；初始参数与「项目」默认相同；<strong>不可删除</strong>。</li>
 <li><strong>关联页字段对齐</strong>（本系统现有页面）：员工薪资明细 / 员工业绩提成明细的提成分列、员工薪资明细的业绩统计分列，必须与提成设置 5 类一致；流水三页业绩只读去编辑 icon（§6.8、§6.10）。</li>
 <li><strong>敏感权限</strong>：完全跟随 <code>EmployeeStore.roleSensitivePerms[角色]</code>（§6.11.3）；<strong>无</strong>个人 Switch / <code>staff.sensitivePerms</code>；业务 enforcement 待联调。</li>
 <li><strong>三链路员工单源</strong>：<code>EmployeeStore.staff</code> 为权威；员工管理增删改后薪资列表与 <code>assigneeIds</code> 一致，无需二次导入。</li>
@@ -2884,7 +2905,7 @@ flowchart LR
 <li><strong>经理签单按 baseMode</strong>：经理签单订单行（<code>sign=true</code>，实收=0）<strong>不走三类适用范围</strong>。命中覆盖/默认块后：<code>baseMode=list</code> → 按原价计提；<code>baseMode=paid</code> → 基数为 0，比例模式下金额为 0（<code>skipped='sign'</code>，note「实收模式下经理签单不计提成」）；<code>valueMode=amount</code> 时仍取固定额。无方案级 <code>signComm</code> 字段。</li>
 </ol>
 <h2>8.1 试算口径（原型试算引擎）</h2>
-<p>原型内置 9 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快速消费</strong>、<strong>经理签单·深层补水护理</strong>（原价 268 / 实收 0，<code>sign=true</code>）。</p>
+<p>原型内置 9 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快捷开单</strong>、<strong>经理签单·深层补水护理</strong>（原价 268 / 实收 0，<code>sign=true</code>）。</p>
 <p>计提验证步骤：取员工所属<strong>全部</strong>方案（列表顺序）→ 每行对每个方案解析覆盖/默认块 → 非经理签单行按适用范围分摊基数，经理签单行按命中块 <code>baseMode</code> / <code>valueMode</code> → 计算金额 → <strong>取金额最大者</strong>（并列保留列表更靠前方案）→ 汇总。结果行带 <code>winnerSchemeId</code>。此口径与 §8 一致，作为联调参考样例（非正式接口）。</p>
 <h2>8.2 演示数据（造数参考）</h2>
 <p>原型内置 3 个演示方案：</p>
@@ -2925,7 +2946,7 @@ flowchart LR
 <li><strong>敏感权限跟随角色</strong>：员工能力完全由 <code>roleSensitivePerms[perm]</code> 解析；<strong>无</strong>个人 <code>staff.sensitivePerms</code>；改角色即改读路径。</li>
 <li><strong>员工排序</strong>：员工列表长按拖动排序；松手即提交 <code>EmployeeStore.staff</code> 数组顺序（薪资/分配等展示顺序联动）。</li>
 <li><strong>头衔管理约束</strong>：名称 ≤6 字；被员工占用的头衔不可删除（toast 拦截）；唯一头衔受 §8.3 规则 34 约束。</li>
-<li><strong>状态与表单</strong>：创建表单不可选「离职」；详情/编辑表单状态可改；改「离职」走确认 Dialog（危险操作确认，以原型为准）。</li>
+<li><strong>状态与表单</strong>：创建表单不可选「离职」；<strong>员工详情</strong>卡底「状态」行可选在岗/休假/离职（离职确认 Dialog）；头部 chip（详情与我的资料）<strong>仅</strong>在岗/休假；<strong>我的资料</strong>无状态行；编辑表单状态可改。</li>
 </ol>
 <h2>8.4 员工薪资业务规则</h2>
 <ol start="42">
@@ -2947,13 +2968,16 @@ flowchart LR
 <p>读者：前端 ✓ · 后端 部分 · 测试 ✓</p>
 </blockquote>
 <h2>9.1 文案清单（须与原型一致）</h2>
-<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
+<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围、设置点客提成、取消点客提成、社区形象</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet</strong>、<strong>头衔/角色、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、点客、散客、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
 <p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、点客、散客、大工、中工、小工</strong>。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的散客比例/金额、比例需在 0–100%、名称不能为空、最多 3 个工位。</p>
-<p><strong>员工（表单/详情/列表）</strong>：员工管理、员工详情、创建员工、邀请员工、编辑员工、完善员工信息、请完善员工信息，以便正常开单与业绩统计、去完善、信息未完善、添加头衔、头衔管理、角色管理、选择头衔、选择员工角色、权限说明、请选择、请选择员工角色、暂未分配、添加头像、剑号、宝剑、更多信息、性别、年龄段、从业年限、状态（在岗/休假/离职）、保存、已保存、请输入员工姓名、员工姓名最多 N 字、请输入员工手机号、请输入正确的手机号、请选择头衔、请选择员工角色、请选择有效的角色身份、新建员工不可设为店主、本店已有店主（{姓名}）、请输入有效从业年限、从业年限不能超过 N 年、请输入员工基本工资、请输入有效基本工资、金额不能超过 N、注：当修改基本工资后，当月的薪资统计以最新的为准、功能开发中。</p>
+<p><strong>员工（表单/详情/列表）</strong>：员工管理、员工详情、我的资料、创建员工、邀请员工、编辑员工、完善员工信息、请完善员工信息，以便正常开单与业绩统计、去完善、信息未完善、添加头衔、头衔管理、角色管理、选择头衔、选择员工角色、权限说明、请选择、请选择员工角色、暂未分配、添加头像、剑号、宝剑、更多信息、性别、年龄段、从业年限、状态（在岗/休假/离职）、保存、已保存、请输入员工姓名、员工姓名最多 N 字、请输入员工手机号、请输入正确的手机号、请选择头衔、请选择员工角色、请选择有效的角色身份、新建员工不可设为店主、本店已有店主（{姓名}）、请输入有效从业年限、从业年限不能超过 N 年、请输入员工基本工资、请输入有效基本工资、金额不能超过 N、注：当修改基本工资后，当月的薪资统计以最新的为准、功能开发中。</p>
+<blockquote>
+<p><strong>不做文案/字段（线上有、原型隐藏）</strong>：选填项、个人项目价格、个人说明。</p>
+</blockquote>
 <p><strong>头衔/角色</strong>：暂无头衔、去头衔管理、暂无员工、已分配 N 人、确定删除该头衔？（以原型为准）、头衔已被员工使用、不可删除（以原型为准）。</p>
-<p><strong>薪资</strong>：员工薪资、合计薪酬、我的薪酬、合计、基本工资、提成合计、奖惩合计、项目、产品、办卡/充卡、快速消费、当月合计薪资、基本薪资、提成总计、奖惩总计、业绩统计、总计、提成统计、服务、售卡、人次、数量、金额、单位：元、本月汇总、本期汇总、当日合计、业绩、提成、奖、扣、奖惩明细、查看记录、收起记录、设奖惩、编辑奖惩、最近记录、本月暂无记录、本月暂无奖惩记录、本周期暂无提成明细、当日暂无提成明细、仅可查本结算周期（{区间}）、选择月份、选择结算期、本月全部、本期全部、今天、昨天、选择查询日期、上一有数据日、下一有数据日、调整提成、请输入奖惩金额、金额不能超过 N、请输入备注、备注最多 N 字、请选择员工、奖惩已保存、奖惩已保存给 N 名员工、已更新奖惩记录、已删除、确定删除该奖惩记录？（以原型为准）、修改记录。</p>
+<p><strong>薪资</strong>：员工薪资、合计薪酬、我的薪酬、合计、基本工资、提成合计、奖惩合计、项目、产品、办卡/充卡、快捷开单、当月合计薪资、基本薪资、提成总计、奖惩总计、业绩统计、总计、提成统计、服务、售卡、人次、数量、金额、单位：元、本月汇总、本期汇总、当日合计、业绩、提成、奖、扣、奖惩明细、查看记录、收起记录、设奖惩、编辑奖惩、最近记录、本月暂无记录、本月暂无奖惩记录、本周期暂无提成明细、当日暂无提成明细、仅可查本结算周期（{区间}）、选择月份、选择结算期、本月全部、本期全部、今天、昨天、选择查询日期、上一有数据日、下一有数据日、调整提成、请输入奖惩金额、金额不能超过 N、请输入备注、备注最多 N 字、请选择员工、奖惩已保存、奖惩已保存给 N 名员工、已更新奖惩记录、已删除、确定删除该奖惩记录？（以原型为准）、修改记录。</p>
 <p><strong>流水</strong>：业绩（只读）、提成、修改提成、当前为「{角色}」，无法修改提成（以原型为准）。</p>
 <p><strong>空态</strong>：还没有提成方案、点下方按钮添加、该分类下暂无内容、暂无头衔、暂无提成方案、暂无在岗员工、信息未完善。</p>
 <h2>9.2 权限</h2>
@@ -3157,7 +3181,7 @@ flowchart LR
 <li><strong>Given</strong> 方案 S 已分配员工 A，<strong>When</strong> 打开方案 S2 的分配 Sheet，<strong>Then</strong> A <strong>可勾选</strong>，副文显示图标 +「S」（或含多个方案名）；全选会选中 A。</li>
 <li><strong>Given</strong> 员工 A 同时属于方案 S1（项目默认 12%）与 S2（项目仅卡付 3%），<strong>When</strong> 开单一行含卡付劳动，<strong>Then</strong> 两方案按适用范围分摊后算出金额取较高者写入该行。</li>
 <li><strong>Given</strong> 员工 A 两方案对同一行算出金额相等，<strong>When</strong> 计提，<strong>Then</strong> 胜出方案为列表中更靠前的方案（<code>winnerSchemeId</code> 对应该方案）。</li>
-<li><strong>Given</strong> 编辑页 5 张默认卡含「快速消费」，<strong>When</strong> 试图删除快速消费，<strong>Then</strong> 无删除按钮 / toast「系统规则不可删除」；快消行命中系统覆盖而非项目默认。</li>
+<li><strong>Given</strong> 编辑页 5 张默认卡含「快捷开单」，<strong>When</strong> 试图删除快捷开单，<strong>Then</strong> 无删除按钮 / toast「系统规则不可删除」；快消行命中系统覆盖而非项目默认。</li>
 <li><strong>Given</strong> 覆盖规则优先于默认，<strong>When</strong> 同一项目有默认 10% 与覆盖 20%，<strong>Then</strong> 方案内计提用 20%（命中覆盖不再走默认）；若另有方案更高金额，再取跨方案更高者。</li>
 <li><strong>Given</strong> 编辑页有改动，<strong>When</strong> 返回，<strong>Then</strong> Dialog「尚未保存」；「不保存」丢弃改动并回列表。</li>
 <li><strong>Given</strong> 已保存方案，<strong>When</strong> 重命名、复制、删除，<strong>Then</strong> 分别 toast「方案已重命名 / 已复制 / 已删除」；副本分配清空。</li>
@@ -3173,15 +3197,15 @@ flowchart LR
 <li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 查看规则卡，<strong>Then</strong> 「大工」「中工」「小工」全称竖排三行于行2左侧，适用范围 chip 相对参数区整体中轴对齐；数值完整可见；参数区左缘与标题图标左缘对齐。</li>
 <li><strong>Given</strong> 任意规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 行1=标题+基数、行2=参数+适用范围；适用范围独立 chip；无整卡 chevron 主路径。</li>
 <li><strong>Given</strong> 不分工位规则，<strong>When</strong> 查看参数，<strong>Then</strong> 展示「点客」「散客」全称短标 + 数值；参数区左缘与标题图标左缘对齐。</li>
-<li><strong>Given</strong> 规则卡，<strong>When</strong> 点击行1「基数」段控或行2「卡付」chip，<strong>Then</strong> 即时切换并置脏；点标题打开全量 Sheet；点参数区打开参数精简 Sheet。</li>
+<li><strong>Given</strong> 规则卡，<strong>When</strong> 点击行1「基数」段控或行2「卡付」chip，<strong>Then</strong> 无直改；点击整卡打开全量 Sheet（无参数精简）。</li>
 <li><strong>Given</strong> 员工薪资明细 · 业绩统计，<strong>When</strong> 查看横向比例条，<strong>Then</strong> 字段为现金 / 卡付 / 团购 / 签单（签单含经理签单+欠款）；金额为原价加总；四列之和 = 总计。</li>
-<li><strong>Given</strong> 员工薪资明细 · 提成统计，<strong>When</strong> 查看横向比例条，<strong>Then</strong> 字段为项目 / 产品 / 办卡 / 充卡 / 快速消费；项目列 = 项目类提成 − 快速消费提成；五列之和 = 总计。</li>
+<li><strong>Given</strong> 员工薪资明细 · 提成统计，<strong>When</strong> 查看横向比例条，<strong>Then</strong> 字段为项目 / 产品 / 办卡 / 充卡 / 快捷开单；项目列 = 项目类提成 − 快捷开单提成；五列之和 = 总计。</li>
 <li><strong>Given</strong> 员工薪资明细 · 服务/售卡，<strong>When</strong> 查看摘要，<strong>Then</strong> 服务 = 项目+快消（人次/实收）；售卡 = 办卡+充卡（数量/实收，不含产品）；金额标签为「金额」（无「（实收）」字样）；服务与售卡标题旁均有 <strong>?</strong> 且弹窗相同。</li>
 <li><strong>Given</strong> 店主在业绩提成明细改提成，<strong>When</strong> 保存，<strong>Then</strong> 直接生效并出现「改」标记；点击可查看修改记录；无待确认流程。</li>
 <li><strong>Given</strong> 结算周期页，<strong>When</strong> 店主设结算日/发薪日，<strong>Then</strong> 均可选 1–31；<strong>仅店主/合伙人可改模式+结算日+发薪日</strong>；当月无该日则 clamp 月末；<strong>无</strong>「恢复默认」。
 41a. <strong>Given</strong> 店长打开结算周期，<strong>When</strong> 查看，<strong>Then</strong> 模式/结算日/发薪日均不可编辑。</li>
 <li><strong>Given</strong> 员工业绩提成明细 · 月合计，<strong>When</strong> 查看业绩分列，<strong>Then</strong> 仍为现金类 / 卡付 / 团购 / 经理签单 / 记为欠款，但金额为对应项原价加总。</li>
-<li><strong>Given</strong> 员工业绩提成明细 · 月合计，<strong>When</strong> 查看提成分列，<strong>Then</strong> 为项目 / 产品 / 办卡 / 充卡 / 快速消费，且项目列已扣快速消费；五列之和 = 提成总计。</li>
+<li><strong>Given</strong> 员工业绩提成明细 · 月合计，<strong>When</strong> 查看提成分列，<strong>Then</strong> 为项目 / 产品 / 办卡 / 充卡 / 快捷开单，且项目列已扣快捷开单；五列之和 = 提成总计。</li>
 <li><strong>Given</strong> 开单流水详情展开员工行，<strong>When</strong> 查看业绩 / 提成，<strong>Then</strong> 业绩只读、无编辑 icon；提成可点（店主 / 合伙人 / 店长）。</li>
 <li><strong>Given</strong> 流水订单修改卡片，<strong>When</strong> 点击「编辑」进入项目流水修改，<strong>Then</strong> 业绩行无铅笔且不可改；提成行保留铅笔可改。</li>
 <li><strong>Given</strong> 项目流水修改，<strong>When</strong> 试图修改业绩，<strong>Then</strong> 无输入入口 / 无响应；修改提成成功并写修改日志。</li>
@@ -3206,7 +3230,7 @@ flowchart LR
 <h3>10.3 链路二 · 员工管理 P0</h3>
 <ol start="57">
 <li><strong>Given</strong> 员工列表，<strong>When</strong> 长按拖动某员工到新位置松手，<strong>Then</strong> <code>EmployeeStore.staff</code> 顺序与 UI 一致。</li>
-<li><strong>Given</strong> 员工列表，<strong>When</strong> 查看标题栏与底栏，<strong>Then</strong> 标题栏右侧有主文字色「设置」下拉（头衔管理 / 角色管理）；底栏次「创建员工」+ 主「邀请员工」；<strong>无</strong>列表内虚线「+ 创建员工」。
+<li><strong>Given</strong> 员工列表，<strong>When</strong> 查看标题栏与底栏，<strong>Then</strong> 标题栏右侧有主文字色「头衔/角色」下拉（头衔管理 / 角色管理）；底栏次「创建员工」+ 主「邀请员工」；<strong>无</strong>列表内虚线「+ 创建员工」。
 58a. <strong>Given</strong> 员工列表，<strong>When</strong> 点「邀请员工」，<strong>Then</strong> toast「功能开发中」。
 58b. <strong>Given</strong> 无 <code>staffCreate</code> 权限，<strong>When</strong> 点底栏「创建员工」，<strong>Then</strong> 权限拦截，不进入表单。</li>
 <li><strong>Given</strong> 创建员工，<strong>When</strong> 不填姓名保存，<strong>Then</strong> toast「请输入员工姓名」。</li>
@@ -3220,7 +3244,11 @@ flowchart LR
 <li><strong>Given</strong> 员工选提成方案 A，<strong>When</strong> 保存，<strong>Then</strong> 方案 A 的 <code>assigneeIds</code> 含该员工 id；提成设置分配 Sheet 同步。
 65a. <strong>Given</strong> 员工列表存在 <code>incomplete=true</code> 员工，<strong>When</strong> 查看，<strong>Then</strong> 行尾显示「去完善」；进入完善表单（formMode=refine）保存后 <code>incomplete=false</code> 且提示消失。
 65b. <strong>Given</strong> 创建员工，<strong>When</strong> 不填手机号/角色/基本工资保存，<strong>Then</strong> 分别 toast「请输入员工手机号」「请选择员工角色」「请输入员工基本工资」，不写入。
-65c. <strong>Given</strong> 员工状态切换为「离职」，<strong>When</strong> 从详情页操作，<strong>Then</strong> 弹确认 Dialog，确认后状态为离职；创建表单不可选「离职」。</li>
+65c. <strong>Given</strong> 员工详情，<strong>When</strong> 点卡底「状态」行选「离职（注销账号）」并确认，<strong>Then</strong> 弹确认 Dialog，确认后状态为离职；创建表单不可选「离职」。
+65c2. <strong>Given</strong> 员工详情，<strong>When</strong> 查看，<strong>Then</strong> 「状态」为信息卡最后一行；点开 Sheet 含在岗/休假/离职（注销账号）；点头部 chip 的 Sheet <strong>仅</strong>在岗/休假。
+65c3. <strong>Given</strong> 我的资料，<strong>When</strong> 查看，<strong>Then</strong> <strong>无</strong>「状态」表单行；头部状态 chip 仍仅在岗/休假。
+65d. <strong>Given</strong> 员工列表存在店主，<strong>When</strong> 点店主行（或侧栏「我的资料」），<strong>Then</strong> 进入标题「我的资料」；<strong>无</strong>「选填项 / 个人项目价格 / 个人说明」。
+65e. <strong>Given</strong> 员工列表，<strong>When</strong> 点非店主员工行，<strong>Then</strong> 进入标题「员工详情」。</li>
 </ol>
 <h3>10.4 链路三 · 员工薪资 P0</h3>
 <ol start="66">

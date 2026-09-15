@@ -79,6 +79,7 @@
     <button type="button" class="nav-item" data-flow="staff-role-perms"><span class="idx">3</span>角色管理</button>
     <div class="nav-arrow">↓</div>
     <button type="button" class="nav-item" data-flow="staff-detail"><span class="idx">4</span>员工详情</button>
+    <button type="button" class="nav-item" data-flow="staff-my-profile"><span class="idx">·</span>我的资料</button>
     <div class="nav-arrow">↓</div>
     <button type="button" class="nav-item" data-flow="staff-create"><span class="idx">5</span>创建员工</button>
     <button type="button" class="nav-item" data-flow="staff-refine"><span class="idx">·</span>完善资料</button>
@@ -144,7 +145,7 @@
       </span>
       <span class="hub-card__main">
         <span class="hub-card__title">员工管理</span>
-        <span class="hub-card__desc">列表、头衔、角色、详情与创建/编辑</span>
+        <span class="hub-card__desc">列表、头衔、角色、详情/我的资料与创建</span>
       </span>
       <span class="hub-card__chev" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
@@ -209,11 +210,6 @@
       <button type="button" class="comm2-pick-types__btn" data-comm2-pick-type="card" role="tab" aria-selected="false">会员卡</button>
     </div>
     <div class="comm2-pick-groups" id="comm2PickGroups"></div>
-    <div class="comm2-pick-tools">
-      <button type="button" id="comm2PickSelectAll">全选</button>
-      <span class="comm2-pick-tools__count" id="comm2PickCount">已选 <strong>0</strong> 项</span>
-      <button type="button" id="comm2PickInvert">反选</button>
-    </div>
     <div class="comm2-pick-bundle-edit hidden" id="comm2PickBundle"></div>
     <div class="comm2-pick-body">
       <div class="comm2-pick-list" id="comm2PickList"></div>
@@ -244,7 +240,7 @@
     <div class="dialog__title" id="comm2BaseHelpTitle">计算基数说明</div>
     <div class="dialog__scroll emp-help-body">
       <h4>原价模式</h4>
-      <p>范围内开单（项目、产品、会员卡开卡、快速消费、商城订单、充卡/续次/延期）按<strong>原价</strong>加总作为提成基数。快速消费原价=实收；商城订单按订单原价；充卡/续次/延期按其原价。</p>
+      <p>范围内开单（项目、产品、会员卡开卡、快捷开单、商城订单、充卡/续次/延期）按<strong>原价</strong>加总作为提成基数。快捷开单原价=实收；商城订单按订单原价；充卡/续次/延期按其原价。</p>
       <h4>实收模式</h4>
       <p>上述开单范围相同，但按<strong>实收金额</strong>加总作为提成基数。</p>
     </div>
@@ -348,7 +344,7 @@
       <h4>按项分摊 · 适用范围</h4>
       <p>「适用范围」指对应到开单中每一个项目/产品/会员卡的金额分摊，不是整单是否命中某种支付方式。混合支付时：计算基数=原价 → 基数 = 原价 ×（范围内实付 ÷ 该行全部实付）；计算基数=实收 → 基数 = 范围内实付之和；固定金额 → 固定额 ×（范围内实付 ÷ 全部实付）。卡付含会员卡面值（充值+赠送）与计次（购买+赠送次数/数量）；计次按卡内成本/均价折算为卡付实付。</p>
       <h4>覆盖优先</h4>
-      <p>方案内覆盖规则项（含系统「快速消费」）优先于分类默认；命中覆盖后不再吃分类默认。覆盖之间允许重复添加同一项，再比金额取高。方案之间再比金额取高。</p>
+      <p>方案内覆盖规则项（含系统「快捷开单」）优先于分类默认；命中覆盖后不再吃分类默认。覆盖之间允许重复添加同一项，再比金额取高。方案之间再比金额取高。</p>
       <h4>不同行可相加</h4>
       <p>不同业务行分别取高后，行与行之间可相加汇总。</p>
     </div>
@@ -416,7 +412,7 @@
     <button type="button" class="back" id="empStaffListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
     <span class="title">员工管理</span>
     <div class="emp-staff-settings">
-      <button type="button" class="action emp-title-link emp-title-link--text" id="empBtnStaffSettings" aria-haspopup="menu" aria-expanded="false">设置</button>
+      <button type="button" class="action emp-title-link emp-title-link--text" id="empBtnStaffSettings" aria-haspopup="menu" aria-expanded="false"><img class="emp-staff-settings__ico" src="assets/ic_staff_settings_hex.svg" width="18" height="18" alt="" aria-hidden="true"><span>头衔/角色</span></button>
       <div class="emp-staff-settings__menu" id="empStaffSettingsMenu" role="menu" hidden>
         <button type="button" class="emp-staff-settings__item" role="menuitem" data-emp-settings="roles">头衔管理</button>
         <button type="button" class="emp-staff-settings__item" role="menuitem" data-emp-settings="perms">角色管理</button>
@@ -472,7 +468,7 @@
 <div class="screen hidden" id="screen-emp-detail">
   <div class="page-title-bar">
     <button type="button" class="back" data-emp-back-list aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <span class="title">员工详情</span>
+    <span class="title" id="empDetailTitle">员工详情</span>
   </div>
   <div class="page-body" id="empDetailBody"></div>
 </div>
@@ -495,8 +491,6 @@
           <span class="emp-form-avatar-add__txt">添加头像</span>
         </button>
       </div>
-      <div class="form-row clickable" id="empRowSwordTitle"><span class="label">剑号</span><span class="form-row__trail"><span class="value" id="empFSwordTitle">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
-      <div class="form-row clickable" id="empRowSword"><span class="label">宝剑</span><span class="form-row__trail"><span class="emp-form-sword-thumb hidden" id="empFSwordThumb"></span><span class="value" id="empFSword">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
       <div class="form-row"><span class="label">员工姓名<span class="req">*</span></span><input class="value" id="empFName" placeholder="请输入" maxlength="20" /></div>
       <div class="form-row"><span class="label">员工手机号<span class="req">*</span></span><input class="value" id="empFPhone" placeholder="请输入" inputmode="numeric" maxlength="11" autocomplete="tel" /></div>
       <div class="emp-form-collapse" id="empFormMore">
@@ -516,6 +510,11 @@
       <div class="form-row emp-form-row--stack"><span class="label">基本工资<span class="req">*</span></span><input class="value input-amount" id="empFBase" type="number" min="0" max="999999.99" step="0.01" placeholder="请输入员工基本工资" inputmode="decimal" /></div>
       <p class="emp-form-note">注：当修改基本工资后，当月的薪资统计以最新的为准。</p>
       <div class="form-row clickable" id="empRowStatus"><span class="label">状态</span><span class="form-row__trail"><span class="value has-val" id="empFStatus">在岗</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+    </div>
+    <div class="emp-card emp-community-card" id="empCommunityCard">
+      <div class="emp-community-card__title">社区形象</div>
+      <div class="form-row clickable" id="empRowSwordTitle"><span class="label">剑号</span><span class="form-row__trail"><span class="value" id="empFSwordTitle">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
+      <div class="form-row clickable" id="empRowSword"><span class="label">宝剑</span><span class="form-row__trail"><span class="emp-form-sword-thumb hidden" id="empFSwordThumb"></span><span class="value" id="empFSword">请选择</span><span class="chevron"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></span></span></div>
     </div>
   </div>
   <div class="bottom-bar">

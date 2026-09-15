@@ -198,6 +198,34 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
 }
 .emp-detail-card { margin: 0 16px 12px; }
 .emp-detail-card .form-row:last-child::after { display: none; }
+.emp-community-card {
+  margin: 0 16px 16px;
+  padding: 0;
+  background: #fff;
+  border-radius: 12px;
+  box-sizing: border-box;
+  border: 1px solid #F0F0F0;
+  overflow: hidden;
+}
+.emp-community-card__title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #929292;
+  padding: 12px 16px 0;
+  line-height: 1.3;
+}
+.emp-community-card .form-row:last-child::after { display: none; }
+#screen-emp-form .emp-community-card {
+  margin: 12px 16px 16px;
+  padding-bottom: 0;
+  box-shadow: none;
+}
+#screen-emp-form .emp-community-card__title {
+  padding-top: 12px;
+}
+#screen-emp-form .page-body {
+  padding-bottom: 8px;
+}
 
 .emp-avatar--sm { width: 32px; height: 32px; border-radius: 16px; font-size: 12px; }
 .emp-avatar--md { width: 44px; height: 44px; border-radius: 22px; font-size: 15px; }
@@ -2487,7 +2515,6 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
   color: var(--text); text-align: right; min-width: 0;
   font-variant-numeric: tabular-nums;
 }
-.emp-comm-card__assign.is-muted .emp-comm-card__assign-val { color: var(--brand); }
 .emp-comm-card__assign .ui-nav-chev { color: #C8C8C8; flex-shrink: 0; }
 .emp-comm-card__assign .ui-nav-chev svg { width: 14px; height: 14px; }
 .emp-comm-help-link {
@@ -3766,6 +3793,14 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
 .emp-staff-settings .emp-title-link {
   margin-left: 0;
   margin-right: 0;
+  gap: 4px;
+}
+.emp-staff-settings__ico {
+  width: 18px;
+  height: 18px;
+  display: block;
+  flex-shrink: 0;
+  object-fit: contain;
 }
 .emp-staff-settings__menu {
   position: absolute;

@@ -426,6 +426,11 @@
     { value: '休假', label: '休假' },
     { value: '离职', label: '离职（注销账号）' },
   ];
+  function statusDisplayLabel(value) {
+    var v = value || '在岗';
+    var hit = STATUSES.find(function (o) { return o.value === v; });
+    return hit ? hit.label : v;
+  }
   var RULE_OPTS = ['按实收金额', '按耗卡金额', '按售价', '不计算业绩', '按原价金额'];
   var ADV_RULE_DEFS = [
     { id: 'ar4', label: '消耗赠送金额', options: ['按卡耗金额计算', '不计算业绩'], defaultValue: '按卡耗金额计算' },
@@ -558,6 +563,7 @@
     staffFieldKey: null,
     formSwordTitle: '',
     leaveConfirmSource: 'form',
+    statusEditSource: null,
     formSwordTitleMode: 'none',
     formSwordId: null,
     formSchemeId: null,
@@ -929,11 +935,11 @@
     },
     comm: {
       title: '提成统计',
-      html: '<p>按提成设置五类分列：项目 / 产品 / 办卡 / 充卡 / 快速消费。</p><p><strong>项目列 = 项目类提成合计 − 快速消费提成</strong>（快速消费另列）；五列之和 = 提成总计。</p>',
+      html: '<p>按提成设置五类分列：项目 / 产品 / 办卡 / 充卡 / 快捷开单。</p><p><strong>项目列 = 项目类提成合计 − 快捷开单提成</strong>（快捷开单另列）；五列之和 = 提成总计。</p>',
     },
     svcSales: {
       title: '服务 / 售卡',
-      html: '<p><strong>服务</strong> = 项目 + 快速消费（人次 / <strong>实收</strong>金额）。</p><p><strong>售卡</strong> = 办卡 + 充卡（数量 / <strong>实收</strong>金额，不含产品）。</p>',
+      html: '<p><strong>服务</strong> = 项目 + 快捷开单（人次 / <strong>实收</strong>金额）。</p><p><strong>售卡</strong> = 办卡 + 充卡（数量 / <strong>实收</strong>金额，不含产品）。</p>',
     },
   };
   function metricHelpBtn(key) {
@@ -1508,6 +1514,31 @@
   function findStaffByPerm(perm) {
     return (window.EmployeeStore.staff || []).find(function (s) { return s.perm === perm; }) || null;
   }
+  /** 本人固定为店主（与演示会话身份无关） */
+  function getSelfStaff() {
+    return findStaffByPerm('店主');
+  }
+  function isSelfStaff(sOrId) {
+    var s = typeof sOrId === 'string' ? staffById(sOrId) : sOrId;
+    var self = getSelfStaff();
+    return !!(s && self && s.id === self.id);
+  }
+  function detailFlowIdForStaff(id) {
+    return isSelfStaff(id) ? 'staff-my-profile' : 'staff-detail';
+  }
+  function openStaffDetail(id) {
+    if (!id || !staffById(id)) { openList(); return; }
+    renderStaffDetail(id);
+    showScreen('screen-emp-detail');
+    var flow = detailFlowIdForStaff(id);
+    if (typeof window !== 'undefined') window.__staffDetailFlow = flow;
+    nav(flow);
+  }
+  function openMyProfile() {
+    var self = getSelfStaff();
+    if (!self) { openList(); return; }
+    openStaffDetail(self.id);
+  }
   function findOtherStaffWithRole(roleName, exceptId) {
     return (window.EmployeeStore.staff || []).find(function (s) {
       return s.role === roleName && s.id !== exceptId;
@@ -1803,21 +1834,22 @@
     openSchemePickSheet();
     nav('staff-empty-scheme');
   }
-  /** 从空态跳提成设置：返回时回到创建员工表单或员工详情且内容保留 */
+  /** 从空态跳提成设置：返回时回到创建员工表单或员工详情/我的资料且内容保留 */
   function setComm2ReturnToForm() {
-    var backTo = (isDetailPickerCtx() || state.emptyGotoReturn === 'staff-detail')
-      ? 'staff-detail'
-      : 'staff-create';
+    var backTo = 'staff-create';
+    if (isDetailPickerCtx() || state.emptyGotoReturn === 'staff-detail' || state.emptyGotoReturn === 'staff-my-profile') {
+      backTo = state.currentStaffId ? detailFlowIdForStaff(state.currentStaffId) : 'staff-detail';
+    }
     state.emptyGotoReturn = backTo;
     window.__empComm2BackHook = function () {
       if (!state.emptyGotoReturn) return false;
       var target = state.emptyGotoReturn;
       state.emptyGotoReturn = null;
       window.__empComm2BackHook = null;
-      if (target === 'staff-detail' && state.currentStaffId) {
-        renderStaffDetail(state.currentStaffId);
-        showScreen('screen-emp-detail');
-        nav('staff-detail');
+      if ((target === 'staff-detail' || target === 'staff-my-profile') && state.currentStaffId) {
+        openStaffDetail(state.currentStaffId);
+      } else if (target === 'staff-my-profile') {
+        openMyProfile();
       } else {
         showScreen('screen-emp-form');
         nav('staff-create');
@@ -2892,6 +2924,9 @@
     var body = $('empDetailBody');
     if (!s || !body) return;
     state.currentStaffId = id;
+    var titleEl = $('empDetailTitle') || document.querySelector('#screen-emp-detail .title');
+    if (titleEl) titleEl.textContent = isSelfStaff(s) ? '我的资料' : '员工详情';
+    if (typeof window !== 'undefined') window.__staffDetailFlow = detailFlowIdForStaff(id);
     var sw = s.swordId ? swordById(s.swordId) : null;
     var hideSalary = !canViewSalaryOf(s);
     var canEdit = canEditStaffProfile();
@@ -2912,8 +2947,6 @@
       empStatusChipHtml(s.status) +
       '</div></div></div>' +
       '<div class="emp-card emp-detail-card">' +
-      detailClickRow('swordTitle', '剑号', s.swordTitle || '暂未选择') +
-      detailSwordRow(sw) +
       detailClickRow('gender', '性别', s.gender || '未填写') +
       detailClickRow('ageBand', '年龄段', s.ageBand || '未填写') +
       detailClickRow('years', '从业年限', (s.yearsExp != null && s.yearsExp !== '') ? (s.yearsExp + ' 年') : '未填写') +
@@ -2925,6 +2958,12 @@
           '<span class="form-row__trail"><span class="value has-val">当前权限不可见</span></span></div>'
         : detailClickRow('base', '基本工资', (s.baseSalary ? fmtMoneyHtml(s.baseSalary) : fmtMoneyHtml(0)) + ' 元', { html: true }) +
           detailClickRow('scheme', '提成方案', s.scheme || '暂未分配')) +
+      (isSelfStaff(s) ? '' : detailClickRow('status', '状态', statusDisplayLabel(s.status || '在岗'))) +
+      '</div>' +
+      '<div class="emp-card emp-community-card">' +
+      '<div class="emp-community-card__title">社区形象</div>' +
+      detailClickRow('swordTitle', '剑号', s.swordTitle || '暂未选择') +
+      detailSwordRow(sw) +
       '</div>';
   }
 
@@ -3119,9 +3158,7 @@
       if (state.formMode === 'refine') s.incomplete = false;
       syncSchemeAssigned(s.id);
       toast('已保存');
-      renderStaffDetail(s.id);
-      showScreen('screen-emp-detail');
-      nav('staff-detail');
+      openStaffDetail(s.id);
     }
   }
 
@@ -3216,7 +3253,7 @@
         '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('labor') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">项目</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.labor) + '</span></div></button>' +
         '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('sales') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">产品</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.sales) + '</span></div></button>' +
         '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('issue') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">办卡/充卡</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.issueCard) + '</span></div></button>' +
-        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('quick') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">快速消费</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.quick) + '</span></div></button>' +
+        '<button type="button" class="emp-salary-card__cell" data-salary-detail="' + esc(s.id) + '" data-detail-kind="comm">' + salaryCatIcon('quick') + '<div class="emp-salary-card__cell-main"><span class="emp-salary-card__cell-lbl">快捷开单</span><span class="emp-salary-card__cell-val">' + fmtMoneyHtml(split.quick) + '</span></div></button>' +
         navChevHtml() +
         '</div></div>';
     }).join('');
@@ -3277,7 +3314,7 @@
       { key: 'sales', label: '产品' },
       { key: 'issue', label: '办卡' },
       { key: 'card', label: '充卡' },
-      { key: 'quick', label: '快速消费' },
+      { key: 'quick', label: '快捷开单' },
     ];
   }
 
@@ -3363,7 +3400,7 @@
       { id: 'tl1', name: '开卡 · 尊享组合卡', cat: 'issue', kind: 'card', refId: 'demo_vip_combo', cardRole: 'issue', pay: 'cash', list: 2000, paid: 2000, designated: true },
       { id: 'tl3', name: '深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', pay: 'memberCard', list: 268, paid: 268, designated: true },
       { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, designated: true },
-      { id: 'tl8', name: '快速消费', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true },
+      { id: 'tl8', name: '快捷开单', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true },
       { id: 'tl2', name: '充卡 · 老客续充', cat: 'card', pay: 'cash', list: 1000, paid: 1000, designated: true }
     ];
   }
@@ -3787,7 +3824,7 @@
     if (kind === 'product') { text = '产'; cls += ' flow-type-tag--product'; }
     else if (kind === 'card' || kind === 'issue' || kind === 'recharge') { text = '卡'; cls += ' flow-type-tag--card'; }
     else if (kind === 'quick') {
-      return '<span class="flow-type-tag--quick-icon" aria-label="快速消费" title="快速消费">' +
+      return '<span class="flow-type-tag--quick-icon" aria-label="快捷开单" title="快捷开单">' +
         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">' +
         '<path d="M6 1H12.5455L8.54545 6.25H14L5.27273 16L7.09091 8.875H2L6 1Z" fill="#FF8A3D"/></svg></span>';
     }
@@ -4231,7 +4268,7 @@
         { label: '产品', value: data.comm.sales, color: MORANDI.sales },
         { label: '办卡', value: data.comm.issue, color: MORANDI.issue },
         { label: '充卡', value: data.comm.card, color: MORANDI.card },
-        { label: '快速消费', value: data.comm.quick, color: MORANDI.quick },
+        { label: '快捷开单', value: data.comm.quick, color: MORANDI.quick },
       ]) + '</div>'
     );
     var navState = commDetailNavState(staffId);
@@ -4367,7 +4404,7 @@
         { label: '产品', value: split.sales, color: MORANDI.sales },
         { label: '办卡', value: split.issue, color: MORANDI.issue },
         { label: '充卡', value: split.card, color: MORANDI.card },
-        { label: '快速消费', value: split.quick, color: MORANDI.quick },
+        { label: '快捷开单', value: split.quick, color: MORANDI.quick },
       ]) + '</div>' +
       '<div class="emp-pay-svc">' +
       '<div class="emp-pay-svc__box"><div class="emp-pay-svc__title">服务' + metricHelpBtn('svcSales') + '</div>' +
@@ -7581,17 +7618,28 @@
     }).join('');
   }
 
-  function renderStatusPickerList(current) {
+  function renderStatusPickerList(current, opts) {
     var root = $('empStatusList');
     if (!root) return;
+    opts = opts || {};
     var cur = current || '在岗';
-    var opts = state.formMode === 'create'
-      ? STATUSES.filter(function (o) { return o.value !== '离职'; })
-      : STATUSES;
-    root.innerHTML = opts.map(function (o) {
+    var allowLeave = opts.allowLeave === true ||
+      (opts.allowLeave !== false && state.statusEditSource === 'detail') ||
+      (opts.allowLeave !== false && state.statusEditSource !== 'detail' && state.formMode !== 'create');
+    if (opts.allowLeave === false) allowLeave = false;
+    var list = allowLeave ? STATUSES : STATUSES.filter(function (o) { return o.value !== '离职'; });
+    root.innerHTML = list.map(function (o) {
       return '<button type="button" class="emp-picker-opt' + (o.value === cur ? ' on' : '') +
         '" data-status-val="' + esc(o.value) + '">' + esc(o.label) + '</button>';
     }).join('');
+  }
+
+  function openDetailFullStatusSheet() {
+    var s = staffById(state.currentStaffId);
+    if (!s || !canEditStaffProfile()) return;
+    state.statusEditSource = 'detail';
+    renderStatusPickerList(s.status || '在岗', { allowLeave: true });
+    openMask('empStatusMask');
   }
 
   function applyFormStatus(value) {
@@ -8277,7 +8325,17 @@
       },
       'staff-empty-role': openDemoEmptyRoleSheet,
       'staff-empty-scheme': openDemoEmptySchemeSheet,
-      'staff-detail': function () { if (state.currentStaffId) { renderStaffDetail(state.currentStaffId); showScreen('screen-emp-detail'); nav('staff-detail'); } else openList(); },
+      'staff-detail': function () {
+        var cur = state.currentStaffId && staffById(state.currentStaffId);
+        if (cur && !isSelfStaff(cur)) {
+          openStaffDetail(cur.id);
+          return;
+        }
+        var other = (window.EmployeeStore.staff || []).find(function (s) { return !isSelfStaff(s); });
+        if (other) openStaffDetail(other.id);
+        else openList();
+      },
+      'staff-my-profile': openMyProfile,
       'staff-create': function () { openForm('create'); },
       'staff-refine': function () { openForm('refine', state.currentStaffId || 'st2'); },
       'staff-salary': openSalary,
@@ -8349,6 +8407,7 @@
           { id: 'staff-role-perms', label: '角色管理', screen: 'screen-emp-role-perms' },
           { id: 'staff-role-perm-edit', label: '角色权限', screen: 'screen-emp-role-perm-edit' },
           { id: 'staff-detail', label: '员工详情', screen: 'screen-emp-detail' },
+          { id: 'staff-my-profile', label: '我的资料', screen: 'screen-emp-detail' },
           { id: 'staff-create', label: '创建员工', screen: 'screen-emp-form' },
           { id: 'staff-refine', label: '完善员工', screen: 'screen-emp-form' },
           { id: 'staff-salary', label: '员工薪资', screen: 'screen-emp-salary' },
@@ -8378,6 +8437,7 @@
           ['staff-roles', '头衔管理', 'screen-emp-roles'],
           ['staff-role-perms', '角色管理', 'screen-emp-role-perms'],
           ['staff-role-perm-edit', '角色权限', 'screen-emp-role-perm-edit'],
+          ['staff-my-profile', '我的资料', 'screen-emp-detail'],
           ['staff-comm-item-pick', '添加提成项目', 'screen-emp-comm-scope'],
           ['staff-comm-scope', '使用范围', 'screen-emp-comm-scope'],
           ['staff-comm-assign', '分配员工', 'screen-emp-comm-assign'],
@@ -8446,18 +8506,16 @@
     });
     $('empFormBack')?.addEventListener('click', function () {
       if (state.formMode === 'create') openList();
-      else if (state.currentStaffId) { renderStaffDetail(state.currentStaffId); showScreen('screen-emp-detail'); nav('staff-detail'); }
+      else if (state.currentStaffId) { openStaffDetail(state.currentStaffId); }
       else openList();
     });
     /* 同属性可能有多个返回键，必须 querySelectorAll，勿用 querySelector */
     document.querySelectorAll('[data-emp-back-list]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        if (state.emptyGotoReturn === 'staff-detail' && state.currentStaffId) {
+        if ((state.emptyGotoReturn === 'staff-detail' || state.emptyGotoReturn === 'staff-my-profile') && state.currentStaffId) {
           state.emptyGotoReturn = null;
           window.__empComm2BackHook = null;
-          renderStaffDetail(state.currentStaffId);
-          showScreen('screen-emp-detail');
-          nav('staff-detail');
+          openStaffDetail(state.currentStaffId);
           return;
         }
         if (state.emptyGotoReturn) {
@@ -8532,7 +8590,7 @@
       var refine = e.target.closest('[data-emp-refine]');
       if (refine) { e.stopPropagation(); openForm('refine', refine.dataset.empRefine); return; }
       var row = e.target.closest('[data-staff-id]');
-      if (row) { renderStaffDetail(row.dataset.staffId); showScreen('screen-emp-detail'); nav('staff-detail'); }
+      if (row) { openStaffDetail(row.dataset.staffId); }
     });
 
     $('empRowRole')?.addEventListener('click', function () {
@@ -8823,7 +8881,10 @@
       openMask('empPermMask');
     });
     $('empRowStatus')?.addEventListener('click', function () {
-      renderStatusPickerList($('empFStatus').textContent);
+      state.statusEditSource = 'form';
+      renderStatusPickerList($('empFStatus').textContent, {
+        allowLeave: state.formMode !== 'create'
+      });
       openMask('empStatusMask');
     });
 
@@ -8918,29 +8979,53 @@
       if (!btn) return;
       var val = btn.dataset.statusVal;
       closeMask('empStatusMask');
+      if (state.statusEditSource === 'detail') {
+        var s = staffById(state.currentStaffId);
+        if (!s) { state.statusEditSource = null; return; }
+        if (val === s.status) { state.statusEditSource = null; return; }
+        if (val === '离职') {
+          openLeaveConfirm('detail');
+          return;
+        }
+        applyStaffStatus(val);
+        state.statusEditSource = null;
+        return;
+      }
       if (val === '离职') {
         openLeaveConfirm('form');
         return;
       }
       applyFormStatus(val);
+      state.statusEditSource = null;
     });
-    $('empLeaveConfirmCancel')?.addEventListener('click', closeLeaveConfirm);
+    $('empLeaveConfirmCancel')?.addEventListener('click', function () {
+      closeLeaveConfirm();
+      state.statusEditSource = null;
+    });
     $('empLeaveConfirmOk')?.addEventListener('click', function () {
       if (state.leaveConfirmSource === 'detail') {
         applyStaffStatus('离职');
         closeLeaveConfirm();
+        state.statusEditSource = null;
         return;
       }
       applyFormStatus('离职');
       closeLeaveConfirm();
+      state.statusEditSource = null;
       toast('已标记注销，保存后生效');
     });
     $('empLeaveConfirmMask')?.addEventListener('click', function (e) {
-      if (e.target === $('empLeaveConfirmMask')) closeLeaveConfirm();
+      if (e.target === $('empLeaveConfirmMask')) {
+        closeLeaveConfirm();
+        state.statusEditSource = null;
+      }
     });
     $('empRoleCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empRoleMask'); });
     $('empPermCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empPermMask'); });
-    $('empStatusCancel')?.addEventListener('click', function () { closeMask('empStatusMask'); });
+    $('empStatusCancel')?.addEventListener('click', function () {
+      state.statusEditSource = null;
+      closeMask('empStatusMask');
+    });
     $('empGenderCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empGenderMask'); });
     $('empAgeBandCancel')?.addEventListener('click', function () { clearPickerCtx(); closeMask('empAgeBandMask'); });
     $('empDetailStatusCancel')?.addEventListener('click', closeDetailStatusSheet);
@@ -9009,10 +9094,15 @@
           openSchemePickSheet();
           return;
         }
+        if (key === 'status') {
+          openDetailFullStatusSheet();
+          return;
+        }
         return;
       }
       if (!e.target.closest('[data-emp-status-chip]')) return;
       if (!canEditStaffProfile()) return;
+      // 头部 chip：始终仅在岗/休假（与原先一致）
       openDetailStatusSheet();
     });
     $('empStaffFieldCancel')?.addEventListener('click', function () {

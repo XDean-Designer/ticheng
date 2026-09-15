@@ -257,7 +257,9 @@
 
 .comm2-twins {
   display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  align-items: stretch;
 }
+.comm2-twins > .comm2-cap { min-width: 0; }
 .comm2-cap {
   position: relative; display: flex; flex-direction: column; gap: 6px;
   padding: 10px 10px 10px 12px; border-radius: 10px;
@@ -265,6 +267,7 @@
 }
 .comm2-cap--des { border-color: #FFD5D9; }
 .comm2-cap--non { border-color: #DCE3EA; }
+.comm2-cap--single { border-color: #E6E6E6; }
 .comm2-cap--des::before,
 .comm2-cap--non::before {
   content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
@@ -272,6 +275,15 @@
 }
 .comm2-cap--des::before { background: var(--brand); }
 .comm2-cap--non::before { background: #8FA3B8; }
+.comm2-cap--single::before {
+  content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
+  border-radius: 0 2px 2px 0; background: var(--brand);
+}
+.comm2-cap__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding-left: 4px; min-height: 18px;
+}
+.comm2-cap__title { font-size: 13px; color: #1A1A1A; font-weight: 600; flex-shrink: 0; }
 .comm2-cap__label { font-size: 12px; color: #929292; padding-left: 4px; font-weight: 500; }
 .comm2-cap__field { display: flex; align-items: baseline; gap: 2px; padding-left: 4px; }
 .comm2-cap__field input {
@@ -280,6 +292,32 @@
   padding: 0; margin: 0;
 }
 .comm2-cap__unit { font-size: 12px; color: #929292; font-weight: 500; }
+.comm2-guest-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.comm2-guest-row > .comm2-cap--single { flex: 1; min-width: 0; }
+.comm2-guest-row > .comm2-guest-link { flex: 0 0 auto; margin-top: 0; white-space: nowrap; }
+.comm2-guest-row--tail {
+  justify-content: flex-end; margin-top: 8px;
+}
+.comm2-guest-link {
+  display: inline-flex; align-items: center; gap: 2px;
+  padding: 0; border: none; background: transparent;
+  font-family: inherit; font-size: 13px; font-weight: 500; color: var(--brand);
+  cursor: pointer;
+}
+.comm2-guest-link__chev { display: inline-flex; align-items: center; color: inherit; }
+.comm2-guest-link__chev svg { display: block; }
+.comm2-guest-link--cancel { color: #929292; }
+.comm2-guest-close {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; margin: 0; padding: 0;
+  border: none; border-radius: 6px; background: transparent;
+  color: #929292; cursor: pointer; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.comm2-guest-close svg { display: block; width: 14px; height: 14px; }
+.comm2-guest-close:active { color: var(--text, #1A1A1A); background: #F2F2F2; }
 
 .comm2-sheet-mode {
   display: flex; gap: 0; padding: 3px; border-radius: 999px; background: #F2F2F2; margin-bottom: 14px;
@@ -382,16 +420,7 @@
 .comm2-pick-groups { padding: 10px 16px 0; }
 .comm2-pick-groups.hidden { display: none; }
 .comm2-pick-groups .catalog-group-segment { margin-right: 0; }
-.comm2-pick-tools {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px;
-  padding: 10px 20px 4px;
-}
-.comm2-pick-tools button {
-  border: none; background: transparent; color: var(--brand); font-size: 13px;
-  font-family: inherit; cursor: pointer; padding: 4px;
-}
-.comm2-pick-tools__count { flex: 1; text-align: center; font-size: 12px; color: #929292; }
-.comm2-pick-tools__count strong { color: var(--brand); font-weight: 600; }
+.comm2-pick-tools { display: none !important; }
 .comm2-pick-body { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 16px 24px; }
 .comm2-pick-list { display: flex; flex-direction: column; gap: 8px; }
 .comm2-pick-item-wrap {
@@ -448,10 +477,18 @@
 /* 编辑页 · 规则横条列表 */
 .comm2-edit-cards { display: flex; flex-direction: column; gap: 8px; padding: 6px 6px 0; }
 .comm2-rule-bar {
-  position: relative; display: block; background: #fff;
+  position: relative; display: flex; align-items: center; gap: 8px;
+  background: #fff;
   border-radius: 10px; border: 1px solid #EBEBEB; box-sizing: border-box;
-  padding: 12px; overflow: visible;
+  padding: 12px; overflow: visible; cursor: pointer;
 }
+.comm2-rule-bar__main { flex: 1; min-width: 0; }
+.comm2-rule-bar__chev {
+  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  color: #C2C2C2; align-self: center;
+}
+.comm2-rule-bar__chev svg { display: block; }
+.comm2-rule-bar:active .comm2-rule-bar__chev { color: var(--brand); }
 .comm2-rule-swipe .comm2-rule-bar {
   border-radius: 10px; overflow: hidden;
 }
@@ -471,9 +508,9 @@
 .comm2-rule-bar__title-hit {
   flex: 1; min-width: 0;
   border: none; background: transparent; padding: 0; margin: 0;
-  text-align: left; cursor: pointer; font-family: inherit; color: inherit;
+  text-align: left; font-family: inherit; color: inherit;
+  pointer-events: none;
 }
-.comm2-rule-bar__title-hit:active { opacity: .85; }
 .comm2-rule-bar__title {
   margin: 0; font-size: 14px; font-weight: 600; color: #1A1A1A;
   display: flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden;
@@ -508,39 +545,46 @@
   border: 1px solid #E0E0E0; background: #FAFAFA; color: #929292;
   font-size: 11px; font-weight: 500; font-family: inherit;
   height: 26px; min-height: 26px; padding: 0 4px; border-radius: 8px;
-  cursor: pointer; white-space: nowrap; line-height: 1;
+  white-space: nowrap; line-height: 1;
   display: inline-flex; align-items: center; justify-content: center;
   box-sizing: border-box;
   flex: 1 1 0; min-width: 0;
   overflow: hidden; text-overflow: ellipsis;
-  transition: border-color .14s ease, background .14s ease, color .14s ease, box-shadow .14s ease;
+  pointer-events: none;
 }
 .comm2-rule-bar .comm2-scope-chip.on {
   border-color: var(--brand); background: var(--brand-soft, #FFF2F2);
   color: var(--brand); font-weight: 600;
 }
-.comm2-rule-bar .comm2-scope-chip:active { opacity: .88; }
+.comm2-rule-bar__seg.is-ro { pointer-events: none; cursor: default; }
 
-/* 行2 左：提成参数 */
+/* 行2 左：提成参数（只读展示） */
 .comm2-rule-bar__params {
   flex: 1; min-width: 0; overflow: hidden;
   border: none; background: transparent; padding: 0; margin: 0;
   display: flex; flex-wrap: nowrap; justify-content: flex-start; align-items: center;
   gap: 0; box-sizing: border-box;
-  text-align: left; cursor: pointer; font-family: inherit; color: inherit;
-  /* 与标题图标左缘对齐 */
-  padding-left: 0;
+  text-align: left; font-family: inherit; color: inherit;
+  padding-left: 0; pointer-events: none;
 }
-.comm2-rule-bar__params:active { opacity: .85; }
 .comm2-rule-bar__param-seg + .comm2-rule-bar__param-seg {
   margin-left: 12px;
 }
-.comm2-rule-bar__p-edit {
-  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
-  margin-left: 6px; color: #929292; transition: color .14s ease;
+.comm2-rule-bar.is-guest-split:not(.is-station) .comm2-rule-bar__params {
+  justify-content: flex-start; width: 100%;
 }
-.comm2-rule-bar__p-edit svg { display: block; width: 14px; height: 14px; }
-.comm2-rule-bar__params:active .comm2-rule-bar__p-edit { color: var(--brand); }
+.comm2-rule-bar.is-guest-split:not(.is-station) .comm2-rule-bar__param-seg.is-comm { margin-right: auto; }
+.comm2-rule-bar.is-guest-split:not(.is-station) .comm2-rule-bar__param-seg.is-guest { margin-left: auto; }
+.comm2-rule-bar__p-tag {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 14px; height: 14px; padding: 0 3px; margin: 0 1px;
+  border-radius: 3px; font-size: 10px; font-weight: 600; line-height: 1;
+  background: #F0F0F0; color: #8D8D8D;
+  vertical-align: 1px;
+}
+.comm2-rule-bar__p-dot {
+  font-size: 15px; font-weight: 600; color: #1A1A1A; margin: 0 1px;
+}
 .comm2-rule-bar__param-seg {
   display: inline-flex; align-items: baseline; gap: 3px;
   white-space: nowrap; flex-shrink: 0;
@@ -550,28 +594,18 @@
 }
 .comm2-rule-bar__p-val {
   font-size: 15px; font-weight: 600; color: #1A1A1A; line-height: 1.3;
+  display: inline-flex; align-items: baseline; flex-wrap: nowrap;
 }
-/* 按工位：参数竖排；铅笔贴末行右侧，间距 6px */
+/* 按工位：参数竖排 */
 .comm2-rule-bar.is-station .comm2-rule-bar__params {
-  display: grid;
-  grid-template-columns: max-content max-content;
-  column-gap: 6px;
-  row-gap: 4px;
-  justify-content: start;
-  align-items: center;
+  display: flex; flex-direction: column; flex-wrap: nowrap;
+  align-items: flex-start; gap: 4px;
 }
 .comm2-rule-bar.is-station .comm2-rule-bar__param-seg {
-  grid-column: 1;
   display: flex;
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
-  margin-left: 0;
-}
-.comm2-rule-bar.is-station .comm2-rule-bar__p-edit {
-  grid-column: 2;
-  grid-row: 1 / -1;
-  align-self: end;
   margin-left: 0;
 }
 .comm2-rule-bar.is-station .comm2-rule-bar__p-lbl {
@@ -579,10 +613,10 @@
   min-width: 2em;
 }
 
-/* 右列 · 基数段控（整段可点切换）· 在 120 槽内右对齐 */
+/* 右列 · 基数段控 · 在 120 槽内右对齐 */
 .comm2-rule-bar__seg {
   display: inline-flex; gap: 0; padding: 2px; border-radius: 999px;
-  background: #F0F0F0; flex-shrink: 0; border: none; cursor: pointer;
+  background: #F0F0F0; flex-shrink: 0; border: none; cursor: default;
   font-family: inherit; box-shadow: inset 0 1px 2px rgba(0, 0, 0, .05);
   -webkit-tap-highlight-color: transparent;
   max-width: 100%;
@@ -828,9 +862,24 @@
 .comm2-rule-card__seg { display: flex; gap: 0; padding: 3px; border-radius: 999px; background: #F2F2F2; }
 .comm2-rule-card__seg .comm2-base-seg__btn { flex: 1; min-width: 0; }
 
-/* 参数 Sheet · 紧凑同行布局 */
-.comm2-cat-sheet-body {
-  max-height: none !important; overflow: visible !important;
+/* 参数 Sheet · 可滚动，避免底部溢出 */
+#comm2CatSheetMask .picker-sheet.tall {
+  max-height: 85%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+#comm2CatSheetMask .comm2-cat-sheet-body.emp-ach-edit-body,
+#comm2CatSheetMask .comm2-cat-sheet-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none !important; /* 高度由 Sheet 约束，勿再用 62vh 叠层 */
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+#comm2CatSheetMask .picker-foot {
+  flex-shrink: 0;
 }
 .comm2-sheet-row {
   display: flex; align-items: center; gap: 10px; margin-bottom: 10px; min-height: 32px;
@@ -867,6 +916,8 @@
 .comm2-cat-sheet-body .comm2-sheet-mode { padding: 2px; margin-bottom: 0; }
 .comm2-cat-sheet-body .comm2-sheet-mode__btn { height: 30px; font-size: 12px; }
 .comm2-sheet-params-body { margin-bottom: 0; }
+.comm2-cat-sheet-body .comm2-guest-row { gap: 8px; }
+.comm2-cat-sheet-body .comm2-guest-link { font-size: 12px; }
 .comm2-cat-sheet-body .comm2-twins { gap: 6px; }
 .comm2-cat-sheet-body .comm2-cap {
   padding: 6px 8px 6px 10px; gap: 4px; border-radius: 8px;
