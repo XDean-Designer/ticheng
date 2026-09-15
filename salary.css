@@ -3783,29 +3783,42 @@ button.emp-detail-head__name--edit:active { opacity: .75; }
   fill: none;
 }
 
-/* 员工列表 · 标题栏「设置」下拉 */
-.emp-staff-settings {
+/* 员工列表 · 标题栏「头衔/角色」下拉：与返回/标题同高垂直居中 */
+.page-title-bar .emp-staff-settings {
   position: relative;
   margin-left: auto;
   margin-right: 12px;
-  align-self: center;
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  z-index: 2;
 }
-.emp-staff-settings .emp-title-link {
+.page-title-bar .emp-staff-settings .action.emp-title-link {
   margin-left: 0;
   margin-right: 0;
-  gap: 4px;
+  height: 44px;
+  padding: 0 4px 0 8px;
+  gap: 5px;
+  align-self: stretch;
+  box-sizing: border-box;
 }
-.emp-staff-settings__ico {
-  width: 18px;
-  height: 18px;
+.page-title-bar .emp-staff-settings__ico,
+.page-title-bar .emp-staff-settings .emp-staff-settings__ico {
+  width: 16px;
+  height: 16px;
   display: block;
   flex-shrink: 0;
-  object-fit: contain;
+  color: inherit;
+}
+.page-title-bar .emp-staff-settings__ico path,
+.page-title-bar .emp-staff-settings .emp-staff-settings__ico path {
+  fill: currentColor;
 }
 .emp-staff-settings__menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 6px);
+  top: calc(100% - 4px);
   z-index: 30;
   min-width: 132px;
   padding: 4px;
