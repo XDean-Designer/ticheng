@@ -983,24 +983,38 @@
     var isStation = block.pickMode === 'station';
     var ovId = opts.ovId || '';
     var titleEllipsis = titleCharCount(title) > 6;
-    /* 主区两行 + 最右 chevron 列；整卡进全量 Sheet；基数/范围只读 */
+    var titleBlock = '<div class="comm2-rule-bar__title-hit">' +
+      '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
+      '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></div>';
+    var mainHtml;
+    if (isStation) {
+      /* 按工位：左标题+参数竖排；右列两控件垂直居中、间距规整 */
+      mainHtml = '<div class="comm2-rule-bar__main">' +
+        '<div class="comm2-rule-bar__left">' +
+        titleBlock +
+        '<div class="comm2-rule-bar__params" aria-label="提成参数">' + barParamsHtml(sch, block) + '</div>' +
+        '</div>' +
+        '<div class="comm2-rule-bar__side" aria-hidden="true">' +
+        barFieldHtml(barBaseCtrlHtml(block)) +
+        barFieldHtml(barPayCtrlHtml(block)) +
+        '</div></div>';
+    } else {
+      mainHtml = '<div class="comm2-rule-bar__main">' +
+        '<div class="comm2-rule-bar__row comm2-rule-bar__row--1">' +
+        titleBlock +
+        barFieldHtml(barBaseCtrlHtml(block)) +
+        '</div>' +
+        '<div class="comm2-rule-bar__row comm2-rule-bar__row--2">' +
+        '<div class="comm2-rule-bar__params" aria-label="提成参数">' +
+        barParamsHtml(sch, block) + '</div>' +
+        barFieldHtml(barPayCtrlHtml(block)) +
+        '</div></div>';
+    }
     var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') +
       (block.rule && block.rule.guestSplit ? ' is-guest-split' : '') +
       '" data-comm2-rule-card="' + esc(target) + '" data-comm2-card-open="' + esc(target) + '" role="button" tabindex="0" aria-label="编辑规则 ' + esc(title) + '"' +
       (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
-      '<div class="comm2-rule-bar__main">' +
-      '<div class="comm2-rule-bar__row comm2-rule-bar__row--1">' +
-      '<div class="comm2-rule-bar__title-hit">' +
-      '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
-      '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></div>' +
-      barFieldHtml(barBaseCtrlHtml(block)) +
-      '</div>' +
-      '<div class="comm2-rule-bar__row comm2-rule-bar__row--2">' +
-      '<div class="comm2-rule-bar__params" aria-label="提成参数">' +
-      barParamsHtml(sch, block) + '</div>' +
-      barFieldHtml(barPayCtrlHtml(block)) +
-      '</div>' +
-      '</div>' +
+      mainHtml +
       '<span class="comm2-rule-bar__chev" aria-hidden="true">' + chevronSvg() + '</span>' +
       '</article>';
     if (!isOv) return card;
@@ -1597,12 +1611,10 @@
             : '<button type="button" class="comm2-sheet-station__name" data-comm2-station-inline-edit="' + esc(sid) + '" aria-label="改名工位"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">' + esc(stationLabel(sch, sid)) + '</span><span class="comm2-sheet-station__edit" aria-hidden="true">' + editIconSvg() + '</span></button>') +
           (guestSplit
             ? twinHtml('st.' + sid + '.', st, isAmt, stationLabel(sch, sid))
-            : singleCapHtml('st.' + sid + '.', st, isAmt, '提成')) +
+            /* 未开点客：与不分工位同布局——左提成右「设置点客提成」；点任一即全局开启 */
+            : commissionParamsHtml('st.' + sid + '.', st, isAmt, false, '提成')) +
           '</div>';
       });
-      if (!guestSplit) {
-        html += '<div class="comm2-guest-row comm2-guest-row--tail">' + guestSplitLinkHtml() + '</div>';
-      }
     } else {
       html += commissionParamsHtml('base.', rule, isAmt, guestSplit, '提成');
     }
