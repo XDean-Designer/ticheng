@@ -1014,7 +1014,8 @@
       '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
       '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></div>';
     /* 卡头：左图标+标题，右「＞」；卡头下方内容区：左提成参数 + 右两控件竖排 */
-    var cardHtml = '<div class="comm2-rule-bar__head">' +
+    var cardHtml = '<span class="comm2-rule-bar__accent" aria-hidden="true"></span>' +
+      '<div class="comm2-rule-bar__head">' +
       titleBlock +
       '<span class="comm2-rule-bar__chev" aria-hidden="true">' + chevronSvg() + '</span>' +
       '</div>' +

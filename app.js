@@ -332,6 +332,7 @@
       'emp-detail': [go('staff-list', 60), click('#empListRoot [data-staff-id="st1"]', 240)],
       'emp-my-profile': [go('staff-my-profile', 60)],
       'emp-form-create': [go('staff-create', 60)],
+      'emp-form-refine': [go('staff-refine', 60)],
       'emp-empty-role': [go('staff-empty-role', 60)],
       'emp-empty-scheme': [go('staff-empty-scheme', 60)],
       'emp-salary': [go('staff-salary', 60)],

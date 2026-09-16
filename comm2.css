@@ -483,14 +483,16 @@
 .comm2-rule-bar {
   position: relative; display: block;
   --bar-accent: var(--brand);
-  background-color: #fff;
-  /* 左侧品牌竖条：作为背景随卡片外轮廓裁切，任何缩放/圆角下都与卡片轮廓贴合 */
-  background-image: linear-gradient(var(--bar-accent), var(--bar-accent));
-  background-repeat: no-repeat;
-  background-position: left top;
-  background-size: 3px 100%;
+  background: #fff;
   border-radius: 10px; border: 1px solid #EBEBEB; box-sizing: border-box;
-  padding: 0; overflow: visible; cursor: pointer;
+  padding: 0; overflow: hidden; cursor: pointer;
+}
+/* 左侧品牌竖条：用真实元素承载，不用 background-image + background-size。
+   原因：Figma 的 HTML→Design 拍平背景时忽略 background-size，会把渐变整块铺满 → 整卡变红。
+   真实 3px 矩形 + 父级 overflow:hidden，浏览器与 Figma 表现一致，且随卡片圆角裁切、贴合轮廓。 */
+.comm2-rule-bar__accent {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: var(--bar-accent); pointer-events: none;
 }
 /* 卡头：左图标+标题；右「＞」 */
 .comm2-rule-bar__head {
