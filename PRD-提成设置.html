@@ -86,7 +86,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>修订（2026-09-16 二次）</td>
-<td>重构 §4.5 跨系统约束「开单选择服务员工」：由「类内 OR · 门店维度」下钻为「<strong>项 × 员工</strong>」维度——对每项、每候选员工按该员工所属方案命中块 OR 判定是否需选工位 / 点客-散客；§4.5.1 / §4.5.2 合并为一条；§8 规则 7a / 7b 合并重写；§1.3 / §1.5 / §6.3 / §6.9 交叉引用同步；§10.2 验收 53a / 53c–53f 重写并新增 53g–53j；明确项→类映射（项目 / 产品 / 办卡 / 充卡 / 快捷开单；充卡含充值 / 续次 / 续费 / 延期；商城订单无提成块）</td>
+<td>重构 §4.5 跨系统约束「开单选择服务员工」：由「类内 OR · 门店维度」下钻为「<strong>项 × 员工</strong>」维度——对每项、每候选员工按该员工所属方案命中块 OR 判定是否需选工位 / 点客-散客；§4.5.1 / §4.5.2 合并为一条；§8 规则 7a / 7b 合并重写；§1.3 / §1.5 / §6.3 / §6.9 交叉引用同步；§10.2 验收 53a / 53c–53f 重写并新增 53g–53j；明确项→类映射（项目 / 产品 / 办卡 / 充卡 / 快捷开单；充卡含充值 / 续次 / 续费，其中「续费」即延期；商城订单无提成块）</td>
 </tr>
 </tbody>
 </table>
@@ -890,7 +890,7 @@ flowchart LR
 <p><strong>约束对象</strong>：开单侧「选择服务员工」及相关嵌入式选人交互（含「加入购物车」等内嵌选人 Sheet）。本期<strong>仅在本 PRD 锁定口径</strong>；开单原型/实现按本条联调，<strong>不在本仓库改开单代码</strong>。</p>
 </blockquote>
 <p><strong>判定范围（项 × 员工）</strong>：开单每添加一项 <code>I</code> 并为其选择服务员工时，对候选列表中的<strong>每一个员工 <code>E</code> 独立</strong>判定是否需要采集「工位」和 / 或「点客 / 散客」。判定<strong>只考察 <code>E</code> 本人所属的启用中方案</strong>；<code>E</code> 不属于任何方案 → 无命中块 → 该员工<strong>点选即勾选</strong>（不需工位、不需点客 / 散客）。</p>
-<p><strong>项 → 类 → 命中块解析</strong>：先按 <code>kind</code> / <code>cardRole</code> 映射业务类（口径同 §8 规则 5）：<code>project</code>→项目、<code>product</code>→产品、<code>card</code>+<code>issue</code>→办卡、<code>card</code>+<code>card</code>→充卡（含<strong>充值 / 续次 / 续费 / 延期</strong>）、<code>quick</code>→快捷开单（系统覆盖）。再在 <code>E</code> 的每个方案内按 §8 规则 5 解析出该项命中的<strong>唯一块</strong>（单项覆盖 &gt; 整类分组覆盖 &gt; 整类默认）。<code>E</code> 的全部方案所得的命中块构成集合 <code>B</code>（每个方案至多一块）。</p>
+<p><strong>项 → 类 → 命中块解析</strong>：先按 <code>kind</code> / <code>cardRole</code> 映射业务类（口径同 §8 规则 5）：<code>project</code>→项目、<code>product</code>→产品、<code>card</code>+<code>issue</code>→办卡、<code>card</code>+<code>card</code>→充卡（含<strong>充值 / 续次 / 续费</strong>，其中「续费」即延期）、<code>quick</code>→快捷开单（系统覆盖）。再在 <code>E</code> 的每个方案内按 §8 规则 5 解析出该项命中的<strong>唯一块</strong>（单项覆盖 &gt; 整类分组覆盖 &gt; 整类默认）。<code>E</code> 的全部方案所得的命中块构成集合 <code>B</code>（每个方案至多一块）。</p>
 <p><strong>OR 合并（两个维度分别独立）</strong>：</p>
 <ol>
 <li><strong>工位</strong>：<code>B</code> 中<strong>任一</strong>块 <code>pickMode=station</code> → 该员工在本项上需选<strong>工位</strong>；</li>
