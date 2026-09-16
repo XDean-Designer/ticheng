@@ -80,6 +80,10 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>修订（2026-09-15）</td>
 <td>规则卡改卡头结构（图标+标题+「＞」，内容区左参数右两控件）；规则 Sheet「提成」恒名 + 「+ 点客提成」虚线条；<code>guestSplit</code>；删参数精简与选择页工具条；员工列表「头衔/角色」（品牌色文字，无图标）；「社区形象」卡；规则卡左竖条随卡片轮廓裁切、参数区与右栏控件顶部对齐；Sheet 比例输入框 <code>%</code> 紧贴数值；「点」标签中轴对齐；参数区恒显「提成」/工位名标签（同款样式）；提成值与点客值间改为 1px 竖线、「点」标签在点客值左侧；卡头分隔线不压左侧装饰条；右栏两控件恢复卡上可直接点选</td>
 </tr>
+<tr>
+<td>修订（2026-09-16）</td>
+<td>新增 §4.5.2「开单选择服务员工」跨系统约束（类内 OR · 门店维度）：该类未开启「点客提成」→ 不再必选「点客 / 散客」；该类既未开按工位、也未开点客提成 → <strong>点选员工即完成勾选</strong>，无「员工变为按钮」动效；同步 §1.3 / §1.5 / §6.3 / §8 规则 7b / §9.1 / §10.2 验收 53c–53f。另修正 §8.2 顾问方案演示数据、§8.1 试算行数、头衔可删除与唯一头衔、提成编辑权限文案</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -267,6 +271,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>规则卡：<strong>卡头</strong>（图标 + 标题 + 右侧「＞」）+ <strong>内容区</strong>（左提成参数；右 120px 槽竖排两控件）；右栏两控件<strong>可直接点选</strong>（点 chip 不打开 Sheet）；<strong>整卡</strong>进全量 Sheet；<strong>无</strong>参数精简；覆盖左滑删；固定金额时基数区显只读「固定」</li>
 <li>左侧导航「<strong>关联页面</strong>」区域：仅「头衔空态 sheet」「方案空态 sheet」演示入口</li>
 <li>试算口径：示例订单行按员工方案集合计算提成（原型试算引擎）</li>
+<li><strong>开单侧「选择服务员工」口径</strong>（跨系统约束；<strong>仅锁口径，不在本仓库改开单代码</strong>）：按<strong>业务类</strong>判定（类内 OR · 门店维度）——该类任一启用方案块为按工位 → 整类需选<strong>工位</strong>（§4.5.1）；该类<strong>未开启「点客提成」</strong> → 不再像旧版一样必选「<strong>点客 / 散客</strong>」（§4.5.2）；该类<strong>既未开按工位、也未开点客提成</strong> → <strong>点击员工即完成勾选</strong>，无二次选择、<strong>不播放</strong>「员工变为按钮」的展开动效（§4.5.2）</li>
 <li>流水订单 / 薪资关联口径（§6.8 / §6.10）：<strong>规格保留（本系统现有页面）</strong></li>
 <li>关联页面口径对齐：员工薪资明细（业绩统计 / 提成统计）、员工业绩提成明细（见 §6.10；非本包 UI）</li>
 <li>工作台移除「业绩设置」入口；旧单项提成配置下线；<strong>本期不做阶梯提成方案</strong>（见 §1.4）</li>
@@ -329,6 +334,10 @@ tr:nth-child(even) td{background:#fafbfc}
 <tr>
 <td>按工位分别设提成</td>
 <td>分配模式 = 按工位分配，逐工位设提成 / 点客参数；工位在规则 Sheet 内联改名（固定 3，不可增减；全局同步）</td>
+</tr>
+<tr>
+<td>开单选员工必选「点客 / 散客」</td>
+<td>按业务类判定：该类未开启「点客提成」→ <strong>不再采集</strong>「点客 / 散客」；既未开按工位、也未开点客提成 → <strong>点选员工即完成勾选</strong>（无展开动效）（§4.5.2）</td>
 </tr>
 <tr>
 <td>全体员工一套规则</td>
@@ -887,6 +896,57 @@ flowchart LR
 <p><strong>对称</strong>：若默认已是 <code>station</code>，即便该类全部覆盖均为 <code>avg</code>，整类仍需选工位（OR）。</p>
 <p><strong>何时展示</strong>：必须在「选择服务员工」时提供工位选择；若「加入购物车」等 Sheet <strong>内嵌</strong>了选服务员工，同一规则一并生效。</p>
 <p><strong>与计提取值的关系</strong>：本条只约束开单 UI 是否采集工位；计提仍按 §8 规则 7（命中块自身的 <code>pickMode</code> / 工位缺省回落）。</p>
+<h3>4.5.2 跨系统约束：开单「选择服务员工」的点客/散客采集与交互降级（类内 OR · 门店维度）</h3>
+<blockquote>
+<p><strong>约束对象</strong>：开单侧「选择服务员工」及相关嵌入式选人交互。本期<strong>仅在本 PRD 锁定口径</strong>；开单原型/实现按本条联调，<strong>不在本仓库改开单代码</strong>。与 §4.5.1 同框架、同判定范围。</p>
+</blockquote>
+<p><strong>判定范围（门店维度）</strong>：对本店全部<strong>启用中</strong>的提成方案做判断（<strong>不</strong>按当前选中的服务员工过滤方案集合）。</p>
+<p><strong>类内 OR（按业务类）</strong>：对某一业务类（项目 / 产品 / 办卡 / 充卡 / 快捷开单），同时考察该类<strong>默认卡</strong>与该方案内归属该类的<strong>全部覆盖规则项</strong>（覆盖归属：项目类覆盖影响「项目」、产品类覆盖影响「产品」，依此类推；系统快捷开单覆盖归属「快捷开单」）的两个维度：</p>
+<ol>
+<li><strong>点客提成</strong> <code>rule.guestSplit</code> 是否为 <code>true</code>；</li>
+<li><strong>分配模式</strong> <code>pickMode</code> 是否为 <code>station</code>（按工位）。</li>
+</ol>
+<p><strong>四态矩阵</strong>（判定结果作用于该<strong>整类</strong>，即该类下所有可点选的项目 / 产品 / 会员卡等，而非仅命中那条覆盖的目标）：</p>
+<table>
+<thead>
+<tr>
+<th>该类 <code>guestSplit</code></th>
+<th>该类 <code>pickMode</code></th>
+<th>开单「选择服务员工」交互</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全部为 <code>false</code></td>
+<td>全部为 <code>avg</code></td>
+<td><strong>点击员工即完成勾选</strong>：不展开任何二次选择、<strong>不播放</strong>「员工变为按钮」的展开动效；该员工按「提成」单值计提</td>
+</tr>
+<tr>
+<td>全部为 <code>false</code></td>
+<td>任一为 <code>station</code></td>
+<td>需选<strong>工位</strong>（§4.5.1）；<strong>不需要</strong>选「点客 / 散客」</td>
+</tr>
+<tr>
+<td>任一为 <code>true</code></td>
+<td>全部为 <code>avg</code></td>
+<td>需选「<strong>点客 / 散客</strong>」；不需要选工位</td>
+</tr>
+<tr>
+<td>任一为 <code>true</code></td>
+<td>任一为 <code>station</code></td>
+<td>需选「<strong>点客 / 散客</strong>」+ <strong>工位</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>口径要点</strong></p>
+<ul>
+<li><strong>不再必选「点客 / 散客」</strong>：旧版开单选服务员工时一律要标记该员工是「点客」还是「散客」；新版仅在<strong>该业务类存在启用中的 <code>guestSplit=true</code> 规则块</strong>时才采集。任一处开启即整类需要（OR），与 §4.5.1 的对称性一致。</li>
+<li><strong>交互降级（点选即勾选）</strong>：仅当该类<strong>同时</strong>满足「<code>guestSplit</code> 全为 <code>false</code>」且「<code>pickMode</code> 全为 <code>avg</code>」时成立。此时点选员工直接完成勾选，<strong>不展开</strong>「员工变为按钮」的动效，也不需要任何二次选择。</li>
+<li><strong>只要有一个维度需要采集，就保留展开交互</strong>：该类 <code>guestSplit</code> 任一为 <code>true</code> <strong>或</strong> <code>pickMode</code> 任一为 <code>station</code> → 仍播放展开（变为按钮）动效，用于采集「点客 / 散客」和 / 或「工位」。</li>
+<li><strong>内嵌选人一并生效</strong>：若「加入购物车」等 Sheet <strong>内嵌</strong>了选服务员工，同一规则一并生效。</li>
+<li><strong>未采集时的落库与计提</strong>：该类未采集「点客 / 散客」时，订单行该员工<strong>不标记点客</strong>（<code>staffDesignated</code> 为非点客），按命中块的 <code>nonDesignated</code>（「提成」侧）取值；计提仍按 §8 规则 7 / 规则 7b。</li>
+<li><strong>旧数据兼容</strong>：<code>guestSplit</code> 缺省判定沿用 §6.3（两端值不等 → 自动视为已开启），即旧数据若点客 ≠ 提成，该类仍需采集「点客 / 散客」。</li>
+</ul>
 <h2>4.6 分配状态</h2>
 <ul>
 <li>员工池 = 开单员工池（<code>EmployeeDemo.getBillingStaffPool</code>；回退内置 st1–st5）。</li>
@@ -1468,7 +1528,7 @@ guestSplit=true：`提成 10% │ 点12%`（前为提成值、后为点客值；
 <tr>
 <td>按工位 + 关</td>
 <td>每工位只填/显示一个参数（提成卡 + 虚线条并排）</td>
-<td>开单选员工<strong>不再</strong>选点客（联调页须隐藏）</td>
+<td>开单选员工<strong>不再</strong>选「点客 / 散客」（见 §4.5.2）</td>
 </tr>
 </tbody>
 </table>
@@ -2932,7 +2992,8 @@ guestSplit=true：`提成 10% │ 点12%`（前为提成值、后为点客值；
 <li><strong>覆盖优先于默认（方案内）</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快捷开单 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），<strong>命中任一条覆盖即不再回落默认分类</strong>（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快捷开单行（<code>kind=quick</code> / 名称「快捷开单」）<strong>只命中系统覆盖</strong>，不吃项目默认。方案之间再执行规则 3。</li>
 <li><strong>计算基数</strong>：见规则 2 分摊公式；§6.9 帮助口径与此一致。<code>valueMode=amount</code> 时按规则 2 对固定额乘分摊系数（不再整单直接取固定额）。</li>
 <li><strong>分配取值</strong>：<code>pickMode=avg</code>（UI「不分工位」）用规则级提成 / 点客（<code>nonDesignated</code> / <code>designated</code>）；<code>pickMode=station</code> 用订单行 <code>station</code> 对应工位参数；<strong>工位缺失</strong>：用方案 <code>stationIds[0]</code> 对应参数，若无则 <code>defaultPair()</code>（与原型 <code>schemeLineAmount</code> 一致）。
-7a. <strong>开单「选择工位」展示（类内 OR · 门店维度）</strong>：对本店<strong>启用中</strong>方案（不按当前服务员工过滤），按业务类考察「默认卡 + 该类全部覆盖」的 <code>pickMode</code>；<strong>任一</strong>为 <code>station</code> → 该类在开单「选择服务员工」（及内嵌选人 Sheet）时<strong>整类</strong>需选工位。覆盖归属按规则目标类别（项目覆盖→项目类等）。详见 §4.5.1。本条约束 UI 采集；计提仍按规则 7。</li>
+7a. <strong>开单「选择工位」展示（类内 OR · 门店维度）</strong>：对本店<strong>启用中</strong>方案（不按当前服务员工过滤），按业务类考察「默认卡 + 该类全部覆盖」的 <code>pickMode</code>；<strong>任一</strong>为 <code>station</code> → 该类在开单「选择服务员工」（及内嵌选人 Sheet）时<strong>整类</strong>需选工位。覆盖归属按规则目标类别（项目覆盖→项目类等）。详见 §4.5.1。本条约束 UI 采集；计提仍按规则 7。
+7b. <strong>开单「点客 / 散客」展示与交互降级（类内 OR · 门店维度）</strong>：同规则 7a 的判定范围与归属，按业务类考察「默认卡 + 该类全部覆盖」的 <code>guestSplit</code>；<strong>任一</strong>为 <code>true</code> → 该类在开单「选择服务员工」（及内嵌选人 Sheet）时需选「点客 / 散客」；<strong>全部</strong>为 <code>false</code> → <strong>不采集</strong>「点客 / 散客」（不再是旧版必选）。当该类<strong>同时</strong>满足「<code>guestSplit</code> 全为 <code>false</code>」且「<code>pickMode</code> 全为 <code>avg</code>」时，开单<strong>点击员工即完成勾选</strong>，<strong>不播放</strong>「员工变为按钮」的展开动效、无任何二次选择；只要任一类维度需要采集（<code>guestSplit</code> 任一 <code>true</code> <strong>或</strong> <code>pickMode</code> 任一 <code>station</code>）则保留展开交互。未采集时订单行该员工不标记点客（<code>staffDesignated</code> 为非点客），按命中块 <code>nonDesignated</code>（「提成」侧）取值。详见 §4.5.2。</li>
 <li><strong>金额计算</strong>：<code>pct</code> → <code>round(base × rate / 100)</code>；<code>amount</code> → 固定金额（点客用 <code>designatedAmt</code> / 提成用 <code>nonDesignatedAmt</code>）再乘分摊系数（规则 2）。</li>
 <li><strong>适用范围合法性</strong>：任一默认块 / 覆盖块的 <code>payScope</code> 至少 1 类；保存时全校验。</li>
 <li><strong>允许重复添加</strong>：不同覆盖卡可包含同一项目 / 产品 / 会员卡；选择页<strong>不禁用</strong>；<strong>无</strong>次数标签。覆盖卡标题按命名规则生成。（整类与单项勾选互斥仍见规则 11。）</li>
@@ -3025,7 +3086,7 @@ guestSplit=true：`提成 10% │ 点12%`（前为提成值、后为点客值；
 <h2>9.1 文案清单（须与原型一致）</h2>
 <p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、提成、点客、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
-<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、点客、+ 点客提成、大工、中工、小工</strong>。</p>
+<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、点客、+ 点客提成、大工、中工、小工</strong>；开单侧选人（跨系统，沿用旧版文案）：<strong>点客 / 散客</strong>。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的提成比例/金额、比例需在 0–100%、名称不能为空、工位名最多 6 个字。</p>
 <p><strong>员工（表单/详情/列表）</strong>：员工管理、员工详情、我的资料、创建员工、邀请员工、编辑员工、完善员工信息、请完善员工信息，以便正常开单与业绩统计、去完善、信息未完善、添加头衔、头衔管理、角色管理、选择头衔、选择员工角色、权限说明、请选择、请选择员工角色、暂未分配、添加头像、剑号、宝剑、更多信息、性别、年龄段、从业年限、状态（在岗/休假/离职）、保存、已保存、请输入员工姓名、员工姓名最多 N 字、请输入员工手机号、请输入正确的手机号、请选择头衔、请选择员工角色、请选择有效的角色身份、新建员工不可设为店主、本店已有店主（{姓名}）、请输入有效从业年限、从业年限不能超过 N 年、请输入员工基本工资、请输入有效基本工资、金额不能超过 N、注：当修改基本工资后，当月的薪资统计以最新的为准、功能开发中。</p>
 <blockquote>
@@ -3275,7 +3336,11 @@ guestSplit=true：`提成 10% │ 点12%`（前为提成值、后为点客值；
 <li><strong>Given</strong> 规则设置 Sheet，<strong>When</strong> 切换计算基数原价/实收并确定，<strong>Then</strong> 卡面只读段控同步；卡上点击基数不切换。</li>
 <li><strong>Given</strong> 按工位规则卡，<strong>When</strong> 查看参数，<strong>Then</strong> 「大工」「中工」「小工」全称竖排三行，不与适用范围重叠；参数区左缘与标题图标左缘对齐。
 53a. <strong>Given</strong> 默认「项目」=<code>avg</code>，但本店某启用方案存在一条项目类覆盖=<code>station</code>，<strong>When</strong> 开单进入「选择服务员工」（或内嵌选人 Sheet），<strong>Then</strong> <strong>全部项目</strong>均需选工位（类内 OR · 门店维度；见 §4.5.1 / 规则 7a）。
-53b. <strong>Given</strong> 默认「项目」已=<code>station</code>，该类全部覆盖均为 <code>avg</code>，<strong>When</strong> 开单选服务员工，<strong>Then</strong> 项目类仍需选工位。</li>
+53b. <strong>Given</strong> 默认「项目」已=<code>station</code>，该类全部覆盖均为 <code>avg</code>，<strong>When</strong> 开单选服务员工，<strong>Then</strong> 项目类仍需选工位。
+53c. <strong>Given</strong> 本店启用方案中，「项目」类默认卡与全部项目类覆盖的 <code>guestSplit</code> 均为 <code>false</code>，<strong>When</strong> 开单进入「选择服务员工」（或内嵌选人 Sheet），<strong>Then</strong> <strong>不出现</strong>「点客 / 散客」选择（不再是旧版必选）。
+53d. <strong>Given</strong> 「项目」类全部块 <code>guestSplit=false</code> 且 <code>pickMode</code> 全为 <code>avg</code>，<strong>When</strong> 开单点击某员工，<strong>Then</strong> <strong>直接完成勾选</strong>；<strong>不播放</strong>「员工变为按钮」的展开动效、无任何二次选择。
+53e. <strong>Given</strong> 本店某启用方案存在一条项目类覆盖 <code>guestSplit=true</code>（其余项目类块均为 <code>false</code> 且 <code>avg</code>），<strong>When</strong> 开单进入「选择服务员工」，<strong>Then</strong> <strong>全部项目</strong>均需选「点客 / 散客」（类内 OR；见 §4.5.2 / 规则 7b），且仍保留展开动效。
+53f. <strong>Given</strong> 「项目」类全部块 <code>guestSplit=false</code>，但任一项目类块 <code>pickMode=station</code>，<strong>When</strong> 开单选择服务员工，<strong>Then</strong> 需选<strong>工位</strong>但<strong>不需要</strong>选「点客 / 散客」。</li>
 <li><strong>Given</strong> 整卡打开 Sheet，<strong>When</strong> 查看，<strong>Then</strong> 始终含适用范围与计算基数（无参数精简变体）。</li>
 <li><strong>Given</strong> 命中块原价模式，<strong>When</strong> 计提经理签单·深层补水（原价268），<strong>Then</strong> 按覆盖比例计提（如 18%→¥48.24）。
 56a. <strong>Given</strong> 订单行原价 100、实付拆分现金 40 + 卡付 60，适用范围仅「现金」、原价模式 10%，<strong>When</strong> 计提，<strong>Then</strong> 基数 = 100 × (40/100) = 40，提成 = 4。
