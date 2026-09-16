@@ -318,6 +318,14 @@
       var out = [go('comm2-list', 60), click(firstSel, 220)];
       return (extra || []).length ? out.concat(extra) : out;
     }
+    /* 规则设置 Sheet：把「点客提成」关掉，采到「按工位分配 + 未开点客」态 */
+    function closeSheetGuestSplit() {
+      return step(function () {
+        var off = document.querySelector('#comm2CatSheetBody [data-comm2-guest-split="off"]');
+        if (off) off.click();
+        else console.warn('[capture] guest split off button missing (already off?)');
+      }, 260);
+    }
 
     var routes = {
       /* 全屏页面 */
@@ -344,6 +352,7 @@
 
       /* 提成设置弹层 */
       'comm2-cat-sheet': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 260)],
+      'comm2-cat-sheet-noguest': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 260), closeSheetGuestSplit()],
       'comm2-assign': openListThen('#comm2List [data-comm2-assign]'),
       'comm2-menu': openListThen('#comm2List [data-comm2-menu]'),
       'comm2-name': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="rename"]', 240)]),
