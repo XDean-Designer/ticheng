@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="salary.css">
 <link rel="stylesheet" href="shell.css">
 <script>
-/* 尽早切壳，避免闪一下桌面导航：手机全屏 / 电脑完整壳 */
+/* 尽早切壳，避免闪一下桌面导航：手机全屏 / 电脑完整壳；真机可左滑唤出导航 */
 (function () {
   var root = document.documentElement;
   function preferMobile() {
@@ -40,15 +40,163 @@
     root.style.setProperty('--app-top', top + 'px');
     root.style.setProperty('--app-left', left + 'px');
   }
+  function closeNavDrawer() {
+    root.classList.remove('nav-drawer-open');
+    var nav = document.querySelector('.site-nav');
+    if (nav) {
+      nav.classList.remove('is-dragging');
+      nav.style.transform = '';
+    }
+    var mask = document.getElementById('navDrawerMask');
+    if (mask) mask.setAttribute('aria-hidden', 'true');
+  }
+  function openNavDrawer() {
+    if (!root.classList.contains('view-mobile')) return;
+    root.classList.add('nav-drawer-open');
+    var nav = document.querySelector('.site-nav');
+    if (nav) {
+      nav.classList.remove('is-dragging');
+      nav.style.transform = '';
+    }
+    var mask = document.getElementById('navDrawerMask');
+    if (mask) mask.setAttribute('aria-hidden', 'false');
+  }
   function apply() {
     var mobile = preferMobile();
     root.classList.toggle('view-mobile', mobile);
     root.classList.toggle('view-desktop', !mobile);
+    if (!mobile) closeNavDrawer();
     syncAppHeight();
   }
+  function bindNavDrawer() {
+    var nav = document.querySelector('.site-nav');
+    var mask = document.getElementById('navDrawerMask');
+    var edge = document.getElementById('navEdgeHit');
+    if (!nav) return;
+
+    var drag = null;
+    function navWidth() {
+      return nav.getBoundingClientRect().width || Math.min(window.innerWidth * 0.86, 300);
+    }
+    function setDragX(x) {
+      var w = navWidth();
+      var tx = Math.max(-w, Math.min(0, x));
+      nav.classList.add('is-dragging');
+      nav.style.transform = 'translate3d(' + tx + 'px,0,0)';
+      if (mask && root.classList.contains('view-mobile')) {
+        var p = 1 + tx / w;
+        mask.style.opacity = String(Math.max(0, Math.min(1, p)));
+        mask.style.pointerEvents = p > 0.05 ? 'auto' : 'none';
+      }
+      return tx;
+    }
+    function endDrag(tx) {
+      var w = navWidth();
+      nav.classList.remove('is-dragging');
+      nav.style.transform = '';
+      if (mask) mask.style.opacity = '';
+      if (mask) mask.style.pointerEvents = '';
+      if (tx > -w * 0.55) openNavDrawer();
+      else closeNavDrawer();
+    }
+    function onStart(clientX, clientY, target) {
+      if (!root.classList.contains('view-mobile')) return false;
+      var open = root.classList.contains('nav-drawer-open');
+      var fromEdge = clientX <= 22 || (edge && edge.contains(target));
+      var fromNav = open && nav.contains(target);
+      var fromMask = open && mask && mask.contains(target);
+      if (!fromEdge && !fromNav && !fromMask) return false;
+      drag = {
+        x0: clientX,
+        y0: clientY,
+        open: open,
+        axis: null,
+        w: navWidth()
+      };
+      return true;
+    }
+    function onMove(clientX, clientY) {
+      if (!drag) return;
+      var dx = clientX - drag.x0;
+      var dy = clientY - drag.y0;
+      if (!drag.axis) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        drag.axis = Math.abs(dx) >= Math.abs(dy) ? 'x' : 'y';
+        if (drag.axis === 'y') {
+          drag = null;
+          return;
+        }
+      }
+      if (drag.axis !== 'x') return;
+      var base = drag.open ? 0 : -drag.w;
+      setDragX(base + dx);
+    }
+    function onEnd(clientX) {
+      if (!drag) return;
+      var dx = clientX - drag.x0;
+      var base = drag.open ? 0 : -drag.w;
+      var tx = Math.max(-drag.w, Math.min(0, base + dx));
+      var wasAxis = drag.axis;
+      drag = null;
+      if (wasAxis !== 'x') {
+        nav.classList.remove('is-dragging');
+        nav.style.transform = '';
+        return;
+      }
+      endDrag(tx);
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      if (!e.touches || !e.touches[0]) return;
+      var t = e.touches[0];
+      onStart(t.clientX, t.clientY, e.target);
+    }, { passive: true });
+    document.addEventListener('touchmove', function (e) {
+      if (!drag || drag.axis === 'y') return;
+      if (!e.touches || !e.touches[0]) return;
+      var t = e.touches[0];
+      if (drag.axis === 'x') {
+        onMove(t.clientX, t.clientY);
+        if (e.cancelable) e.preventDefault();
+      } else {
+        onMove(t.clientX, t.clientY);
+      }
+    }, { passive: false });
+    document.addEventListener('touchend', function (e) {
+      var t = e.changedTouches && e.changedTouches[0];
+      onEnd(t ? t.clientX : 0);
+    }, { passive: true });
+    document.addEventListener('touchcancel', function () {
+      if (!drag) return;
+      drag = null;
+      nav.classList.remove('is-dragging');
+      nav.style.transform = '';
+      if (mask) {
+        mask.style.opacity = '';
+        mask.style.pointerEvents = '';
+      }
+    }, { passive: true });
+
+    if (mask) {
+      mask.addEventListener('click', function () { closeNavDrawer(); });
+    }
+    nav.addEventListener('click', function (e) {
+      if (!root.classList.contains('view-mobile')) return;
+      var flowBtn = e.target.closest('.nav-item[data-flow], a.nav-link');
+      if (flowBtn) closeNavDrawer();
+    });
+  }
+
   apply();
   window.__comm2ApplyViewShell = apply;
   window.__comm2SyncAppHeight = syncAppHeight;
+  window.__comm2OpenNavDrawer = openNavDrawer;
+  window.__comm2CloseNavDrawer = closeNavDrawer;
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindNavDrawer);
+  } else {
+    bindNavDrawer();
+  }
 })();
 </script>
 </head>
@@ -110,6 +258,8 @@
     </a>
   </div>
 </aside>
+<div class="nav-drawer-mask" id="navDrawerMask" aria-hidden="true"></div>
+<div class="nav-edge-hit" id="navEdgeHit" aria-hidden="true"></div>
 <div class="stage">
   <div id="frame" class="phone-shell">
     <div class="phone-inner phone">
