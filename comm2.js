@@ -3098,7 +3098,7 @@
  * 四态采集（对照 §4.5.1）：
  *   按工位+开点客 → 纵排「点客 / 选工位」；点客即完成；选工位→裂成 3 工位
  *   按工位+未开点客 → 直接裂成 3 工位
- *   不分工位+开点客 → 纵排「点客 / 散客」，点一即完成
+ *   不分工位+开点客 → 纵排「点客 / 普通」，点一即完成
  *   不分工位+未开点客 → 点选即勾选（无展开）
  * 动效：iOS 向 spring（cubic-bezier(.34,1.3,.64,1)）+ 按下 scale(.96) + vibrate(8)
  * ======================================================================== */
@@ -3210,14 +3210,14 @@
     var mask = spEl('comm2StaffSheetMask');
     return !!(mask && mask.classList.contains('open'));
   }
-  /** 卡片/入口摘要：点客→「点客」；选了工位→仅工位名；不分工位+开点客散客→「散客」；态4无摘要文案 */
+  /** 卡片/入口摘要：点客→「点客」；选了工位→仅工位名；不分工位+开点客非点客→「普通」；态4无摘要文案 */
   function spSummaryText(sid) {
     if (spState.row.staffDesignated[sid] === true) return '点客';
     if (spNeedStation()) {
       var role = spState.row.staffRoles[sid] ? spStationLabel(spState.row.staffRoles[sid]) : '';
       return role || '';
     }
-    if (spNeedGuest()) return '散客';
+    if (spNeedGuest()) return '普通';
     return '';
   }
   /** 卡片第三行：态4（不分工位+未开点客）选中后仍灰字头衔；其余选中显示红色摘要 */
@@ -3266,9 +3266,9 @@
       '</div>';
   }
   function spGuestPanelHtml(sid) {
-    return '<div class="staff-card__split staff-card__split--stack" role="group" aria-label="点客或散客">' +
+    return '<div class="staff-card__split staff-card__split--stack" role="group" aria-label="点客或普通">' +
       '<button type="button" class="staff-card__split-btn staff-card__split-btn--des" data-staff-opt-designate="1" data-staff-id="' + spEsc(sid) + '">点客</button>' +
-      '<button type="button" class="staff-card__split-btn staff-card__split-btn--guest" data-staff-opt-designate="0" data-staff-id="' + spEsc(sid) + '">散客</button>' +
+      '<button type="button" class="staff-card__split-btn staff-card__split-btn--guest" data-staff-opt-designate="0" data-staff-id="' + spEsc(sid) + '">普通</button>' +
       '</div>';
   }
   function spRolePanelHtml(sid) {
@@ -3480,7 +3480,7 @@
     var needS = spNeedStation();
     var needG = spNeedGuest();
     if (!needS && !needG) return '可多选员工；点卡片即完成选择。';
-    if (!needS && needG) return '可多选员工；点卡片后选择点客或散客。';
+    if (!needS && needG) return '可多选员工；点卡片后选择点客或普通。';
     if (needS && !needG) return '可多选员工；点卡片后选择工位（' + spStationLabelsJoined() + '）。';
     return '可多选员工；点卡片后选点客即完成，或点选工位再选（' + spStationLabelsJoined() + '）。';
   }
