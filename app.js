@@ -39,6 +39,7 @@
     if (id === 'screen-comm2-list') return 'comm2-list';
     if (id === 'screen-comm2-edit') return 'comm2-edit';
     if (id === 'screen-comm2-pick') return 'comm2-pick';
+    if (id === 'screen-comm2-staff-pick') return 'staff-pick';
     if (id === 'screen-emp-list') return 'staff-list';
     if (id === 'screen-emp-roles') return 'staff-roles';
     if (id === 'screen-emp-role-perms') return 'staff-role-perms';
@@ -78,7 +79,7 @@
   g.setFlowNavHighlight = setNavHighlight;
 
   function dismissOverlays() {
-    /* no-op: 选工位演示已下线 */
+    if (g.Comm2StaffPick && typeof g.Comm2StaffPick.dismiss === 'function') g.Comm2StaffPick.dismiss();
   }
 
   var STAFF_FLOW_IDS = [
@@ -172,6 +173,10 @@
         else if (g.EmployeeDemo && typeof g.EmployeeDemo.openSalary === 'function') g.EmployeeDemo.openSalary();
         else g.showOnlyScreen('screen-emp-salary');
       }
+      if (go === 'staff-pick') {
+        if (g.FLOW_NAV['staff-pick']) g.FLOW_NAV['staff-pick']();
+        return;
+      }
     });
   }
 
@@ -222,6 +227,11 @@
         var btn = document.getElementById('comm2BtnAddRule');
         if (btn) btn.click();
       }, 80);
+    },
+    'staff-pick': function () {
+      dismissOverlays();
+      if (g.Comm2StaffPick) g.Comm2StaffPick.open();
+      else g.showOnlyScreen('screen-comm2-staff-pick');
     }
   };
 
@@ -326,6 +336,19 @@
         else console.warn('[capture] guest split off button missing (already off?)');
       }, 260);
     }
+    /* 关联页面 · 选择服务员工：切换「不分工位 / 按工位」与「点客」 */
+    function spSetMode(mode) {
+      return step(function () {
+        if (g.Comm2StaffPick && typeof g.Comm2StaffPick.setMode === 'function') g.Comm2StaffPick.setMode(mode);
+        else console.warn('[capture] Comm2StaffPick.setMode missing');
+      }, 60);
+    }
+    function spSetGuest(on) {
+      return step(function () {
+        if (g.Comm2StaffPick && typeof g.Comm2StaffPick.setGuestSplit === 'function') g.Comm2StaffPick.setGuestSplit(!!on);
+        else console.warn('[capture] Comm2StaffPick.setGuestSplit missing');
+      }, 60);
+    }
 
     var routes = {
       /* 全屏页面 */
@@ -361,6 +384,22 @@
       'comm2-override-del': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-swipe-del]', 260)],
       'comm2-help': [go('comm2-list', 60), click('#comm2HelpBtn', 220)],
       'comm2-unassigned': [go('comm2-list', 60), click('#comm2UnassignedTip', 220)],
+
+      /* 关联页面 · 选择服务员工 */
+      'staff-pick': [go('staff-pick', 80)],
+      'staff-pick-sheet': [go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      'staff-pick-edit': [spSetGuest(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 420)],
+      'staff-pick-role': [spSetGuest(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 420), click('#comm2StaffSheetRoot [data-staff-opt-path="station"]', 420)],
+      'staff-pick-avg': [spSetGuest(true), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      'staff-pick-direct': [spSetGuest(false), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      'staff-pick-sel': [
+        spSetGuest(true), spSetMode('station'), go('staff-pick', 80),
+        click('#comm2SpBlock [data-open-comm2-sp-staff]', 300),
+        click('#comm2StaffSheetRoot [data-staff-card-hit]', 420),
+        click('#comm2StaffSheetRoot [data-staff-opt-path="station"]', 420),
+        click('#comm2StaffSheetRoot [data-staff-opt-role]', 420),
+        click('#comm2StaffSheetDone', 360)
+      ],
 
       /* 员工弹层 */
       'emp-role-pick': [go('staff-refine', 60), click('#empRowRole', 240)],

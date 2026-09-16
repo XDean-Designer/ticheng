@@ -101,6 +101,7 @@
     <div class="g-t">关联页面</div>
     <button type="button" class="nav-item" data-flow="staff-empty-role"><span class="idx">·</span>头衔空态 sheet</button>
     <button type="button" class="nav-item" data-flow="staff-empty-scheme"><span class="idx">·</span>方案空态 sheet</button>
+    <button type="button" class="nav-item" data-flow="staff-pick"><span class="idx">·</span>选择服务员工</button>
   </div>
   <div class="nav-group grow">
     <div class="g-t">文档</div>
@@ -163,6 +164,51 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
       </span>
     </button>
+    <button type="button" class="hub-card" id="hubGoStaffPick" data-hub-go="staff-pick">
+      <span class="hub-card__ico" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.6"/><rect x="14" y="3" width="7" height="7" rx="1.6"/><rect x="3" y="14" width="7" height="7" rx="1.6"/><rect x="14" y="14" width="7" height="7" rx="1.6"/></svg>
+      </span>
+      <span class="hub-card__main">
+        <span class="hub-card__title">选择服务员工</span>
+        <span class="hub-card__desc">开单选人卡片网格、Morph 展开与点客/散客 · 工位两步选择</span>
+      </span>
+      <span class="hub-card__chev" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+      </span>
+    </button>
+  </div>
+</div>
+
+<div class="screen hidden" id="screen-comm2-staff-pick">
+  <div class="page-title-bar">
+    <button type="button" class="back" id="comm2StaffPickBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <span class="title">选择服务员工</span>
+  </div>
+  <div class="page-body">
+    <p class="comm2-sp-lead" id="comm2StaffPickLead">关联页面 · 还原开单「选择服务员工」整套 UI / 交互动效。</p>
+    <div class="comm2-sp-mode" id="comm2StaffPickMode" role="radiogroup" aria-label="分配模式">
+      <button type="button" class="comm2-sp-mode__btn" data-comm2-sp-mode="avg">不分工位</button>
+      <button type="button" class="comm2-sp-mode__btn on" data-comm2-sp-mode="station">按工位</button>
+    </div>
+    <div class="comm2-sp-mode" id="comm2StaffPickGuest" role="radiogroup" aria-label="点客提成">
+      <button type="button" class="comm2-sp-mode__btn" data-comm2-sp-guest="0">未开点客</button>
+      <button type="button" class="comm2-sp-mode__btn on" data-comm2-sp-guest="1">开点客</button>
+    </div>
+    <div class="comm2-sp-card" id="comm2StaffPickCard">
+      <div class="comm2-sp-card__title">服务员工</div>
+      <div class="detail-item__staff-block" id="comm2SpBlock"></div>
+    </div>
+  </div>
+</div>
+
+<div class="picker-mask picker-mask--bottom" id="comm2StaffSheetMask" data-outside-close="1">
+  <div class="picker-sheet tall" role="dialog" aria-label="选择服务员工">
+    <div class="picker-head">选择服务员工</div>
+    <p class="add-card-staff-sheet__hint" id="comm2StaffSheetHint"></p>
+    <div class="comm2-staff-sheet__body" id="comm2StaffSheetRoot"></div>
+    <div class="picker-foot">
+      <button type="button" class="btn-main" id="comm2StaffSheetDone">完成</button>
+    </div>
   </div>
 </div>
 
@@ -255,9 +301,9 @@
     <div class="dialog__title" id="comm2PickHelpTitle">分配模式说明</div>
     <div class="dialog__scroll emp-help-body">
       <h4>不分工位</h4>
-      <p>开单无需选择工位，按点客/散客统一提成。</p>
+      <p>开单不分工位，统一按「提成」计提；点客提成可单独设置（开启后点客顾客按点客值计提）。</p>
       <h4>按工位分配</h4>
-      <p>固定大/中/小工，可改名，不可增减；改名全局同步。</p>
+      <p>固定大 / 中 / 小工，可改名，不可增减；改名全局同步。每个工位各设 1 项提成；点客提成可选，开启后为全局单值、与工位无关。</p>
     </div>
     <div class="dialog__actions dialog__actions--single">
       <button type="button" class="btn-main" id="comm2PickHelpOk">知道了</button>

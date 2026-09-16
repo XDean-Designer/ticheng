@@ -1,4 +1,4 @@
-/* ==== comm2 · 提成设置（可整模块删除） ==== */
+﻿/* ==== comm2 · 提成设置（可整模块删除） ==== */
 (function () {
   'use strict';
 
@@ -61,53 +61,146 @@
   function closeSheet(id) { var el = $(id); if (el) el.classList.remove('open'); }
 
   function defaultPair() {
-    return { designated: 10, nonDesignated: 10, designatedAmt: 0, nonDesignatedAmt: 0 };
+    return {
+      designated: 10, nonDesignated: 10, designatedAmt: 0, nonDesignatedAmt: 0,
+      nonDesignatedValueMode: 'pct', designatedValueMode: 'pct'
+    };
+  }
+  /* 按工位与点客为「独立」关系：工位仅承载「提成」；点客提成为 rule 级全局单值，与工位无关。
+     stations 只存提成侧（nonDesignated / nonDesignatedAmt）+ 本工位 valueMode。 */
+  function defaultStationPair() {
+    return { nonDesignated: 10, nonDesignatedAmt: 0, valueMode: 'pct' };
+  }
+  function normalizeValueMode(v) {
+    return v === 'amount' ? 'amount' : 'pct';
+  }
+  function isAmtMode(v) {
+    return normalizeValueMode(v) === 'amount';
+  }
+  function nonIsAmt(rule) {
+    return isAmtMode(rule && rule.nonDesignatedValueMode);
+  }
+  function desIsAmt(rule) {
+    return isAmtMode(rule && rule.designatedValueMode);
+  }
+  function stationIsAmt(st) {
+    return isAmtMode(st && st.valueMode);
+  }
+  /** 规则卡「固定」灰标：当前生效的全部取值均为固定金额时才显示 */
+  function ruleAllAmount(rule, pickMode, stationIds) {
+    rule = rule || defaultCatRule(stationIds);
+    var ids = stationIds || COMM2_STATIONS.map(function (s) { return s.id; });
+    if (pickMode === 'station') {
+      for (var i = 0; i < ids.length; i++) {
+        if (!stationIsAmt(rule.stations && rule.stations[ids[i]])) return false;
+      }
+    } else if (!nonIsAmt(rule)) {
+      return false;
+    }
+    if (rule.guestSplit && !desIsAmt(rule)) return false;
+    return true;
+  }
+  /** 同步遗留字段 rule.valueMode（全量固定 → amount，否则 pct） */
+  function syncLegacyValueMode(rule, pickMode, stationIds) {
+    if (!rule) return rule;
+    rule.valueMode = ruleAllAmount(rule, pickMode, stationIds) ? 'amount' : 'pct';
+    return rule;
   }
   function pairValsDiffer(pair, isAmt) {
     pair = pair || defaultPair();
     if (isAmt) return Number(pair.designatedAmt) !== Number(pair.nonDesignatedAmt);
     return Number(pair.designated) !== Number(pair.nonDesignated);
   }
-  function detectGuestSplit(rule, stationIds) {
+  /* 旧数据判定：仅当工位确实带点客字段时才比较（新形态工位无点客字段） */
+  function stationPairSplits(st, isAmt) {
+    if (!st) return false;
+    var desKey = isAmt ? 'designatedAmt' : 'designated';
+    var nonKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
+    if (st[desKey] == null) return false;
+    return Number(st[desKey]) !== Number(st[nonKey]);
+  }
+  /* 是否开启点客拆分（只看 rule 级；工位不再承载点客值） */
+  function detectGuestSplit(rule) {
     if (!rule) return false;
-    var isAmt = rule.valueMode === 'amount';
-    if (pairValsDiffer(rule, isAmt)) return true;
+    return pairValsDiffer(rule, isAmtMode(rule.valueMode));
+  }
+  /* 旧模型迁移：按工位 × 点客 正交（3×2 = 6 值）→ 新模型（3 工位提成 + 1 全局点客 = 4 值）。
+     点客值提升为 rule 级单值，取首个工位的点客值；stations 只保留提成侧。 */
+  function migrateGuestSplitModel(rule, stationIds) {
+    if (!rule || rule._gs2) return rule;
     var ids = stationIds || [];
-    for (var i = 0; i < ids.length; i++) {
-      var st = rule.stations && rule.stations[ids[i]];
-      if (st && pairValsDiffer(st, isAmt)) return true;
+    var isAmt = isAmtMode(rule.valueMode);
+    var desKey = isAmt ? 'designatedAmt' : 'designated';
+    var legacySplit = pairValsDiffer(rule, isAmt);
+    if (!legacySplit) {
+      for (var i = 0; i < ids.length; i++) {
+        if (stationPairSplits(rule.stations && rule.stations[ids[i]], isAmt)) { legacySplit = true; break; }
+      }
     }
-    return false;
+    if (legacySplit) {
+      var first = (ids.length && rule.stations) ? rule.stations[ids[0]] : null;
+      if (first && first[desKey] != null && Number.isFinite(Number(first[desKey]))) {
+        rule[desKey] = Number(first[desKey]);
+      }
+      if (rule.guestSplit == null) rule.guestSplit = true;
+    }
+    rule._gs2 = true;
+    return rule;
+  }
+  /* 旧：规则级单一 valueMode → 新：提成 / 点客 / 各工位各自 valueMode */
+  function migratePerValueModes(rule, stationIds) {
+    if (!rule || rule._vm2) return rule;
+    var legacy = normalizeValueMode(rule.valueMode);
+    if (rule.nonDesignatedValueMode == null) rule.nonDesignatedValueMode = legacy;
+    if (rule.designatedValueMode == null) rule.designatedValueMode = legacy;
+    var ids = stationIds || [];
+    if (!rule.stations) rule.stations = {};
+    ids.forEach(function (sid) {
+      var st = rule.stations[sid];
+      if (!st) return;
+      if (st.valueMode == null) st.valueMode = legacy;
+    });
+    rule._vm2 = true;
+    return rule;
   }
   function syncPairUnified(pair, preferDes) {
     pair = pair || defaultPair();
     if (preferDes !== false) {
       pair.nonDesignated = pair.designated;
       pair.nonDesignatedAmt = pair.designatedAmt;
+      if (pair.designatedValueMode != null) pair.nonDesignatedValueMode = pair.designatedValueMode;
     } else {
       pair.designated = pair.nonDesignated;
       pair.designatedAmt = pair.nonDesignatedAmt;
+      if (pair.nonDesignatedValueMode != null) pair.designatedValueMode = pair.nonDesignatedValueMode;
     }
     return pair;
   }
   function applyGuestSplitFlag(rule, stationIds) {
     var ids = stationIds || COMM2_STATIONS.map(function (s) { return s.id; });
-    if (rule.guestSplit == null) rule.guestSplit = detectGuestSplit(rule, ids);
+    migrateGuestSplitModel(rule, ids);
+    migratePerValueModes(rule, ids);
+    if (rule.guestSplit == null) rule.guestSplit = detectGuestSplit(rule);
     else rule.guestSplit = !!rule.guestSplit;
     if (!rule.guestSplit) {
-      /* 关点客：以提成（原散客）侧为统一值写入两端 */
+      /* 关点客：rule 级点客值跟提成（原散客）侧同值；工位不再同步点客值 */
       syncPairUnified(rule, false);
-      ids.forEach(function (sid) {
-        if (rule.stations && rule.stations[sid]) syncPairUnified(rule.stations[sid], false);
-      });
     }
     return rule;
   }
   function defaultCatRule(stationIds) {
     var ids = stationIds || COMM2_STATIONS.map(function (s) { return s.id; });
     var stations = {};
-    ids.forEach(function (id) { stations[id] = defaultPair(); });
-    return Object.assign(defaultPair(), { valueMode: 'pct', guestSplit: false, stations: stations });
+    ids.forEach(function (id) { stations[id] = defaultStationPair(); });
+    return Object.assign(defaultPair(), {
+      valueMode: 'pct',
+      nonDesignatedValueMode: 'pct',
+      designatedValueMode: 'pct',
+      guestSplit: false,
+      stations: stations,
+      _gs2: true,
+      _vm2: true
+    });
   }
   function defaultStationLabels() {
     var o = {};
@@ -130,8 +223,15 @@
     rule = rule || defaultCatRule(ids);
     if (rule.valueMode !== 'amount') rule.valueMode = 'pct';
     if (!rule.stations) rule.stations = {};
+    migratePerValueModes(rule, ids);
+    rule.nonDesignatedValueMode = normalizeValueMode(rule.nonDesignatedValueMode);
+    rule.designatedValueMode = normalizeValueMode(rule.designatedValueMode);
     ids.forEach(function (sid) {
-      if (!rule.stations[sid]) rule.stations[sid] = defaultPair();
+      var st = rule.stations[sid];
+      if (!st) { rule.stations[sid] = defaultStationPair(); return; }
+      if (!Number.isFinite(Number(st.nonDesignated))) st.nonDesignated = 10;
+      if (!Number.isFinite(Number(st.nonDesignatedAmt))) st.nonDesignatedAmt = 0;
+      st.valueMode = normalizeValueMode(st.valueMode);
     });
     ['designated', 'nonDesignated', 'designatedAmt', 'nonDesignatedAmt'].forEach(function (k) {
       if (!Number.isFinite(Number(rule[k]))) rule[k] = defaultPair()[k];
@@ -282,35 +382,58 @@
     delete sch.signComm;
     return sch;
   }
-  function catRulePct(des, non, stationMap) {
+  function catRulePct(des, non) {
+    var ids = COMM2_STATIONS.map(function (s) { return s.id; });
     var r = defaultCatRule();
     r.designated = des;
     r.nonDesignated = non;
-    COMM2_STATIONS.forEach(function (s) {
-      if (stationMap && stationMap[s.id]) {
-        r.stations[s.id] = {
-          designated: stationMap[s.id][0],
-          nonDesignated: stationMap[s.id][1],
-          designatedAmt: 0,
-          nonDesignatedAmt: 0
-        };
-      } else {
-        r.stations[s.id] = { designated: des, nonDesignated: non, designatedAmt: 0, nonDesignatedAmt: 0 };
-      }
+    r.nonDesignatedValueMode = 'pct';
+    r.designatedValueMode = 'pct';
+    ids.forEach(function (sid) {
+      r.stations[sid] = { nonDesignated: non, nonDesignatedAmt: 0, valueMode: 'pct' };
     });
     r.guestSplit = null;
-    return applyGuestSplitFlag(r, COMM2_STATIONS.map(function (s) { return s.id; }));
+    r._gs2 = true;
+    r._vm2 = true;
+    return applyGuestSplitFlag(r, ids);
   }
   function catRuleAmt(desAmt, nonAmt) {
+    var ids = COMM2_STATIONS.map(function (s) { return s.id; });
     var r = defaultCatRule();
     r.valueMode = 'amount';
+    r.nonDesignatedValueMode = 'amount';
+    r.designatedValueMode = 'amount';
     r.designatedAmt = desAmt;
     r.nonDesignatedAmt = nonAmt;
-    COMM2_STATIONS.forEach(function (s) {
-      r.stations[s.id] = { designated: 0, nonDesignated: 0, designatedAmt: desAmt, nonDesignatedAmt: nonAmt };
+    ids.forEach(function (sid) {
+      r.stations[sid] = { nonDesignated: 0, nonDesignatedAmt: nonAmt, valueMode: 'amount' };
     });
     r.guestSplit = null;
-    return applyGuestSplitFlag(r, COMM2_STATIONS.map(function (s) { return s.id; }));
+    r._gs2 = true;
+    r._vm2 = true;
+    return applyGuestSplitFlag(r, ids);
+  }
+  /* 按工位演示：stations 仅存逐工位「提成」；点客为 rule 级全局单值（guestVal） */
+  function catRuleStationPct(stationNonMap, guestVal) {
+    var ids = COMM2_STATIONS.map(function (s) { return s.id; });
+    var r = defaultCatRule();
+    var firstNon = (stationNonMap && Number.isFinite(Number(stationNonMap[ids[0]])))
+      ? Number(stationNonMap[ids[0]]) : 10;
+    r.designated = Number.isFinite(Number(guestVal)) ? Number(guestVal) : firstNon;
+    r.designatedAmt = 0;
+    r.nonDesignated = firstNon;
+    r.nonDesignatedAmt = 0;
+    r.nonDesignatedValueMode = 'pct';
+    r.designatedValueMode = 'pct';
+    ids.forEach(function (sid) {
+      var non = (stationNonMap && Number.isFinite(Number(stationNonMap[sid])))
+        ? Number(stationNonMap[sid]) : firstNon;
+      r.stations[sid] = { nonDesignated: non, nonDesignatedAmt: 0, valueMode: 'pct' };
+    });
+    r.guestSplit = true;
+    r._gs2 = true;
+    r._vm2 = true;
+    return applyGuestSplitFlag(r, ids);
   }
   function scopeOnly(keys) {
     return {
@@ -389,7 +512,7 @@
         title: '烫染',
         payScope: ['cash', 'memberCard'],
         pickMode: 'station',
-        rule: catRulePct(10, 10, { senior: [20, 15], mid: [15, 12], junior: [10, 10] }),
+        rule: catRuleStationPct({ senior: 15, mid: 12, junior: 10 }, 20),
         targets: [{ kind: 'group', refId: 'g_proj_tang', name: '烫染', groupKind: 'project' }]
       })
     ];
@@ -426,7 +549,7 @@
           labor: {
             payScope: ['cash', 'memberCard'],
             pickMode: 'station',
-            rule: catRulePct(10, 10, { senior: [15, 12], mid: [12, 10], junior: [8, 8] })
+            rule: catRuleStationPct({ senior: 12, mid: 10, junior: 8 }, 15)
           },
           sales: {
             payScope: ['cash', 'memberCard', 'groupBuy'],
@@ -548,58 +671,71 @@
   }
   function formatPairFlat(rule, isAmt) {
     rule = ensureCat(rule);
-    var des = pairVal(rule, isAmt, 'designated', 'designatedAmt');
-    var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!rule.guestSplit) return fmtVal(non, isAmt);
-    return fmtVal(non, isAmt) + '｜点' + fmtVal(des, isAmt);
+    var nonAmt = arguments.length > 1 ? !!isAmt : nonIsAmt(rule);
+    var desAmt = desIsAmt(rule);
+    var des = pairVal(rule, desAmt, 'designated', 'designatedAmt');
+    var non = pairVal(rule, nonAmt, 'nonDesignated', 'nonDesignatedAmt');
+    if (!rule.guestSplit) return fmtVal(non, nonAmt);
+    return fmtVal(non, nonAmt) + '｜点' + fmtVal(des, desAmt);
   }
   function formatPairFlatHtml(rule, isAmt) {
     rule = ensureCat(rule);
-    var des = pairVal(rule, isAmt, 'designated', 'designatedAmt');
-    var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!rule.guestSplit) return '<strong>' + fmtValHtml(non, isAmt) + '</strong>';
-    return '<strong>' + fmtValHtml(non, isAmt) + '</strong>' +
+    var nonAmt = arguments.length > 1 ? !!isAmt : nonIsAmt(rule);
+    var desAmt = desIsAmt(rule);
+    var des = pairVal(rule, desAmt, 'designated', 'designatedAmt');
+    var non = pairVal(rule, nonAmt, 'nonDesignated', 'nonDesignatedAmt');
+    if (!rule.guestSplit) return '<strong>' + fmtValHtml(non, nonAmt) + '</strong>';
+    return '<strong>' + fmtValHtml(non, nonAmt) + '</strong>' +
       '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
       '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
-      '<strong>' + fmtValHtml(des, isAmt) + '</strong>';
+      '<strong>' + fmtValHtml(des, desAmt) + '</strong>';
   }
-  function formatStationPair(sch, st, isAmt, guestSplit) {
-    var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
-    var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!guestSplit) return fmtVal(non, isAmt);
-    return fmtVal(non, isAmt) + '｜点' + fmtVal(des, isAmt);
+  /* 按工位时工位仅承载「提成」；点客值由 rule 级全局值单独一段/一行 */
+  function stationNonVal(st, isAmt) {
+    st = st || defaultStationPair();
+    var amt = arguments.length > 1 ? !!isAmt : stationIsAmt(st);
+    return amt ? (Number(st.nonDesignatedAmt) || 0) : (Number(st.nonDesignated) || 0);
   }
-  function formatStationPairHtml(sch, st, isAmt, guestSplit) {
-    var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
-    var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!guestSplit) return fmtValHtml(non, isAmt);
-    return fmtValHtml(non, isAmt) +
-      '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
-      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
-      fmtValHtml(des, isAmt);
+  function formatStationPair(sch, st, isAmt) {
+    var amt = arguments.length > 2 ? !!isAmt : stationIsAmt(st);
+    return fmtVal(stationNonVal(st, amt), amt);
+  }
+  function formatStationPairHtml(sch, st, isAmt) {
+    var amt = arguments.length > 2 ? !!isAmt : stationIsAmt(st);
+    return fmtValHtml(stationNonVal(st, amt), amt);
   }
   function formatBlockSummary(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var isAmt = block.rule.valueMode === 'amount';
     var split = !!block.rule.guestSplit;
     if (block.pickMode === 'station') {
-      return getStationIds(sch).map(function (sid) {
-        return stationLabel(sch, sid) + ' ' + formatStationPair(sch, block.rule.stations[sid] || defaultPair(), isAmt, split);
-      }).join('；');
+      var segs = getStationIds(sch).map(function (sid) {
+        var st = block.rule.stations[sid] || defaultStationPair();
+        return stationLabel(sch, sid) + ' ' + formatStationPair(sch, st);
+      });
+      if (split) {
+        var dAmt = desIsAmt(block.rule);
+        segs.push('点客 ' + fmtVal(pairVal(block.rule, dAmt, 'designated', 'designatedAmt'), dAmt));
+      }
+      return segs.join('；');
     }
-    return formatPairFlat(block.rule, isAmt);
+    return formatPairFlat(block.rule);
   }
   function formatBlockSummaryHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var isAmt = block.rule.valueMode === 'amount';
     var split = !!block.rule.guestSplit;
     if (block.pickMode === 'station') {
-      return getStationIds(sch).map(function (sid) {
-        var st = block.rule.stations[sid] || defaultPair();
-        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st, isAmt, split) + '</strong></div>';
+      var html = getStationIds(sch).map(function (sid) {
+        var st = block.rule.stations[sid] || defaultStationPair();
+        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st) + '</strong></div>';
       }).join('');
+      if (split) {
+        var dAmt = desIsAmt(block.rule);
+        html += '<div class="comm2-rule-card__params-row"><span>点客</span><strong>' +
+          fmtValHtml(pairVal(block.rule, dAmt, 'designated', 'designatedAmt'), dAmt) + '</strong></div>';
+      }
+      return html;
     }
-    return '<div class="comm2-rule-card__params-row comm2-rule-card__params-row--flat"><span>提成参数</span><strong>' + formatPairFlatHtml(block.rule, isAmt) + '</strong></div>';
+    return '<div class="comm2-rule-card__params-row comm2-rule-card__params-row--flat"><span>提成参数</span><strong>' + formatPairFlatHtml(block.rule) + '</strong></div>';
   }
 
   function kindLabel(kind) {
@@ -721,54 +857,91 @@
   function chevronSvg() {
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
   }
+  /** 卡头「比例 / 金额」chip：点一下翻转本卡取值模式 */
+  function capModeChipHtml(isAmt, modeKey) {
+    var label = isAmt ? '金额' : '比例';
+    var aria = isAmt ? '当前固定金额，点按切换为按比例' : '当前按比例，点按切换为固定金额';
+    return '<button type="button" class="comm2-cap__mode' + (isAmt ? ' is-amt' : ' is-pct') +
+      '" data-comm2-cap-mode="' + esc(modeKey) + '" aria-label="' + aria + '">' + label + '</button>';
+  }
+  function capHeadActsHtml(isAmt, modeKey, extraHtml) {
+    return '<span class="comm2-cap__head-acts">' +
+      capModeChipHtml(isAmt, modeKey) +
+      (extraHtml || '') +
+      '</span>';
+  }
+  /** 输入行单位只读展示（切换改走卡头 chip） */
+  function capFieldHtml(prefix, fieldKey, val, isAmt, aria) {
+    var ph = isAmt ? '请输入金额' : '请输入比例';
+    return '<div class="comm2-cap__field">' +
+      (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
+      '<input class="input-amount" type="text" data-comm2-field="' + prefix + fieldKey + '" value="' + esc(val) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="' + esc(aria) + '" />' +
+      (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
+      '</div>';
+  }
   /** 单值输入卡（未开点客 / 按工位单参） */
-  function singleCapHtml(prefix, pair, isAmt, title, opts) {
+  function singleCapHtml(prefix, pair, title, opts) {
     opts = opts || {};
     pair = pair || defaultPair();
-    var key = isAmt ? 'designatedAmt' : 'designated';
-    /* 单提成展示/编辑用提成（原散客）侧数值（与 guestSplit 关时两端已同步） */
+    var isAmt = opts.isAmt != null ? !!opts.isAmt : nonIsAmt(pair);
     var val = isAmt ? pair.nonDesignatedAmt : pair.nonDesignated;
-    if (opts.useDes) val = pair[key];
-    var ph = isAmt ? '请输入金额' : '请输入比例';
+    if (opts.useDes) {
+      isAmt = opts.isAmt != null ? !!opts.isAmt : desIsAmt(pair);
+      val = isAmt ? pair.designatedAmt : pair.designated;
+    }
+    var fieldKey = opts.useDes
+      ? (isAmt ? 'designatedAmt' : 'designated')
+      : (isAmt ? 'nonDesignatedAmt' : 'nonDesignated');
+    var modeKey = opts.modeKey || (opts.useDes ? 'base.des' : 'base.non');
     var headExtra = opts.headExtra || '';
-    return '<div class="comm2-cap comm2-cap--single' + (opts.extraClass ? (' ' + opts.extraClass) : '') + '">' +
-      '<div class="comm2-cap__head"><span class="comm2-cap__title">' + esc(title) + '</span>' + headExtra + '</div>' +
-      '<div class="comm2-cap__field">' +
-      (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
-      '<input class="input-amount" type="text" data-comm2-field="' + prefix + (isAmt ? 'nonDesignatedAmt' : 'nonDesignated') + '" value="' + esc(val) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="' + esc(title) + '" />' +
-      (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
-      '</div></div>';
+    var variant = opts.asNon ? 'comm2-cap--non' : 'comm2-cap--single';
+    return '<div class="comm2-cap ' + variant + (opts.extraClass ? (' ' + opts.extraClass) : '') + '">' +
+      '<div class="comm2-cap__head"><span class="comm2-cap__title">' + esc(title) + '</span>' +
+      capHeadActsHtml(isAmt, modeKey, headExtra) + '</div>' +
+      capFieldHtml(prefix, fieldKey, val, isAmt, title) +
+      '</div>';
   }
 
   function guestCloseSvg() {
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
   }
 
-  /** 点客开启后：提成 + 点客双卡左右等比；点客卡用 × 关闭 */
-  function twinHtml(prefix, pair, isAmt, aria, opts) {
+  /** 点客开启后：提成 + 点客双卡左右等比；各自独立比例/金额 */
+  function twinHtml(prefix, pair, aria, opts) {
     opts = opts || {};
     pair = pair || defaultPair();
-    var desKey = isAmt ? 'designatedAmt' : 'designated';
-    var nonKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
-    var desVal = pair[desKey];
-    var nonVal = pair[nonKey];
-    var ph = isAmt ? '请输入金额' : '请输入比例';
+    var nonAmt = nonIsAmt(pair);
+    var desAmt = desIsAmt(pair);
+    var nonKey = nonAmt ? 'nonDesignatedAmt' : 'nonDesignated';
+    var desKey = desAmt ? 'designatedAmt' : 'designated';
     var cancelBtn = opts.hideCancel
       ? ''
       : '<button type="button" class="comm2-guest-close" data-comm2-guest-split="off" aria-label="取消点客提成">' + guestCloseSvg() + '</button>';
     return '<div class="comm2-twins" role="group" aria-label="' + esc(aria || '提成与点客') + '">' +
-      '<div class="comm2-cap comm2-cap--non"><div class="comm2-cap__head"><span class="comm2-cap__title">提成</span></div>' +
-      '<div class="comm2-cap__field">' +
-      (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
-      '<input class="input-amount" type="text" data-comm2-field="' + prefix + nonKey + '" value="' + esc(nonVal) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="提成" />' +
-      (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
-      '</div></div>' +
-      '<div class="comm2-cap comm2-cap--des"><div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' + cancelBtn + '</div>' +
-      '<div class="comm2-cap__field">' +
-      (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
-      '<input class="input-amount" type="text" data-comm2-field="' + prefix + desKey + '" value="' + esc(desVal) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="点客" />' +
-      (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
-      '</div></div></div>';
+      '<div class="comm2-cap comm2-cap--non"><div class="comm2-cap__head"><span class="comm2-cap__title">提成</span>' +
+      capHeadActsHtml(nonAmt, 'base.non') + '</div>' +
+      capFieldHtml(prefix, nonKey, pair[nonKey], nonAmt, '提成') +
+      '</div>' +
+      '<div class="comm2-cap comm2-cap--des"><div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' +
+      capHeadActsHtml(desAmt, 'base.des', cancelBtn) + '</div>' +
+      capFieldHtml(prefix, desKey, pair[desKey], desAmt, '点客') +
+      '</div></div>';
+  }
+
+  /** 点客卡（独立单张）：按工位时作为第 2 行，宽同单工位卡 */
+  function guestCapHtml(prefix, pair, opts) {
+    opts = opts || {};
+    pair = pair || defaultPair();
+    var isAmt = desIsAmt(pair);
+    var desKey = isAmt ? 'designatedAmt' : 'designated';
+    var cancelBtn = opts.hideCancel
+      ? ''
+      : '<button type="button" class="comm2-guest-close" data-comm2-guest-split="off" aria-label="取消点客提成">' + guestCloseSvg() + '</button>';
+    return '<div class="comm2-cap comm2-cap--des">' +
+      '<div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' +
+      capHeadActsHtml(isAmt, 'base.des', cancelBtn) + '</div>' +
+      capFieldHtml(prefix, desKey, pair[desKey], isAmt, '点客') +
+      '</div>';
   }
 
   /** 未开点客：与「提成」卡等比并排的虚线卡；点击即全局开启点客 */
@@ -777,10 +950,10 @@
       '<span class="comm2-guest-add__txt">+ 点客提成</span></button>';
   }
 
-  function commissionParamsHtml(prefix, pair, isAmt, guestSplit, aria) {
-    if (guestSplit) return twinHtml(prefix, pair, isAmt, aria);
+  function commissionParamsHtml(prefix, pair, guestSplit, aria) {
+    if (guestSplit) return twinHtml(prefix, pair, aria);
     return '<div class="comm2-guest-row comm2-guest-row--pair">' +
-      singleCapHtml(prefix, pair, isAmt, '提成') +
+      singleCapHtml(prefix, pair, '提成', { modeKey: 'base.non' }) +
       guestAddCardHtml() +
       '</div>';
   }
@@ -861,14 +1034,16 @@
     }).join('');
   }
 
-  function barBaseShort(block) {
-    if (block.rule && block.rule.valueMode === 'amount') return '固定';
+  function barBaseShort(block, sch) {
+    var ids = sch ? getStationIds(sch) : null;
+    if (block.rule && ruleAllAmount(block.rule, block.pickMode, ids)) return '固定';
     return block.baseMode === 'paid' ? '实收' : '原价';
   }
 
-  /** 卡上：原价/实收 段控（可直接切换；固定金额时为只读灰标「固定」） */
-  function barBaseCtrlHtml(block) {
-    var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
+  /** 卡上：原价/实收 段控（可直接切换；全部取值为固定金额时为只读灰标「固定」） */
+  function barBaseCtrlHtml(block, sch) {
+    var ids = sch ? getStationIds(sch) : null;
+    var isAmt = !!(block.rule && ruleAllAmount(block.rule, block.pickMode, ids));
     if (isAmt) {
       return '<span class="comm2-rule-bar__base is-fixed" aria-label="固定金额">固定</span>';
     }
@@ -931,37 +1106,38 @@
       '<strong class="comm2-rule-bar__p-val">' + valHtml + '</strong></span>';
   }
 
+  /* 按工位 + 点客：3 工位竖排；点客与首工位（大工）同行、间距 16 */
   function barStationParamsHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var isAmt = block.rule.valueMode === 'amount';
     var split = !!block.rule.guestSplit;
-    return getStationIds(sch).map(function (sid) {
-      var st = block.rule.stations[sid] || defaultPair();
-      var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
-      var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
-      var valHtml = split
-        ? (fmtValHtml(non, isAmt) +
-          '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
-          '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
-          fmtValHtml(des, isAmt))
-        : fmtValHtml(non, isAmt);
-      return barParamSegHtml(stationShortLabel(sch, sid), valHtml);
+    var ids = getStationIds(sch);
+    return ids.map(function (sid, idx) {
+      var st = block.rule.stations[sid] || defaultStationPair();
+      var stAmt = stationIsAmt(st);
+      var seg = barParamSegHtml(stationShortLabel(sch, sid), fmtValHtml(stationNonVal(st, stAmt), stAmt));
+      if (split && idx === 0) {
+        var dAmt = desIsAmt(block.rule);
+        var guestSeg = barParamSegHtml('点客', fmtValHtml(pairVal(block.rule, dAmt, 'designated', 'designatedAmt'), dAmt));
+        return '<span class="comm2-rule-bar__param-row">' + seg + guestSeg + '</span>';
+      }
+      return seg;
     }).join('');
   }
 
   function barParamsHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var isAmt = block.rule.valueMode === 'amount';
     if (block.pickMode === 'station') return barStationParamsHtml(sch, block);
-    var des = pairVal(block.rule, isAmt, 'designated', 'designatedAmt');
-    var non = pairVal(block.rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
+    var nonAmt = nonIsAmt(block.rule);
+    var desAmt = desIsAmt(block.rule);
+    var des = pairVal(block.rule, desAmt, 'designated', 'designatedAmt');
+    var non = pairVal(block.rule, nonAmt, 'nonDesignated', 'nonDesignatedAmt');
     if (!block.rule.guestSplit) {
-      return barParamSegHtml('提成', fmtValHtml(non, isAmt), { extraClass: 'is-single' });
+      return barParamSegHtml('提成', fmtValHtml(non, nonAmt), { extraClass: 'is-single' });
     }
-    var valHtml = fmtValHtml(non, isAmt) +
+    var valHtml = fmtValHtml(non, nonAmt) +
       '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
       '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
-      fmtValHtml(des, isAmt);
+      fmtValHtml(des, desAmt);
     return barParamSegHtml('提成', valHtml, { extraClass: 'is-guest-sum' });
   }
 
@@ -1022,7 +1198,7 @@
       '<div class="comm2-rule-bar__body">' +
       '<div class="comm2-rule-bar__params" aria-label="提成参数">' + barParamsHtml(sch, block) + '</div>' +
       '<div class="comm2-rule-bar__side">' +
-      barFieldHtml(barBaseCtrlHtml(block)) +
+      barFieldHtml(barBaseCtrlHtml(block, sch)) +
       barFieldHtml(barPayCtrlHtml(block)) +
       '</div></div>';
     var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') +
@@ -1115,12 +1291,12 @@
   }
 
   /* ---- 卡面直接操作（不进 Sheet）：计算基数 / 适用范围 ---- */
-  /** 卡上「原价/实收」切换；固定金额（只读「固定」）时忽略 */
+  /** 卡上「原价/实收」切换；全部取值为固定金额（只读「固定」）时忽略 */
   function setCardBase(target, mode) {
     var sch = editing();
     var block = sch ? getCardBlock(sch, target) : null;
     if (!block) return;
-    if (block.rule && block.rule.valueMode === 'amount') return;
+    if (block.rule && ruleAllAmount(block.rule, block.pickMode, getStationIds(sch))) return;
     block.baseMode = mode === 'paid' ? 'paid' : 'list';
     markDirty();
     renderEditCards(sch);
@@ -1305,6 +1481,24 @@
     return Math.round(list * (inScope / total) * 100) / 100;
   }
 
+  /* 费率取值口径（按工位与点客为「独立」关系）：
+     点客顾客 → 一律取 rule 级全局点客值（与工位无关），mode 用 designatedValueMode；
+     非点客顾客 → 不分工位取 rule 级提成值（nonDesignatedValueMode）；按工位取该工位提成值（stations[sid].valueMode）。 */
+  function lineRateMeta(sch, block, rule, line) {
+    if (line.designated) {
+      var dAmt = desIsAmt(rule);
+      return { rate: pairVal(rule, dAmt, 'designated', 'designatedAmt'), isAmt: dAmt };
+    }
+    if (block.pickMode === 'station') {
+      var stId = line.station || getStationIds(sch)[0];
+      var st = rule.stations[stId] || defaultStationPair();
+      var sAmt = stationIsAmt(st);
+      return { rate: stationNonVal(st, sAmt), isAmt: sAmt };
+    }
+    var nAmt = nonIsAmt(rule);
+    return { rate: pairVal(rule, nAmt, 'nonDesignated', 'nonDesignatedAmt'), isAmt: nAmt };
+  }
+
   function schemeLineAmount(sch, line) {
     normalizeScheme(sch);
     var block = resolveLineBlock(sch, line);
@@ -1312,15 +1506,9 @@
     /* 经理签单（实收=0）：不走三类适用范围；是否计提由命中块 baseMode 决定 */
     if (line.sign) {
       var ruleS = ensureCat(block.rule, getStationIds(sch));
-      var isAmtS = ruleS.valueMode === 'amount';
-      var pairS = ruleS;
-      if (block.pickMode === 'station') {
-        var stIdS = line.station || getStationIds(sch)[0];
-        pairS = ruleS.stations[stIdS] || defaultPair();
-      }
-      var rateS = line.designated
-        ? pairVal(pairS, isAmtS, 'designated', 'designatedAmt')
-        : pairVal(pairS, isAmtS, 'nonDesignated', 'nonDesignatedAmt');
+      var metaS = lineRateMeta(sch, block, ruleS, line);
+      var rateS = metaS.rate;
+      var isAmtS = metaS.isAmt;
       var baseS = block.baseMode === 'paid' ? 0 : (Number(line.list) || 0);
       var amountS = isAmtS ? rateS : Math.round(baseS * rateS) / 100;
       if (!isAmtS && baseS <= 0) {
@@ -1340,15 +1528,9 @@
       return { amount: 0, skipped: 'scope', rateLabel: '' };
     }
     var rule = ensureCat(block.rule, getStationIds(sch));
-    var isAmt = rule.valueMode === 'amount';
-    var pair = rule;
-    if (block.pickMode === 'station') {
-      var stId = line.station || getStationIds(sch)[0];
-      pair = rule.stations[stId] || defaultPair();
-    }
-    var rate = line.designated
-      ? pairVal(pair, isAmt, 'designated', 'designatedAmt')
-      : pairVal(pair, isAmt, 'nonDesignated', 'nonDesignatedAmt');
+    var meta = lineRateMeta(sch, block, rule, line);
+    var rate = meta.rate;
+    var isAmt = meta.isAmt;
     var ratio = totalPaid > 0 ? (inScope / totalPaid) : 0;
     if (isAmt) {
       var amtFixed = Math.round(rate * ratio * 100) / 100;
@@ -1628,30 +1810,38 @@
 
   function renderRuleSheetBody(sch, block, rule) {
     rule = ensureCat(rule, getStationIds(sch));
-    var isAmt = store._sheetMode === 'amount';
     var guestSplit = !!rule.guestSplit;
-    var modeHtml = '<div class="comm2-sheet-mode comm2-sheet-mode--inline comm2-sheet-ctrl" role="radiogroup" aria-label="提成取值">' +
-      '<button type="button" class="comm2-sheet-mode__btn' + (!isAmt ? ' on' : '') + '" data-comm2-valmode="pct">按比例 %</button>' +
-      '<button type="button" class="comm2-sheet-mode__btn' + (isAmt ? ' on' : '') + '" data-comm2-valmode="amount">固定金额 ¥</button></div>';
-    var html = sheetRowHtml('提成参数', modeHtml, 'comm2-sheet-row--params-head', ' data-comm2-sheet-anchor="params"');
+    var hint = '<span class="comm2-sheet-params-hint">点「比例 / 金额」切换</span>';
+    var html = sheetRowHtml('提成参数', hint, 'comm2-sheet-row--params-head', ' data-comm2-sheet-anchor="params"');
     html += '<div class="comm2-sheet-params-body" data-comm2-sheet-anchor="params-body">';
     if (block.pickMode === 'station') {
       var ids = getStationIds(sch);
+      /* 3 工位并列一行；各仅 1 张「提成」卡 */
+      html += '<div class="comm2-sheet-station-grid">';
       ids.forEach(function (sid) {
-        var st = rule.stations[sid] || defaultPair();
+        var st = rule.stations[sid] || defaultStationPair();
         var editingName = store._stationInlineEditId === sid;
         html += '<div class="comm2-sheet-station comm2-sheet-station--compact">' +
           (editingName
             ? '<div class="comm2-sheet-station__name is-editing"><input type="text" class="comm2-sheet-station__input" maxlength="6" data-comm2-station-inline-input="' + esc(sid) + '" value="' + esc(stationLabel(sch, sid)) + '" /></div>'
             : '<button type="button" class="comm2-sheet-station__name" data-comm2-station-inline-edit="' + esc(sid) + '" aria-label="改名工位"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">' + esc(stationLabel(sch, sid)) + '</span><span class="comm2-sheet-station__edit" aria-hidden="true">' + editIconSvg() + '</span></button>') +
-          (guestSplit
-            ? twinHtml('st.' + sid + '.', st, isAmt, stationLabel(sch, sid))
-            /* 未开点客：与不分工位同布局——左提成右「设置点客提成」；点任一即全局开启 */
-            : commissionParamsHtml('st.' + sid + '.', st, isAmt, false, '提成')) +
-          '</div>';
+          '<div class="comm2-guest-row comm2-guest-row--solo">' +
+          singleCapHtml('st.' + sid + '.', st, '提成', {
+            asNon: guestSplit,
+            isAmt: stationIsAmt(st),
+            modeKey: 'st.' + sid
+          }) +
+          '</div></div>';
       });
+      html += '</div>';
+      /* 第 2 行：点客（宽同单个工位卡）；未开点客时为虚线卡 */
+      html += '<div class="comm2-sheet-station comm2-sheet-station--compact is-guest">' +
+        '<div class="comm2-sheet-station__name is-static"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">点客</span></div>' +
+        '<div class="comm2-guest-row comm2-guest-row--solo">' +
+        (guestSplit ? guestCapHtml('base.', rule) : guestAddCardHtml()) +
+        '</div></div>';
     } else {
-      html += commissionParamsHtml('base.', rule, isAmt, guestSplit, '提成');
+      html += commissionParamsHtml('base.', rule, guestSplit, '提成');
     }
     html += '</div>';
     return html;
@@ -1701,7 +1891,6 @@
     var title = p.type === 'default'
       ? ((COMM2_CATS.find(function (c) { return c.key === p.id; }) || {}).label || '')
       : (block.title || '覆盖');
-    store._sheetMode = block.rule.valueMode === 'amount' ? 'amount' : 'pct';
     var titleEl = $('comm2CatSheetTitle');
     if (titleEl) titleEl.textContent = title;
     refreshCardSheetBody();
@@ -1725,19 +1914,22 @@
     var sch = editing();
     var block = sch ? getSheetBlock(sch) : null;
     if (!sch || !block) return;
+    flushSheetCapDraft(sch, block);
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var ids = getStationIds(sch);
     if (on) {
       block.rule.guestSplit = true;
-      /* 开启时点客默认跟提成当前值 */
-      block.rule.designated = block.rule.nonDesignated;
-      block.rule.designatedAmt = block.rule.nonDesignatedAmt;
-      ids.forEach(function (sid) {
-        var st = block.rule.stations[sid] || defaultPair();
-        st.designated = st.nonDesignated;
-        st.designatedAmt = st.nonDesignatedAmt;
-        block.rule.stations[sid] = st;
-      });
+      /* 开启时点客默认跟提成当前值 / mode；按工位时取首个工位 */
+      if (block.pickMode === 'station') {
+        var firstSt = block.rule.stations[ids[0]] || defaultStationPair();
+        block.rule.designated = firstSt.nonDesignated;
+        block.rule.designatedAmt = firstSt.nonDesignatedAmt;
+        block.rule.designatedValueMode = normalizeValueMode(firstSt.valueMode);
+      } else {
+        block.rule.designated = block.rule.nonDesignated;
+        block.rule.designatedAmt = block.rule.nonDesignatedAmt;
+        block.rule.designatedValueMode = normalizeValueMode(block.rule.nonDesignatedValueMode);
+      }
     } else {
       block.rule.guestSplit = false;
       applyGuestSplitFlag(block.rule, ids);
@@ -1757,7 +1949,6 @@
     store._cardTarget = null;
     store._sheetVariant = 'full';
     b.rule = ensureCat(b.rule, getStationIds(sch));
-    store._sheetMode = b.rule.valueMode === 'amount' ? 'amount' : 'pct';
     var titleEl = $('comm2CatSheetTitle');
     if (titleEl) titleEl.textContent = '添加规则项 · 设置';
     refreshCardSheetBody();
@@ -1774,22 +1965,99 @@
     store._sheetContext = null;
   }
 
-  function applySheetPairs(block, sch, rule, isAmt) {
-    var guestSplit = !!rule.guestSplit;
+  function readSheetNum(prefix, key) {
+    var el = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + key + '"]');
+    return parseFloat(el && el.value);
+  }
+
+  /** 切换 mode 前：把当前可见输入写回 rule（不校验，保留另一模式已存值） */
+  function flushSheetCapDraft(sch, block) {
+    if (!sch || !block) return;
+    var rule = ensureCat(block.rule, getStationIds(sch));
+    var ids = getStationIds(sch);
+    function tryWrite(prefix, key, target) {
+      var el = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + key + '"]');
+      if (!el) return;
+      var n = parseFloat(el.value);
+      if (Number.isFinite(n) && n >= 0) target[key] = n;
+    }
     if (block.pickMode === 'station') {
-      var ids = getStationIds(sch);
+      ids.forEach(function (sid) {
+        if (!rule.stations[sid]) rule.stations[sid] = defaultStationPair();
+        var st = rule.stations[sid];
+        var amt = stationIsAmt(st);
+        tryWrite('st.' + sid + '.', amt ? 'nonDesignatedAmt' : 'nonDesignated', st);
+      });
+    } else {
+      var nAmt = nonIsAmt(rule);
+      tryWrite('base.', nAmt ? 'nonDesignatedAmt' : 'nonDesignated', rule);
+    }
+    if (rule.guestSplit) {
+      var dAmt = desIsAmt(rule);
+      tryWrite('base.', dAmt ? 'designatedAmt' : 'designated', rule);
+    }
+    block.rule = rule;
+  }
+
+  /** 点单位切换：modeKey = 'base.non' | 'base.des' | 'st.{sid}' */
+  function toggleCapValueMode(modeKey) {
+    var sch = editing();
+    var block = sch ? getSheetBlock(sch) : null;
+    if (!sch || !block || !modeKey) return;
+    flushSheetCapDraft(sch, block);
+    var rule = ensureCat(block.rule, getStationIds(sch));
+    function flip(cur) {
+      return isAmtMode(cur) ? 'pct' : 'amount';
+    }
+    if (modeKey === 'base.non') {
+      rule.nonDesignatedValueMode = flip(rule.nonDesignatedValueMode);
+    } else if (modeKey === 'base.des') {
+      rule.designatedValueMode = flip(rule.designatedValueMode);
+    } else if (modeKey.indexOf('st.') === 0) {
+      var sid = modeKey.slice(3);
+      if (!rule.stations[sid]) rule.stations[sid] = defaultStationPair();
+      rule.stations[sid].valueMode = flip(rule.stations[sid].valueMode);
+    } else {
+      return;
+    }
+    syncLegacyValueMode(rule, block.pickMode, getStationIds(sch));
+    block.rule = rule;
+    refreshCardSheetBody();
+  }
+
+  function applySheetPairs(block, sch, rule) {
+    var guestSplit = !!rule.guestSplit;
+    var ids = getStationIds(sch);
+    if (guestSplit) {
+      var dAmt = desIsAmt(rule);
+      var desKey = dAmt ? 'designatedAmt' : 'designated';
+      var g = readSheetNum('base.', desKey);
+      if (!Number.isFinite(g) || g < 0) return '请输入有效的点客' + (dAmt ? '金额' : '比例');
+      if (!dAmt && g > 100) return '比例需在 0–100%';
+      rule[desKey] = g;
+    }
+    if (block.pickMode === 'station') {
       for (var i = 0; i < ids.length; i++) {
-        var id = ids[i];
-        var got = readPairFromPrefix('st.' + id + '.', isAmt, guestSplit);
-        if (got.error) return stationLabel(sch, id) + '：' + got.error;
-        rule.stations[id] = Object.assign(rule.stations[id] || defaultPair(), got.pair);
+        var sid = ids[i];
+        if (!rule.stations[sid]) rule.stations[sid] = defaultStationPair();
+        var st = rule.stations[sid];
+        var sAmt = stationIsAmt(st);
+        var nonKey = sAmt ? 'nonDesignatedAmt' : 'nonDesignated';
+        var v = readSheetNum('st.' + sid + '.', nonKey);
+        if (!Number.isFinite(v) || v < 0) return stationLabel(sch, sid) + '：请输入有效的提成' + (sAmt ? '金额' : '比例');
+        if (!sAmt && v > 100) return stationLabel(sch, sid) + '：比例需在 0–100%';
+        st[nonKey] = v;
       }
     } else {
-      var base = readPairFromPrefix('base.', isAmt, guestSplit);
-      if (base.error) return base.error;
-      Object.assign(rule, base.pair);
+      var nAmt = nonIsAmt(rule);
+      var nKey = nAmt ? 'nonDesignatedAmt' : 'nonDesignated';
+      var non = readSheetNum('base.', nKey);
+      if (!Number.isFinite(non) || non < 0) return '请输入有效的提成' + (nAmt ? '金额' : '比例');
+      if (!nAmt && non > 100) return '比例需在 0–100%';
+      rule[nKey] = non;
     }
-    if (!guestSplit) applyGuestSplitFlag(rule, getStationIds(sch));
+    if (!guestSplit) applyGuestSplitFlag(rule, ids);
+    syncLegacyValueMode(rule, block.pickMode, ids);
     return null;
   }
 
@@ -1798,10 +2066,8 @@
     var b = store._pickBundle;
     if (!sch || !b) { closeCatSheet(); return; }
     if (payScopeCountBlock(b) < 1) { toast('至少选一种支付方式', true); return; }
-    var isAmt = store._sheetMode === 'amount';
     var rule = ensureCat(b.rule, getStationIds(sch));
-    rule.valueMode = isAmt ? 'amount' : 'pct';
-    var err = applySheetPairs(b, sch, rule, isAmt);
+    var err = applySheetPairs(b, sch, rule);
     if (err) { toast(err, true); return; }
     b.rule = rule;
     if (!sch.overrides) sch.overrides = [];
@@ -1850,10 +2116,8 @@
     var cardTarget = store._cardTarget;
     var block = getCardBlock(sch, cardTarget);
     if (!block) { closeCatSheet(); return; }
-    var isAmt = store._sheetMode === 'amount';
     var rule = ensureCat(block.rule, getStationIds(sch));
-    rule.valueMode = isAmt ? 'amount' : 'pct';
-    var err = applySheetPairs(block, sch, rule, isAmt);
+    var err = applySheetPairs(block, sch, rule);
     if (err) { toast(err, true); return; }
     block.rule = rule;
     markDirty();
@@ -1866,33 +2130,6 @@
   function maybeRefreshOpenCardSheet() {
     var mask = $('comm2CatSheetMask');
     if (mask && mask.classList.contains('open') && (store._cardTarget || store._sheetContext === 'pick')) refreshCardSheetBody();
-  }
-
-  function readPairFromPrefix(prefix, isAmt, guestSplit) {
-    var desKey = isAmt ? 'designatedAmt' : 'designated';
-    var nonKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
-    var unitLbl = isAmt ? '金额' : '比例';
-    if (!guestSplit) {
-      var uniEl = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + nonKey + '"]');
-      var uni = parseFloat(uniEl && uniEl.value);
-      if (!Number.isFinite(uni) || uni < 0) return { error: '请输入有效的提成' + unitLbl };
-      if (!isAmt && uni > 100) return { error: '比例需在 0–100%' };
-      var u = defaultPair();
-      if (isAmt) { u.designatedAmt = uni; u.nonDesignatedAmt = uni; }
-      else { u.designated = uni; u.nonDesignated = uni; }
-      return { pair: u };
-    }
-    var desEl = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + desKey + '"]');
-    var nonEl = document.querySelector('#comm2CatSheetBody [data-comm2-field="' + prefix + nonKey + '"]');
-    var des = parseFloat(desEl && desEl.value);
-    var non = parseFloat(nonEl && nonEl.value);
-    if (!Number.isFinite(des) || des < 0) return { error: '请输入有效的点客' + unitLbl };
-    if (!Number.isFinite(non) || non < 0) return { error: '请输入有效的提成' + unitLbl };
-    if (!isAmt && (des > 100 || non > 100)) return { error: '比例需在 0–100%' };
-    var o = defaultPair();
-    if (isAmt) { o.designatedAmt = des; o.nonDesignatedAmt = non; }
-    else { o.designated = des; o.nonDesignated = non; }
-    return { pair: o };
   }
 
   /* ---- 添加规则项 / 选择页 ---- */
@@ -2768,10 +3005,11 @@
         setSheetGuestSplit(guestBtn.getAttribute('data-comm2-guest-split') === 'on');
         return;
       }
-      var btn = e.target.closest('[data-comm2-valmode]');
-      if (!btn) return;
-      store._sheetMode = btn.getAttribute('data-comm2-valmode') === 'amount' ? 'amount' : 'pct';
-      refreshCardSheetBody();
+      var modeToggle = e.target.closest('[data-comm2-cap-mode]');
+      if (modeToggle) {
+        toggleCapValueMode(modeToggle.getAttribute('data-comm2-cap-mode'));
+        return;
+      }
     });
     $('comm2CatSheetBody') && $('comm2CatSheetBody').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter') return;
@@ -2849,6 +3087,661 @@
       }
     }
   };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
+  else wire();
+})();
+
+
+/* ==========================================================================
+ * 关联页面 · 选择服务员工（提成设置 → 开单侧选人 UI/UX）
+ *
+ * 四态采集（对照 §4.5.1）：
+ *   按工位+开点客 → 纵排「点客 / 选工位」；点客即完成；选工位→裂成 3 工位
+ *   按工位+未开点客 → 直接裂成 3 工位
+ *   不分工位+开点客 → 纵排「点客 / 散客」，点一即完成
+ *   不分工位+未开点客 → 点选即勾选（无展开）
+ * 动效：iOS 向 spring（cubic-bezier(.34,1.3,.64,1)）+ 按下 scale(.96) + vibrate(8)
+ * ======================================================================== */
+(function () {
+  'use strict';
+
+  var SP_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+
+  var SP_SCHEME_DEFAULT = 'c2_flagship';
+  var SP_ROLE_IDS = ['junior', 'mid', 'senior'];
+  var SP_ROLE_DEFAULT = 'senior';
+  var SP_SPRING = 'cubic-bezier(.34,1.3,.64,1)';
+  var SP_EXPAND_MS = 380;
+
+  var SP_FALLBACK_STAFFS = [
+    { id: 'st0', name: '顾清扬', short: '顾', role: '店主', avatar: 'assets/emp-avatars/man-e.jpg' },
+    { id: 'st1', name: '林屿森', short: '森', role: '美容师', avatar: 'assets/emp-avatars/man-a.jpg' },
+    { id: 'st2', name: '何苏叶', short: '叶', role: '店长', avatar: 'assets/emp-avatars/woman-a.jpg' },
+    { id: 'st3', name: '阿Ken', short: 'Ken', role: '美容师', avatar: 'assets/emp-avatars/man-b.jpg' },
+    { id: 'st4', name: 'Lisa', short: 'Lisa', role: '美甲师', avatar: 'assets/emp-avatars/woman-b.jpg' }
+  ];
+
+  var spSchemeId = SP_SCHEME_DEFAULT;
+
+  var spState = {
+    mode: 'station',
+    guestSplit: true,
+    edit: null,
+    row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffDesignated: {} }
+  };
+
+  var spVibrate = 8;
+
+  function spEl(id) { return document.getElementById(id); }
+  function spEsc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function spHaptic() {
+    try { if (navigator.vibrate) navigator.vibrate(spVibrate); } catch (e) { /* ignore */ }
+  }
+  function spReduceMotion() {
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function spScheme() {
+    var list = (window.Comm2Demo && typeof window.Comm2Demo.getSchemes === 'function')
+      ? window.Comm2Demo.getSchemes() : null;
+    if (!list || !list.length) return null;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].id === spSchemeId) return list[i];
+    }
+    return list[0];
+  }
+  function spStationLabel(roleId) {
+    var sch = spScheme();
+    var hit = sch && sch.stationLabels ? sch.stationLabels[roleId] : null;
+    if (hit) {
+      var label = typeof hit === 'string' ? hit : hit.label;
+      if (label) return String(label);
+    }
+    if (roleId === 'senior') return '大工';
+    if (roleId === 'mid') return '中工';
+    if (roleId === 'junior') return '小工';
+    return roleId;
+  }
+  function spStationLabelsJoined() {
+    return SP_ROLE_IDS.map(spStationLabel).filter(Boolean).join('/');
+  }
+  function spDefaultStationId() {
+    var sch = spScheme();
+    if (sch && sch.stationIds && sch.stationIds[0]) return sch.stationIds[0];
+    return SP_ROLE_DEFAULT;
+  }
+
+  function spStaffPool() {
+    var shared = (window.EmployeeDemo && typeof window.EmployeeDemo.getBillingStaffPool === 'function')
+      ? window.EmployeeDemo.getBillingStaffPool() : null;
+    if (shared && shared.length) {
+      var seen = {};
+      shared.forEach(function (s) { seen[s.id] = true; });
+      return shared.concat(SP_FALLBACK_STAFFS.filter(function (s) { return !seen[s.id]; }));
+    }
+    return SP_FALLBACK_STAFFS.slice();
+  }
+
+  function spEnsureState() {
+    var row = spState.row;
+    if (!Array.isArray(row.staffIds)) row.staffIds = [];
+    if (!row.staffRoles || typeof row.staffRoles !== 'object') row.staffRoles = {};
+    if (!row.staffDesignated || typeof row.staffDesignated !== 'object') row.staffDesignated = {};
+    Object.keys(row.staffRoles).forEach(function (sid) {
+      if (row.staffIds.indexOf(sid) < 0) delete row.staffRoles[sid];
+    });
+    Object.keys(row.staffDesignated).forEach(function (sid) {
+      if (row.staffIds.indexOf(sid) < 0) delete row.staffDesignated[sid];
+    });
+    row.staffIds.forEach(function (sid) {
+      if (!row.staffRoles[sid]) row.staffRoles[sid] = spDefaultStationId();
+      if (typeof row.staffDesignated[sid] !== 'boolean') row.staffDesignated[sid] = false;
+    });
+  }
+  function spNeedStation() { return spState.mode === 'station'; }
+  function spNeedGuest() { return !!spState.guestSplit; }
+  function spIsAvg() { return !spNeedStation(); }
+  function spSheetOpen() {
+    var mask = spEl('comm2StaffSheetMask');
+    return !!(mask && mask.classList.contains('open'));
+  }
+  /** 卡片/入口摘要：点客→「点客」；选了工位→仅工位名；不分工位+开点客散客→「散客」；态4无摘要文案 */
+  function spSummaryText(sid) {
+    if (spState.row.staffDesignated[sid] === true) return '点客';
+    if (spNeedStation()) {
+      var role = spState.row.staffRoles[sid] ? spStationLabel(spState.row.staffRoles[sid]) : '';
+      return role || '';
+    }
+    if (spNeedGuest()) return '散客';
+    return '';
+  }
+  /** 卡片第三行：态4（不分工位+未开点客）选中后仍灰字头衔；其余选中显示红色摘要 */
+  function spCardPickLineHtml(st, done) {
+    var jobTitle = spJobTitleHtml(st);
+    if (!done) return jobTitle;
+    if (!spNeedStation() && !spNeedGuest()) return jobTitle;
+    var sum = spSummaryText(st.id);
+    if (!sum) return jobTitle;
+    return '<div class="staff-card__title staff-card__title--pick">' + spEsc(sum) + '</div>';
+  }
+
+  function spCompleteStaff(sid, designated, roleId) {
+    spEnsureState();
+    if (spState.row.staffIds.indexOf(sid) < 0) spState.row.staffIds.push(sid);
+    spState.row.staffDesignated[sid] = !!designated;
+    spState.row.staffRoles[sid] = roleId || spDefaultStationId();
+    spState.edit = null;
+    spHaptic();
+    spRedraw();
+  }
+
+  function spJobTitleHtml(st) {
+    var title = st && st.role ? String(st.role).trim() : '';
+    if (!title) return '';
+    return '<div class="staff-card__title">' + spEsc(title) + '</div>';
+  }
+  function spAvatarHtml(st) {
+    if (st.avatar) {
+      return '<img class="staff-card__avatar" src="' + spEsc(st.avatar) + '" alt="" loading="lazy" referrerpolicy="no-referrer">';
+    }
+    var letter = (st.short || st.name || '?').toString().slice(0, 2);
+    return '<span class="staff-card__avatar staff-card__avatar--ph" aria-hidden="true">' + spEsc(letter) + '</span>';
+  }
+  function spCardOrigin(index) {
+    var col = index % 3;
+    if (col === 0) return 'left center';
+    if (col === 2) return 'right center';
+    return 'center center';
+  }
+
+  function spPathPanelHtml(sid) {
+    return '<div class="staff-card__split staff-card__split--stack" role="group" aria-label="点客或选工位">' +
+      '<button type="button" class="staff-card__split-btn staff-card__split-btn--des" data-staff-opt-path="guest" data-staff-id="' + spEsc(sid) + '">点客</button>' +
+      '<button type="button" class="staff-card__split-btn staff-card__split-btn--pick-station" data-staff-opt-path="station" data-staff-id="' + spEsc(sid) + '">选工位</button>' +
+      '</div>';
+  }
+  function spGuestPanelHtml(sid) {
+    return '<div class="staff-card__split staff-card__split--stack" role="group" aria-label="点客或散客">' +
+      '<button type="button" class="staff-card__split-btn staff-card__split-btn--des" data-staff-opt-designate="1" data-staff-id="' + spEsc(sid) + '">点客</button>' +
+      '<button type="button" class="staff-card__split-btn staff-card__split-btn--guest" data-staff-opt-designate="0" data-staff-id="' + spEsc(sid) + '">散客</button>' +
+      '</div>';
+  }
+  function spRolePanelHtml(sid) {
+    var roleBtns = SP_ROLE_IDS.map(function (rid) {
+      return '<button type="button" class="staff-card__split-btn staff-card__split-btn--role" data-staff-opt-role="' + spEsc(rid) + '" data-staff-id="' + spEsc(sid) + '">' + spEsc(spStationLabel(rid)) + '</button>';
+    }).join('');
+    return '<div class="staff-card__split staff-card__split--3" role="group" aria-label="选择工位">' + roleBtns + '</div>';
+  }
+
+  function spRenderPickerHtml() {
+    spEnsureState();
+    var it = spState.row;
+    var edit = spState.edit;
+    var pool = spStaffPool();
+    var checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
+    var clearSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    var cards = pool.map(function (st, index) {
+      var done = it.staffIds.indexOf(st.id) >= 0;
+      var isEdit = !!(edit && edit.staffId === st.id);
+      var dim = !!(edit && !isEdit);
+      var origin = spCardOrigin(index);
+      var originSide = index % 3 === 0 ? 'left' : index % 3 === 2 ? 'right' : 'center';
+      var body = '';
+      var face = isEdit ? edit.face : '';
+      if (isEdit && face === 'path') {
+        body = spPathPanelHtml(st.id);
+      } else if (isEdit && face === 'guest') {
+        body = spGuestPanelHtml(st.id);
+      } else if (isEdit && face === 'role') {
+        body = spRolePanelHtml(st.id);
+      } else {
+        var pickLine = spCardPickLineHtml(st, done);
+        body =
+          (done ? '<span class="staff-card__check">' + checkSvg + '</span>' : '') +
+          spAvatarHtml(st) +
+          '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
+          pickLine;
+      }
+      var clearBtn = (done && !isEdit)
+        ? '<button type="button" class="staff-card__clear" data-staff-clear data-staff-id="' + spEsc(st.id) + '" aria-label="清空选择">' + clearSvg + '</button>'
+        : '';
+      if (isEdit) {
+        return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') + '"' +
+          ' style="--staff-origin:' + origin + '"' +
+          ' data-origin="' + originSide + '"' +
+          ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
+          '<div class="staff-card__panel" data-face="' + spEsc(face) + '">' + body + '</div>' +
+          '</div>';
+      }
+      return '<div class="staff-card' + (done ? ' is-done' : '') + (dim ? ' is-dim' : '') + '"' +
+        ' style="--staff-origin:' + origin + '"' +
+        ' data-origin="' + originSide + '"' +
+        ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
+        clearBtn +
+        '<button type="button" class="staff-card__panel" data-staff-card-hit data-staff-id="' + spEsc(st.id) + '" aria-label="' + spEsc(st.name) + '">' +
+        body +
+        '</button>' +
+        '</div>';
+    }).join('');
+    return '<div class="detail-item__staff-block detail-item__staff-block--cards' + (edit ? ' is-picking' : '') + '">' +
+      (edit ? '<button type="button" class="staff-card-scrim" data-staff-scrim aria-label="取消选择"></button>' : '') +
+      '<div class="staff-grid' + (edit ? ' is-morphing' : '') + '">' + cards + '</div>' +
+      '</div>';
+  }
+
+  function spAnimateStaffMorphLayout(grid) {
+    if (!grid) return;
+    var token = (grid._staffMorphToken = (grid._staffMorphToken || 0) + 1);
+    var cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > .staff-card'));
+    var editing = cards.filter(function (c) { return c.classList.contains('is-editing'); })[0];
+    var reduce = spReduceMotion();
+
+    cards.forEach(function (c) {
+      c.classList.remove('is-pinching', 'is-expanding');
+      c.style.transition = 'none';
+      c.style.transform = '';
+      c.style.width = '';
+      c.style.zIndex = '';
+    });
+    grid.classList.toggle('is-morphing', !!editing);
+
+    if (!editing) {
+      requestAnimationFrame(function () {
+        if (grid._staffMorphToken !== token) return;
+        cards.forEach(function (c) { c.style.transition = ''; });
+      });
+      return;
+    }
+
+    var gap = 8;
+    var gridW = grid.clientWidth;
+    if (gridW <= 0) return;
+    var cellW = (gridW - gap * 2) / 3;
+    var faceEl = editing.querySelector('[data-face]');
+    var face = faceEl ? faceEl.getAttribute('data-face') : '';
+    var editW = face === 'role'
+      ? gridW
+      : Math.min(gridW, Math.round(cellW * 1.15));
+    editW = Math.max(cellW, editW);
+    var idx = cards.indexOf(editing);
+    if (idx < 0) return;
+    var col = idx % 3;
+    var rowStart = idx - col;
+    var natural = [0, cellW + gap, 2 * (cellW + gap)];
+    var lefts = [natural[0], natural[1], natural[2]];
+    if (col === 0) {
+      lefts[0] = 0;
+      lefts[1] = editW + gap;
+      lefts[2] = editW + gap * 2 + cellW;
+    } else if (col === 2) {
+      lefts[2] = gridW - editW;
+      lefts[1] = lefts[2] - gap - cellW;
+      lefts[0] = lefts[1] - gap - cellW;
+    } else {
+      lefts[1] = (gridW - editW) / 2;
+      lefts[0] = lefts[1] - gap - cellW;
+      lefts[2] = lefts[1] + editW + gap;
+    }
+
+    var springTrans = 'transform ' + (SP_EXPAND_MS / 1000) + 's ' + SP_SPRING + ', width ' + (SP_EXPAND_MS / 1000) + 's ' + SP_SPRING;
+
+    var applyFinalLayout = function () {
+      for (var i = 0; i < 3; i++) {
+        var card = cards[rowStart + i];
+        if (!card) continue;
+        var dx = lefts[i] - natural[i];
+        var w = (i === col) ? editW : cellW;
+        card.style.transition = springTrans;
+        card.style.width = w + 'px';
+        card.style.transform = 'translateX(' + dx + 'px)';
+        if (i === col) card.style.zIndex = '6';
+      }
+    };
+
+    editing.style.zIndex = '6';
+    if (reduce) {
+      editing.classList.add('is-expanding');
+      applyFinalLayout();
+      return;
+    }
+
+    editing.style.width = cellW + 'px';
+    editing.style.transform = 'translateX(0)';
+    for (var i = 0; i < 3; i++) {
+      if (i === col) continue;
+      var card = cards[rowStart + i];
+      if (!card) continue;
+      card.style.width = cellW + 'px';
+      card.style.transform = 'translateX(0)';
+    }
+    void grid.offsetWidth;
+
+    requestAnimationFrame(function () {
+      if (grid._staffMorphToken !== token) return;
+      editing.classList.add('is-expanding');
+      applyFinalLayout();
+    });
+  }
+
+  function spAfterStaffPickerPaint(root) {
+    requestAnimationFrame(function () {
+      var grid = root && root.querySelector ? root.querySelector('.staff-grid') : null;
+      if (grid) spAnimateStaffMorphLayout(grid);
+      if (spState.edit && spState.edit.splitting) {
+        setTimeout(function () {
+          if (spState.edit) spState.edit.splitting = false;
+        }, spReduceMotion() ? 0 : 420);
+      }
+    });
+  }
+
+  function spRenderSummaryHtml() {
+    spEnsureState();
+    var ids = spState.row.staffIds;
+    if (!ids.length) return '';
+    var pool = spStaffPool();
+    var delSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    var rows = ids.map(function (sid) {
+      var st = null;
+      for (var i = 0; i < pool.length; i++) { if (pool[i].id === sid) { st = pool[i]; break; } }
+      var name = st ? st.name : sid;
+      var job = (st && st.role) ? st.role : '';
+      var meta = spSummaryText(sid);
+      return '<div class="detail-staff-summary__row">' +
+          '<div class="detail-staff-summary__main">' +
+            '<span class="detail-staff-summary__name">' + spEsc(name) + '</span>' +
+            (job ? '<span class="detail-staff-summary__role">' + spEsc(job) + '</span>' : '') +
+            (meta ? '<span class="detail-staff-summary__meta">' + spEsc(meta) + '</span>' : '') +
+          '</div>' +
+          '<button type="button" class="detail-staff-summary__del" data-staff-summary-del data-staff-id="' + spEsc(sid) + '" aria-label="移除 ' + spEsc(name) + '">' + delSvg + '</button>' +
+        '</div>';
+    }).join('');
+    return '<div class="detail-staff-summary">' + rows + '</div>';
+  }
+
+  function spRenderEntryHtml() {
+    spEnsureState();
+    var n = spState.row.staffIds.length;
+    var val = n ? ('已选 ' + n + ' 人') : '未选择';
+    return '<button type="button" class="detail-staff-entry" data-open-comm2-sp-staff>' +
+        '<span class="detail-staff-entry__lbl">服务员工</span>' +
+        '<span class="detail-staff-entry__val' + (n ? ' has-staff' : '') + '">' + spEsc(val) + '</span>' +
+        '<span class="chev ui-icon" aria-hidden="true">' + SP_CHEV + '</span>' +
+      '</button>' +
+      spRenderSummaryHtml();
+  }
+
+  function spHintText() {
+    var needS = spNeedStation();
+    var needG = spNeedGuest();
+    if (!needS && !needG) return '可多选员工；点卡片即完成选择。';
+    if (!needS && needG) return '可多选员工；点卡片后选择点客或散客。';
+    if (needS && !needG) return '可多选员工；点卡片后选择工位（' + spStationLabelsJoined() + '）。';
+    return '可多选员工；点卡片后选点客即完成，或点选工位再选（' + spStationLabelsJoined() + '）。';
+  }
+
+  function spRenderScreen() {
+    var box = spEl('comm2SpBlock');
+    if (!box) return;
+    box.innerHTML = spRenderEntryHtml();
+  }
+  function spRenderSheet() {
+    var root = spEl('comm2StaffSheetRoot');
+    if (!root) return;
+    var hint = spEl('comm2StaffSheetHint');
+    if (hint) hint.textContent = spHintText();
+    root.innerHTML = spRenderPickerHtml();
+    spAfterStaffPickerPaint(root);
+  }
+  function spRedraw() {
+    if (spSheetOpen()) { spRenderSheet(); return; }
+    spRenderScreen();
+  }
+
+  function spOpenSheet() {
+    spState.edit = null;
+    spRenderSheet();
+    var mask = spEl('comm2StaffSheetMask');
+    if (mask) mask.classList.add('open');
+  }
+  function spCloseSheet() {
+    var mask = spEl('comm2StaffSheetMask');
+    if (mask) mask.classList.remove('open');
+    spState.edit = null;
+    spRenderScreen();
+  }
+
+  function spOpen() {
+    spState.edit = null;
+    spRenderScreen();
+    if (window.showOnlyScreen) window.showOnlyScreen('screen-comm2-staff-pick');
+  }
+  function spSyncModeButtons() {
+    var group = spEl('comm2StaffPickMode');
+    if (group) {
+      group.querySelectorAll('[data-comm2-sp-mode]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-comm2-sp-mode') === spState.mode);
+      });
+    }
+    var guest = spEl('comm2StaffPickGuest');
+    if (guest) {
+      var on = spState.guestSplit ? '1' : '0';
+      guest.querySelectorAll('[data-comm2-sp-guest]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-comm2-sp-guest') === on);
+      });
+    }
+  }
+  function spCurrentSchemeName() {
+    var sch = spScheme();
+    return sch && sch.name ? sch.name : '';
+  }
+
+  function spEnterEdit(sid) {
+    spEnsureState();
+    var needS = spNeedStation();
+    var needG = spNeedGuest();
+    if (!needS && !needG) {
+      spCompleteStaff(sid, false, spDefaultStationId());
+      return;
+    }
+    if (needS && !needG) {
+      spState.edit = { staffId: sid, face: 'role', draftDesignated: false, splitting: true };
+      spHaptic();
+      spRedraw();
+      return;
+    }
+    if (!needS && needG) {
+      spState.edit = { staffId: sid, face: 'guest', draftDesignated: null };
+      spHaptic();
+      spRedraw();
+      return;
+    }
+    spState.edit = { staffId: sid, face: 'path', draftDesignated: null };
+    spHaptic();
+    spRedraw();
+  }
+
+  function wire() {
+    if (window.Comm2Demo && typeof window.Comm2Demo.openEdit === 'function' && !window.Comm2Demo.__spTracked) {
+      var origOpenEdit = window.Comm2Demo.openEdit;
+      window.Comm2Demo.openEdit = function (id) {
+        if (id) spSchemeId = id;
+        return origOpenEdit.apply(this, arguments);
+      };
+      window.Comm2Demo.__spTracked = true;
+    }
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t || typeof t.closest !== 'function') return;
+
+      if (t.closest('#comm2StaffPickBack')) {
+        e.preventDefault();
+        if (window.openHub) window.openHub();
+        return;
+      }
+
+      var modeBtn = t.closest('[data-comm2-sp-mode]');
+      if (modeBtn) {
+        e.preventDefault();
+        var mode = modeBtn.getAttribute('data-comm2-sp-mode') === 'station' ? 'station' : 'avg';
+        if (mode !== spState.mode) {
+          spState.mode = mode;
+          spState.edit = null;
+          spSyncModeButtons();
+          spRedraw();
+        }
+        return;
+      }
+
+      var guestBtn = t.closest('[data-comm2-sp-guest]');
+      if (guestBtn) {
+        e.preventDefault();
+        var gs = guestBtn.getAttribute('data-comm2-sp-guest') === '1';
+        if (gs !== spState.guestSplit) {
+          spState.guestSplit = gs;
+          spState.edit = null;
+          spSyncModeButtons();
+          spRedraw();
+        }
+        return;
+      }
+
+      if (t.closest('[data-open-comm2-sp-staff]')) {
+        e.preventDefault();
+        spOpenSheet();
+        return;
+      }
+      if (t.closest('#comm2StaffSheetDone')) {
+        e.preventDefault();
+        spCloseSheet();
+        return;
+      }
+      var mask = t.closest('#comm2StaffSheetMask');
+      if (mask && t === mask) {
+        spCloseSheet();
+        return;
+      }
+
+      var inSheet = t.closest('#comm2StaffSheetRoot');
+      var inScreen = t.closest('#comm2SpBlock');
+      if (!inSheet && !inScreen) return;
+
+      if (t.closest('[data-staff-scrim]')) {
+        spState.edit = null;
+        spRedraw();
+        return;
+      }
+
+      var sumDel = t.closest('[data-staff-summary-del]');
+      if (sumDel) {
+        e.preventDefault(); e.stopPropagation();
+        spRemoveStaff(sumDel.getAttribute('data-staff-id'));
+        return;
+      }
+
+      var staffClear = t.closest('[data-staff-clear]');
+      if (staffClear) {
+        e.preventDefault(); e.stopPropagation();
+        spRemoveStaff(staffClear.getAttribute('data-staff-id'));
+        return;
+      }
+
+      var pathOpt = t.closest('[data-staff-opt-path]');
+      if (pathOpt) {
+        e.preventDefault(); e.stopPropagation();
+        var pSid = pathOpt.getAttribute('data-staff-id');
+        if (!spState.edit || spState.edit.staffId !== pSid) return;
+        var path = pathOpt.getAttribute('data-staff-opt-path');
+        if (path === 'guest') {
+          spCompleteStaff(pSid, true, spDefaultStationId());
+          return;
+        }
+        spState.edit = { staffId: pSid, face: 'role', draftDesignated: false, splitting: true };
+        spHaptic();
+        spRedraw();
+        return;
+      }
+
+      var designateOpt = t.closest('[data-staff-opt-designate]');
+      if (designateOpt) {
+        e.preventDefault(); e.stopPropagation();
+        var dSid = designateOpt.getAttribute('data-staff-id');
+        if (!spState.edit || spState.edit.staffId !== dSid) return;
+        var designated = designateOpt.getAttribute('data-staff-opt-designate') === '1';
+        spCompleteStaff(dSid, designated, spDefaultStationId());
+        return;
+      }
+
+      var roleOpt = t.closest('[data-staff-opt-role]');
+      if (roleOpt) {
+        e.preventDefault(); e.stopPropagation();
+        var rSid = roleOpt.getAttribute('data-staff-id');
+        if (!spState.edit || spState.edit.staffId !== rSid) return;
+        var role = roleOpt.getAttribute('data-staff-opt-role') || spDefaultStationId();
+        var draftDes = spState.edit.draftDesignated === true;
+        spCompleteStaff(rSid, draftDes, role);
+        return;
+      }
+
+      var staffHit = t.closest('[data-staff-card-hit]');
+      if (staffHit) {
+        e.preventDefault();
+        var hSid = staffHit.getAttribute('data-staff-id');
+        if (spState.edit && spState.edit.staffId === hSid) {
+          spState.edit = null;
+          spHaptic();
+          spRedraw();
+          return;
+        }
+        spEnterEdit(hSid);
+      }
+    });
+
+    spSyncModeButtons();
+    spRenderScreen();
+  }
+
+  function spRemoveStaff(sid) {
+    if (!sid) return;
+    spEnsureState();
+    spState.row.staffIds = spState.row.staffIds.filter(function (x) { return x !== sid; });
+    delete spState.row.staffRoles[sid];
+    delete spState.row.staffDesignated[sid];
+    if (spState.edit && spState.edit.staffId === sid) spState.edit = null;
+    spHaptic();
+    spRedraw();
+  }
+
+  window.Comm2StaffPick = {
+    open: spOpen,
+    closeSheet: spCloseSheet,
+    dismiss: function () {
+      var mask = spEl('comm2StaffSheetMask');
+      if (mask) mask.classList.remove('open');
+      spState.edit = null;
+    },
+    setMode: function (mode) {
+      spState.mode = mode === 'station' ? 'station' : 'avg';
+      spState.edit = null;
+      spSyncModeButtons();
+      spRenderScreen();
+    },
+    setGuestSplit: function (on) {
+      spState.guestSplit = !!on;
+      spState.edit = null;
+      spSyncModeButtons();
+      spRenderScreen();
+    },
+    getStaffCount: function () { return (spState.row.staffIds || []).length; },
+    getSchemeName: spCurrentSchemeName
+  };
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
   else wire();
 })();
