@@ -952,11 +952,11 @@
       '<span class="comm2-extra-add__txt">+ 顾客指定提成</span></button>';
   }
 
-  /** 不分工位：开 → 「提成 + 额外」双卡并排；未开 → 提成卡 + 虚线卡 */
-  function commissionParamsHtml(prefix, rule, extraSplit, aria) {
+  /** 「提成」参数卡（不分工位主值；按工位各工位卡复用 singleCapHtml） */
+  function nonCapHtml(prefix, rule) {
     var nonAmt = nonIsAmt(rule);
     var nonKey = nonAmt ? 'nonDesignatedAmt' : 'nonDesignated';
-    var nonCard = capCardHtml({
+    return capCardHtml({
       variant: 'comm2-cap--non',
       title: '提成',
       prefix: prefix,
@@ -965,12 +965,30 @@
       isAmt: nonAmt,
       modeKey: 'base.non'
     });
+  }
+  /** 静态列头小标题（UI 同工位列头：圆点 + 13px；**不可编辑**、无改名图标） */
+  function sheetColNameHtml(label, isExtra) {
+    return '<div class="comm2-sheet-station__name is-static">' +
+      '<i class="comm2-sheet-station__dot' + (isExtra ? ' comm2-sheet-station__dot--extra' : '') + '" aria-hidden="true"></i>' +
+      '<span class="comm2-sheet-station__label">' + esc(label) + '</span></div>';
+  }
+  /** 不分工位：开顾客指定 → 两列「普通 / 顾客指定」（带静态列头，对照按工位）；
+      未开顾客指定 → 提成卡 + 虚线卡并排（**无列头**） */
+  function commissionParamsHtml(prefix, rule, extraSplit, aria) {
     if (!extraSplit) {
       return '<div class="comm2-extra-row comm2-extra-row--pair" role="group" aria-label="' + esc(aria || '提成参数') + '">' +
-        nonCard + extraAddCardHtml() + '</div>';
+        nonCapHtml(prefix, rule) + extraAddCardHtml() + '</div>';
     }
-    return '<div class="comm2-extra-row comm2-extra-row--pair" role="group" aria-label="' + esc(aria || '提成与额外') + '">' +
-      nonCard + extraCapHtml(prefix, rule) + '</div>';
+    return '<div class="comm2-sheet-avg-cols" role="group" aria-label="' + esc(aria || '提成与顾客指定') + '">' +
+      '<div class="comm2-sheet-station comm2-sheet-station--compact">' +
+        sheetColNameHtml('普通', false) +
+        '<div class="comm2-extra-row comm2-extra-row--solo">' + nonCapHtml(prefix, rule) + '</div>' +
+      '</div>' +
+      '<div class="comm2-sheet-station comm2-sheet-station--compact">' +
+        sheetColNameHtml('顾客指定', true) +
+        '<div class="comm2-extra-row comm2-extra-row--solo">' + extraCapHtml(prefix, rule) + '</div>' +
+      '</div>' +
+    '</div>';
   }
 
   function flashEl(el) {
@@ -3164,6 +3182,7 @@
     mode: 'station',
     extraSplit: true,
     edit: null,
+    freshTick: null,
     row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffExtra: {}, staffChosen: {} }
   };
 
@@ -3213,12 +3232,6 @@
     if (sch && sch.stationIds && sch.stationIds.length) return sch.stationIds.slice();
     return ['senior', 'mid', 'junior'];
   }
-  function spDefaultStationId() {
-    var sch = spScheme();
-    if (sch && sch.stationIds && sch.stationIds[0]) return sch.stationIds[0];
-    return SP_ROLE_DEFAULT;
-  }
-
   function spStaffPool() {
     var shared = (window.EmployeeDemo && typeof window.EmployeeDemo.getBillingStaffPool === 'function')
       ? window.EmployeeDemo.getBillingStaffPool() : null;
@@ -3239,17 +3252,19 @@
     Object.keys(row.staffRoles).forEach(function (sid) {
       if (row.staffIds.indexOf(sid) < 0) delete row.staffRoles[sid];
     });
-    Object.keys(row.staffExtra).forEach(function (sid) {
-      if (row.staffIds.indexOf(sid) < 0) delete row.staffExtra[sid];
-    });
     Object.keys(row.staffChosen).forEach(function (sid) {
       if (row.staffIds.indexOf(sid) < 0) delete row.staffChosen[sid];
     });
+    /* staffExtra **不随「未选」清空**：按工位模式下「先勾顾客指定、等工位」的待选态，
+       收起后要保留（下次展开仍是勾选态）；工位则一律由用户手点，不自动带默认工位。 */
     row.staffIds.forEach(function (sid) {
-      if (!row.staffRoles[sid]) row.staffRoles[sid] = spDefaultStationId();
       if (typeof row.staffExtra[sid] !== 'boolean') row.staffExtra[sid] = false;
       if (typeof row.staffChosen[sid] !== 'boolean') row.staffChosen[sid] = false;
     });
+    /* 规则未开「顾客指定」：丢弃勾选记忆，避免把待选态的残留带成脏数据 */
+    if (!spNeedExtra()) {
+      Object.keys(row.staffExtra).forEach(function (sid) { row.staffExtra[sid] = false; });
+    }
   }
   function spNeedStation() { return spState.mode === 'station'; }
   function spNeedExtra() { return !!spState.extraSplit; }
@@ -3283,11 +3298,24 @@
   function spOptionChecked(sid, opt) {
     if (!opt) return false;
     var row = spState.row;
-    var chosen = !!row.staffChosen[sid];
-    if (!chosen) return false;
-    if (opt.kind === 'extra') return row.staffExtra[sid] === true;
-    if (opt.kind === 'plain') return row.staffExtra[sid] !== true;
-    return row.staffRoles[sid] === opt.key;
+    if (opt.kind === 'extra') {
+      /* 「顾客指定」：勾选态独立于员工是否已选（按工位时可先勾、等工位） */
+      return row.staffExtra[sid] === true;
+    }
+    if (opt.kind === 'plain') return !!row.staffChosen[sid] && row.staffExtra[sid] !== true;
+    /* 工位：必须由用户点击才会勾选（不再自动带默认工位） */
+    return !!row.staffChosen[sid] && row.staffRoles[sid] === opt.key;
+  }
+  function spOptionByKey(key) {
+    var list = spOptionList();
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].key === key) return list[i];
+    }
+    return null;
+  }
+  function spStaffIsChosen(sid) {
+    var row = spState.row;
+    return !!row.staffChosen[sid] && row.staffIds.indexOf(sid) >= 0;
   }
   /** 卡片/入口摘要：工位名（顾客指定时叠加「· 顾客指定」）/「顾客指定」/「普通」；态4无摘要 */
   function spSummaryText(sid) {
@@ -3297,7 +3325,7 @@
     if (spNeedStation()) {
       var role = (chosen && row.staffRoles[sid]) ? spStationLabel(row.staffRoles[sid]) : '';
       if (!role) return '';
-      return extra ? (role + ' · 顾客指定') : role;
+      return (extra && spNeedExtra()) ? (role + ' · 顾客指定') : role;
     }
     if (spNeedExtra()) {
       if (!chosen) return '';
@@ -3315,40 +3343,187 @@
     return '<div class="staff-card__title staff-card__title--pick">' + spEsc(sum) + '</div>';
   }
 
-  /** 勾选一个选项：工位单选；「顾客指定」叠加（可与任一工位同选）；「普通」= 非顾客指定 */
-  function spChooseOption(sid, optKey) {
-    if (!sid) return;
-    spEnsureState();
+  /* —— 勾选动效门控：点勾选控件后「快速变红 120ms → 勾从左到右画出 220ms」，取消反序播放；
+     卡片的收起 / 展开都必须等动效播完。动效期间的新交互**抢断**当前动效（q4-C）：
+     立即落定进行中的动效，再执行新交互，不排队。 —— */
+  var SP_CHECK_RED_MS = 120;
+  var SP_CHECK_DRAW_MS = 220;
+  var SP_CHECK_MS = SP_CHECK_RED_MS + SP_CHECK_DRAW_MS;
+  var spGate = { until: 0, timer: 0, pending: null };
+
+  function spGateBusy() { return Date.now() < spGate.until; }
+  function spGateElapsed(ms) { return spReduceMotion() ? 0 : ms; }
+  /** 抢断：把进行中的动效立即落定（结果态由随后的重绘直接呈现），并放行新交互 */
+  function spGateFlush() {
+    if (spGate.timer) { clearTimeout(spGate.timer); spGate.timer = 0; }
+    var fn = spGate.pending;
+    spGate.pending = null;
+    spGate.until = 0;
+    if (!fn) return;
+    try { fn(); } catch (e) { /* ignore */ }
+  }
+  /** 只占位等待（展开 Morph 动效播完前不接受收起） */
+  function spGateHoldOnly(ms) {
+    var wait = spGateElapsed(ms);
+    if (!wait) return;
+    spGate.until = Math.max(spGate.until, Date.now() + wait);
+  }
+  /** 等动效播完再执行一次状态变更（收起 / 展开）；被抢断则立即执行 */
+  function spGateAfter(ms, apply) {
+    var wait = spGateElapsed(ms);
+    if (!wait) { spGate.until = 0; apply(); return; }
+    spGate.until = Date.now() + wait;
+    spGate.pending = apply;
+    spGate.timer = setTimeout(function () {
+      spGate.timer = 0;
+      spGate.pending = null;
+      spGate.until = 0;
+      apply();
+    }, wait);
+  }
+  /** 动效期间的交互：抢断后立即执行（q4-C：点击不丢失，也不等动效播完） */
+  function spIntend(fn) {
+    if (spGateBusy()) spGateFlush();
+    fn();
+    return true;
+  }
+
+  /** 播放勾选控件动效：on = 变红 + 画勾；off = 收勾 + 褪红（反序） */
+  function spPlayCheck(el, on) {
+    if (!el || spReduceMotion()) return;
+    el.classList.remove('is-draw', 'is-undraw');
+    void el.offsetWidth;
+    el.classList.add(on ? 'is-draw' : 'is-undraw');
+  }
+  function spOptBoxEl(sid, key) {
+    var root = spEl('comm2StaffSheetRoot');
+    if (!root || !sid || !key) return null;
+    var btn = root.querySelector('[data-staff-opt="' + key + '"][data-staff-id="' + sid + '"]');
+    return btn ? btn.querySelector('.staff-opt__box') : null;
+  }
+  function spTickEl(sid) {
+    var root = spEl('comm2StaffSheetRoot');
+    if (!root || !sid) return null;
+    return root.querySelector('[data-staff-tick][data-staff-id="' + sid + '"]');
+  }
+  /** iOS 风格卡片抖动：提醒「工位是必选项、不可点掉」（q1-C：只抖动，不出 toast） */
+  function spShakeOpt(sid, key) {
+    var root = spEl('comm2StaffSheetRoot');
+    if (!root || !sid || !key || spReduceMotion()) return;
+    var btn = root.querySelector('[data-staff-opt="' + key + '"][data-staff-id="' + sid + '"]');
+    if (!btn) return;
+    btn.classList.remove('is-shake');
+    void btn.offsetWidth;
+    btn.classList.add('is-shake');
+    var stop = function () { btn.classList.remove('is-shake'); };
+    btn.addEventListener('animationend', stop, { once: true });
+    setTimeout(stop, 560);
+  }
+
+  /** 选中员工（计入已选）；roleId 为空 = 不分工位（无工位） */
+  function spSelectStaff(sid, roleId) {
     var row = spState.row;
     if (row.staffIds.indexOf(sid) < 0) row.staffIds.push(sid);
     row.staffChosen[sid] = true;
-    if (optKey === 'extra') {
-      row.staffExtra[sid] = true;
-    } else if (optKey === 'plain') {
+    if (roleId) row.staffRoles[sid] = roleId;
+    else delete row.staffRoles[sid];
+    spState.freshTick = sid;
+  }
+  /** 取消员工选择（保留「顾客指定」勾选记忆，供「先勾顾客指定、等工位」的待选态使用） */
+  function spDropStaff(sid) {
+    var row = spState.row;
+    row.staffIds = row.staffIds.filter(function (x) { return x !== sid; });
+    row.staffChosen[sid] = false;
+    delete row.staffRoles[sid];
+  }
+
+  /** 应用一次勾选结果（动效播完后调用）。
+      按工位：工位为**必选项** —— 未点工位不算已选；「顾客指定」可先勾、保持展开等工位。 */
+  function spApplyOptionToggle(sid, key) {
+    if (!sid || !key) return;
+    spEnsureState();
+    var row = spState.row;
+    var opt = spOptionByKey(key);
+    if (!opt) return;
+    var checked = spOptionChecked(sid, opt);
+    var keepOpen = false;
+
+    if (opt.kind === 'extra') {
+      if (checked) {
+        /* 取消「顾客指定」：不分工位 → 退回「普通」并收起（员工仍为已选）；
+           按工位 → 已有工位则退回仅工位并收起；尚无工位（待选态）则**保持展开**等工位（员工仍未选） */
+        row.staffExtra[sid] = false;
+        if (spNeedStation()) {
+          if (!spStaffIsChosen(sid)) { spDropStaff(sid); keepOpen = true; }
+        } else if (!spStaffIsChosen(sid)) {
+          spDropStaff(sid);
+        }
+      } else {
+        row.staffExtra[sid] = true;
+        if (spNeedStation() && !row.staffRoles[sid]) {
+          spDropStaff(sid);
+          keepOpen = true;                    /* 等工位：保持展开 */
+        } else {
+          spSelectStaff(sid, spNeedStation() ? row.staffRoles[sid] : null);
+        }
+      }
+    } else if (opt.kind === 'plain') {
       row.staffExtra[sid] = false;
+      if (checked) spDropStaff(sid);          /* 取消「普通」→ 取消该员工选择 */
+      else spSelectStaff(sid, null);
+    } else if (checked) {
+      /* 工位不可点掉（q1-C）：已在 spTapOption 抖动提醒，这里兜底不动状态 */
+      return;
     } else {
-      row.staffRoles[sid] = optKey || spDefaultStationId();
-      if (!spNeedExtra()) row.staffExtra[sid] = false;
+      spSelectStaff(sid, key);                /* 工位单选：勾新的即替换旧的 */
     }
-    spState.edit = null;
+
+    spState.edit = keepOpen ? { staffId: sid, splitting: false, opened: true } : null;
     spHaptic();
     spRedraw();
   }
 
-  /** 态4：点卡片即勾选；已勾选再点即取消 */
+  /** 点展开态选项卡：勾选 / 取消勾选；勾选动效播完才收起或展开（新交互会抢断当前动效） */
+  function spTapOption(sid, key) {
+    if (!sid || !key) return;
+    if (!spState.edit || spState.edit.staffId !== sid) return;
+    if (spGateBusy()) spGateFlush();                 /* q4-C：抢断进行中的动效 */
+    var opt = spOptionByKey(key);
+    if (!opt) return;
+    var checked = spOptionChecked(sid, opt);
+    /* 工位是必选项：再点已勾选的工位**不取消**，改用 iOS 抖动动效提醒（q1-C） */
+    if (checked && opt.kind === 'role') { spShakeOpt(sid, key); spHaptic(); return; }
+    /* 切换工位：旧勾先反序收回，再画新勾（q3） */
+    var prevKey = opt.kind === 'role' ? spState.row.staffRoles[sid] : null;
+    var prevBox = (prevKey && prevKey !== key) ? spOptBoxEl(sid, prevKey) : null;
+    if (prevBox) {
+      spPlayCheck(prevBox, false);
+      var nextBox = spOptBoxEl(sid, key);
+      var delay = spGateElapsed(SP_CHECK_MS);
+      if (delay) setTimeout(function () { spPlayCheck(nextBox, true); }, delay);
+      else spPlayCheck(nextBox, true);
+      spGateAfter(SP_CHECK_MS * 2, function () { spApplyOptionToggle(sid, key); });
+      return;
+    }
+    spPlayCheck(spOptBoxEl(sid, key), !checked);
+    spGateAfter(SP_CHECK_MS, function () { spApplyOptionToggle(sid, key); });
+  }
+
+  /** 收缩态员工卡右侧「取消选择」：反序播放动效后再取消 */
+  function spUntickStaff(sid, tickEl) {
+    if (!sid) return;
+    if (spGateBusy()) spGateFlush();                 /* q4-C：抢断 */
+    spPlayCheck(tickEl || spTickEl(sid), false);
+    spGateAfter(SP_CHECK_MS, function () { spRemoveStaff(sid); });
+  }
+
+  /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾选控件画出）/ 已选再点即取消 */
   function spToggleStaff(sid) {
     if (!sid) return;
     spEnsureState();
-    var row = spState.row;
-    var i = row.staffIds.indexOf(sid);
-    if (i >= 0) {
-      spRemoveStaff(sid);
-      return;
-    }
-    row.staffIds.push(sid);
-    row.staffChosen[sid] = true;
-    row.staffRoles[sid] = spDefaultStationId();
-    row.staffExtra[sid] = false;
+    if (spStaffIsChosen(sid)) { spUntickStaff(sid, null); return; }
+    spState.row.staffExtra[sid] = false;
+    spSelectStaff(sid, null);
     spState.edit = null;
     spHaptic();
     spRedraw();
@@ -3411,13 +3586,16 @@
           '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
           spCardPickLineHtml(st, done);
       }
-      /* 勾选控件（右侧、稍放大）：仅已勾选显示；点它取消选择 */
+      /* 勾选控件（右侧、稍放大）：仅已勾选显示；点它取消选择。
+         freshTick = 刚被选中的员工 → 勾从左到右画出（与选项卡上的动效衔接） */
+      var fresh = spState.freshTick === st.id;
       var tickBtn = (done && !isEdit)
-        ? '<button type="button" class="staff-card__tick" data-staff-tick data-staff-id="' + spEsc(st.id) +
+        ? '<button type="button" class="staff-card__tick' + (fresh ? ' is-draw' : '') + '" data-staff-tick data-staff-id="' + spEsc(st.id) +
           '" aria-pressed="true" aria-label="取消选择 ' + spEsc(st.name) + '">' + tickSvg + '</button>'
         : '';
       if (isEdit) {
-        return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') + '"' +
+        return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') +
+          (edit.opened ? ' is-opened' : '') + '"' +
           ' style="--staff-origin:' + origin + '"' +
           ' data-origin="' + originSide + '"' +
           ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
@@ -3483,18 +3661,26 @@
         card.classList.toggle('is-row-muted', on);
       }
     };
-    var applyFinalLayout = function () {
-      editing.style.transition = springTrans;
+    var applyFinalLayout = function (withTransition) {
+      editing.style.transition = withTransition === false ? 'none' : springTrans;
       editing.style.width = gridW + 'px';
       editing.style.transform = 'translateX(' + dx + 'px)';
       editing.style.zIndex = '6';
       muteRow(true);
     };
 
+    /* 已展开卡片的重绘（勾选态更新）：不重播入场动画，直接落位 */
+    var alreadyOpen = editing.classList.contains('is-opened');
     editing.style.zIndex = '6';
-    if (reduce) {
+    if (reduce || alreadyOpen) {
       editing.classList.add('is-expanding');
-      applyFinalLayout();
+      applyFinalLayout(false);
+      if (alreadyOpen && !reduce) {
+        requestAnimationFrame(function () {
+          if (grid._staffMorphToken !== token) return;
+          editing.style.transition = springTrans;
+        });
+      }
       return;
     }
     editing.style.width = cellW + 'px';
@@ -3516,6 +3702,10 @@
         setTimeout(function () {
           if (spState.edit) spState.edit.splitting = false;
         }, spReduceMotion() ? 0 : 420);
+      }
+      /* 刚画完勾的标记只用于这一次渲染，清掉后重绘即回到静态已勾选态 */
+      if (spState.freshTick) {
+        setTimeout(function () { spState.freshTick = null; }, spReduceMotion() ? 0 : 620);
       }
     });
   }
@@ -3585,6 +3775,7 @@
 
   function spOpenSheet() {
     spState.edit = null;
+    spState.freshTick = null;
     spRenderSheet();
     var mask = spEl('comm2StaffSheetMask');
     if (mask) mask.classList.add('open');
@@ -3593,11 +3784,13 @@
     var mask = spEl('comm2StaffSheetMask');
     if (mask) mask.classList.remove('open');
     spState.edit = null;
+    spState.freshTick = null;
     spRenderScreen();
   }
 
   function spOpen() {
     spState.edit = null;
+    spState.freshTick = null;
     spRenderScreen();
     if (window.showOnlyScreen) window.showOnlyScreen('screen-comm2-staff-pick');
   }
@@ -3624,12 +3817,13 @@
   function spEnterEdit(sid) {
     spEnsureState();
     if (!spNeedsPick()) {
-      /* 态4：点卡片即完成选择 / 再点取消 */
+      /* 态4：点卡片即完成选择 / 已选再点即取消 */
       spToggleStaff(sid);
       return;
     }
-    spState.edit = { staffId: sid, splitting: true };
+    spState.edit = { staffId: sid, splitting: true, opened: false };
     spHaptic();
+    spGateHoldOnly(SP_EXPAND_MS);   /* 展开 Morph 动效播完前不接受收起（点击排队） */
     spRedraw();
   }
 
@@ -3686,12 +3880,12 @@
       }
       if (t.closest('#comm2StaffSheetDone')) {
         e.preventDefault();
-        spCloseSheet();
+        spIntend(spCloseSheet);
         return;
       }
       var mask = t.closest('#comm2StaffSheetMask');
       if (mask && t === mask) {
-        spCloseSheet();
+        spIntend(spCloseSheet);
         return;
       }
 
@@ -3700,8 +3894,10 @@
       if (!inSheet && !inScreen) return;
 
       if (t.closest('[data-staff-scrim]')) {
-        spState.edit = null;
-        spRedraw();
+        spIntend(function () {
+          spState.edit = null;
+          spRedraw();
+        });
         return;
       }
 
@@ -3712,21 +3908,20 @@
         return;
       }
 
-      /* 勾选控件（右侧）：点它取消选择 */
+      /* 勾选控件（右侧）：反序播放动效后取消选择 */
       var tickBtn = t.closest('[data-staff-tick]');
       if (tickBtn) {
         e.preventDefault(); e.stopPropagation();
-        spRemoveStaff(tickBtn.getAttribute('data-staff-id'));
+        spUntickStaff(tickBtn.getAttribute('data-staff-id'), tickBtn);
         return;
       }
 
-      /* 展开态：点选项卡片任意处 = 勾选该卡并收缩 */
+      /* 展开态：点选项卡片任意处 = 勾选 / 取消勾选（动效播完才收起） */
       var optBtn = t.closest('[data-staff-opt]');
       if (optBtn) {
         e.preventDefault(); e.stopPropagation();
         var oSid = optBtn.getAttribute('data-staff-id');
-        if (!spState.edit || spState.edit.staffId !== oSid) return;
-        spChooseOption(oSid, optBtn.getAttribute('data-staff-opt'));
+        spTapOption(oSid, optBtn.getAttribute('data-staff-opt'));
         return;
       }
 
@@ -3735,12 +3930,14 @@
         e.preventDefault();
         var hSid = staffHit.getAttribute('data-staff-id');
         if (spState.edit && spState.edit.staffId === hSid) {
-          spState.edit = null;
-          spHaptic();
-          spRedraw();
+          spIntend(function () {
+            spState.edit = null;
+            spHaptic();
+            spRedraw();
+          });
           return;
         }
-        spEnterEdit(hSid);
+        spIntend(function () { spEnterEdit(hSid); });
       }
     });
 
