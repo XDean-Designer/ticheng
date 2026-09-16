@@ -78,7 +78,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>修订（2026-09-15）</td>
-<td>规则卡只读整卡进全量 Sheet；<code>guestSplit</code> 单提成/点客；删参数精简与选择页工具条；员工列表「头衔/角色」（品牌色文字，无图标）；「社区形象」卡</td>
+<td>规则卡改卡头结构（图标+标题+「＞」，内容区左参数右两控件）；规则 Sheet「提成」恒名 + 「+ 点客提成」虚线条；<code>guestSplit</code>；删参数精简与选择页工具条；员工列表「头衔/角色」（品牌色文字，无图标）；「社区形象」卡；规则卡左竖条随卡片轮廓裁切、参数区与右栏控件顶部对齐；Sheet 比例输入框 <code>%</code> 紧贴数值；「点」标签中轴对齐；参数区恒显「提成」/工位名标签（同款样式）；提成值与点客值间改为 1px 竖线、「点」标签在点客值左侧；卡头分隔线不压左侧装饰条；右栏两控件恢复卡上可直接点选</td>
 </tr>
 </tbody>
 </table>
@@ -261,10 +261,10 @@ tr:nth-child(even) td{background:#fafbfc}
 <ul>
 <li>提成方案列表（新建 / 重命名 / 复制 / 删除；未分配员工提示）</li>
 <li>方案编辑页：5 项默认规则卡（含快捷开单）+ 覆盖规则项卡 + 「添加规则项」</li>
-<li>规则设置 Sheet：适用范围、计算基数、分配模式、提成取值；<strong>默认单「提成」</strong>，可选「设置点客提成」（<code>guestSplit</code>）；按工位时工位名内联改名（固定 3，不可增减；全局同步）</li>
+<li>规则设置 Sheet：适用范围、计算基数、分配模式、提成取值；<strong>默认单「提成」卡</strong> + 「+ 点客提成」虚线条（<code>guestSplit</code>）；按工位时工位名内联改名（固定 3，不可增减；全局同步）</li>
 <li>添加规则项页：类型 Tab + 分组筛选 + 多选；<strong>无</strong>全选/已选 N/反选工具行；允许重复添加同一目标（<strong>无</strong>次数标签）</li>
 <li>分配员工 Sheet（员工池多选、全选、清空；已在其他方案者可勾选，副文为 <strong>file-multiple 图标 + 方案名</strong>）</li>
-<li>规则卡：基数/适用范围<strong>只读</strong>；<strong>整卡</strong>进全量 Sheet；最右「＞」；<strong>无</strong>参数精简；覆盖左滑删；固定金额时基数区显「固定」</li>
+<li>规则卡：<strong>卡头</strong>（图标 + 标题 + 右侧「＞」）+ <strong>内容区</strong>（左提成参数；右 120px 槽竖排两控件）；右栏两控件<strong>可直接点选</strong>（点 chip 不打开 Sheet）；<strong>整卡</strong>进全量 Sheet；<strong>无</strong>参数精简；覆盖左滑删；固定金额时基数区显只读「固定」</li>
 <li>左侧导航「<strong>关联页面</strong>」区域：仅「头衔空态 sheet」「方案空态 sheet」演示入口</li>
 <li>试算口径：示例订单行按员工方案集合计算提成（原型试算引擎）</li>
 <li>流水订单 / 薪资关联口径（§6.8 / §6.10）：<strong>规格保留（本系统现有页面）</strong></li>
@@ -287,6 +287,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <li>原型的「无数据 / 有数据」造数开关</li>
 <li><strong>阶梯提成方案功能（本期明确不做）</strong>：不在新模型中新建 / 编辑阶梯方案；本原型不交付阶梯 UI</li>
 <li>新提成规则块内「扣成本」一等公民字段（长期增强另期）</li>
+<li><strong>原型残留死代码（非交付功能，不计入验收）</strong>：<code>index.html</code> / <code>employee.js</code> / <code>comm2.js</code> 仍残留旧提成设置（阶梯 / 业绩方案）、迁移演示弹窗（仅 <code>?migrationResult=match|diff</code> URL 触发）、独立工位 Sheet、删除工位、覆盖撤销删除、业绩提成明细「待确认 / 同意 / 驳回」流程等不可达代码与文案（<code>ln.pending</code> 从未被赋值、无对应 UI 入口）。<strong>一律以 hub 三链路当前可点路径为准</strong>，不计入交付与验收。</li>
 </ul>
 <h2>1.5 旧 → 新能力映射（不写废弃产品名）</h2>
 <table>
@@ -310,7 +311,7 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>试点线下处理；新方案直接配置 <code>baseMode</code> + 覆盖规则</td>
 </tr>
 <tr>
-<td>单项提成（点客/散客/%/¥/工位）</td>
+<td>单项提成（提成/点客/%/¥/工位）</td>
 <td>新方案 <code>CatRule</code> / 按项 <code>overrides</code></td>
 </tr>
 <tr>
@@ -327,7 +328,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>按工位分别设提成</td>
-<td>分配模式 = 按工位分配，逐工位设点客 / 散客参数；工位在规则 Sheet 内联改名（固定 3，不可增减；全局同步）</td>
+<td>分配模式 = 按工位分配，逐工位设提成 / 点客参数；工位在规则 Sheet 内联改名（固定 3，不可增减；全局同步）</td>
 </tr>
 <tr>
 <td>全体员工一套规则</td>
@@ -404,8 +405,8 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>按工位分配</td>
-<td>大 / 中 / 小工分别设点客散客参数</td>
-<td>规则卡显示逐工位参数；改名 / 新增工位全局同步本店全部方案</td>
+<td>大 / 中 / 小工分别设提成·点客参数</td>
+<td>规则卡显示逐工位参数；改名全局同步本店全部方案</td>
 </tr>
 <tr>
 <td>分配员工</td>
@@ -998,7 +999,7 @@ flowchart LR
 <li><strong>仅展示态</strong>；金额键盘输入过程、编辑中输入框回显按现有键盘逻辑，不强制两位 + 缩小。</li>
 <li><strong>比例 <code>%</code> 不适用</strong>本条（仍按比例规则展示，不补两位、不缩小小数段）。</li>
 <li>文本：方案名称 ≤ <strong>20</strong> 字；工位名 ≤ <strong>6</strong> 字；覆盖规则重命名 ≤ <strong>6</strong> 字。</li>
-<li>比例范围：点客 / 散客比例 <strong>0–100%</strong>；固定金额 <strong>≥ 0</strong>。</li>
+<li>比例范围：提成 / 点客比例 <strong>0–100%</strong>；固定金额 <strong>≥ 0</strong>。</li>
 </ul>
 <h2>5.2 校验失败（Toast）</h2>
 <table>
@@ -1018,16 +1019,16 @@ flowchart LR
 <td>请输入有效的点客比例</td>
 </tr>
 <tr>
-<td>规则散客比例无效</td>
-<td>请输入有效的散客比例</td>
+<td>规则提成比例无效</td>
+<td>请输入有效的提成比例</td>
 </tr>
 <tr>
 <td>固定金额模式点客金额无效</td>
 <td>请输入有效的点客金额</td>
 </tr>
 <tr>
-<td>固定金额模式散客金额无效</td>
-<td>请输入有效的散客金额</td>
+<td>固定金额模式提成金额无效</td>
+<td>请输入有效的提成金额</td>
 </tr>
 <tr>
 <td>比例 &gt; 100%</td>
@@ -1050,12 +1051,12 @@ flowchart LR
 <td>名称不能为空</td>
 </tr>
 <tr>
-<td>工位数已达上限新增</td>
-<td>最多 3 个工位</td>
+<td>工位改名超 6 字</td>
+<td>工位名最多 6 个字</td>
 </tr>
 <tr>
-<td>权限不足（编辑流水提成）</td>
-<td>当前为「{角色}」，无法修改提成（以原型文案为准）</td>
+<td>权限不足（业绩提成明细改提成）</td>
+<td>仅店主/合伙人/店长可调整提成</td>
 </tr>
 </tbody>
 </table>
@@ -1144,7 +1145,7 @@ flowchart LR
 <blockquote>
 <p>读者：前端 ✓ · 后端 了解 · 测试 ✓</p>
 </blockquote>
-<p>下列字段、按钮、跳转均须与原型一致；视觉以原型为准（规则卡两行布局见 §6.2；基数为连体段控选中莫兰迪橙 <code>#E89D64</code>；适用范围为独立 chip 圆角 8px、高度 26px 对齐基数、选中品牌描边；固定金额时基数区只读「固定」灰标）。</p>
+<p>下列字段、按钮、跳转均须与原型一致；视觉以原型为准（规则卡为<strong>卡头 + 内容区</strong>结构，见 §6.2；基数为连体段控选中莫兰迪橙 <code>#E89D64</code>；适用范围为独立 chip 圆角 8px、高度 26px 对齐基数、选中品牌描边；卡面基数段控与适用范围 chip <strong>可直接点选</strong>（点后不打开 Sheet）；固定金额时基数区只读「固定」灰标）。</p>
 <h2>6.1 方案列表</h2>
 <p><strong>结构</strong></p>
 <ul>
@@ -1188,35 +1189,36 @@ flowchart LR
 <li>底部「保存」：校验全部默认 / 覆盖范围 ≥1 类 → toast「提成方案已保存」→ 回列表。</li>
 </ul>
 <h3>6.2.1 规则卡布局总则（对齐原型）</h3>
-<p>规则卡为<strong>两行主区 + 最右 chevron 列</strong>（默认左竖条品牌色；覆盖 <code>#FF8A3D</code>；用户覆盖外包左滑容器）：</p>
-<pre><code>┌─▌ 标题（≤6 字完整）            [原价|实收]/固定」  │＞│
-│   12%  或  提成 10%    点 点客提成 15%   [现金][卡付][团购] │＞│
-└─▌                                                      ┘
+<p>规则卡为<strong>卡头 + 内容区</strong>结构（默认左竖条品牌色；覆盖 <code>#FF8A3D</code>；用户覆盖外包左滑容器；左竖条为<strong>随卡片外轮廓裁切</strong>的背景条，圆角处与卡片轮廓<strong>完全贴合</strong>）：</p>
+<pre><code>┌─▌ 标题（≤6 字完整）                          │＞│   ← 卡头
+│ ────────────────────────────────────────────────  │   ← 1px #F2F2F2
+│ 提成 10% │ 点12%                 [原价|实收]/固定   │   ← 内容区
+│ 大工 10% │ 点12%                 [现金][卡付][团购] │
+└─▌                                                  ┘
 
-guestSplit=false：参数区只显示一个数值
-guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位态竖排（未开点客每工位一值；开点客为 值·值）
+标签（不分工位=「提成」；按工位=工位名）与数值同为 5px 间距
+guestSplit=false：`提成 10%`（标签 + 单值）
+guestSplit=true：`提成 10% │ 点12%`（前为提成值、后为点客值；中间为 1px 竖线分隔；「点」小标签在点客数值**左侧**）
+按工位：每行「工位名 + 同格式」（未开点客 `大工 10%`；开点客 `大工 10% │ 点12%`）
 </code></pre>
 <table>
 <thead>
 <tr>
-<th>行</th>
+<th>区域</th>
 <th>左</th>
-<th>中（120px 槽）</th>
-<th>最右</th>
+<th>右（120px 槽）</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><strong>行1</strong></td>
-<td>标题（图标+文案）</td>
-<td>原价/实收连体段控外观（或「固定」）<strong>只读</strong>；<strong>无</strong>「基数」文案</td>
-<td>「＞」相对整卡<strong>垂直居中</strong></td>
+<td><strong>卡头</strong></td>
+<td>分类图标 + 标题（≤6 字完整）</td>
+<td>「＞」16px（<code>#C2C2C2</code>；<strong>不再</strong>放在卡最右）</td>
 </tr>
 <tr>
-<td><strong>行2</strong></td>
-<td>提成参数；按工位时竖排；<code>flex:1</code>；<strong>参数区左缘与标题图标左缘对齐</strong></td>
-<td>三 chip 均分单行<strong>只读</strong>；与参数间距 ≥10px，<strong>禁止重叠</strong></td>
-<td>（同列）</td>
+<td><strong>内容区</strong></td>
+<td>提成参数（标签 + 数值；不分工位标签为「提成」、按工位为工位名，同款样式）；按工位时竖排；<code>flex:1</code>；<strong>参数区左缘与标题图标左缘对齐</strong>；<strong>参数区顶部与右栏首个控件顶部对齐</strong></td>
+<td>竖排两控件（<strong>可直接点选</strong>）：上「原价/实收」连体段控（或只读「固定」），下「现金/卡付/团购」三 chip 均分单行</td>
 </tr>
 </tbody>
 </table>
@@ -1229,12 +1231,20 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 </thead>
 <tbody>
 <tr>
-<td><strong>整卡</strong>（含标题/参数/只读控件/＞）</td>
+<td><strong>整卡</strong>（卡头 / 参数 / ＞ / 空白区）</td>
 <td>打开<strong>全量</strong>规则设置 Sheet；<strong>无</strong>参数精简入口</td>
 </tr>
 <tr>
-<td>基数 / 适用范围</td>
-<td><strong>不可</strong>在卡上直改；仅 Sheet 内可改</td>
+<td>「原价/实收」段控</td>
+<td><strong>卡上可直改</strong> <code>baseMode</code>；点后仅切换、<strong>不</strong>打开 Sheet；固定金额时为只读灰标「固定」（点它仍进 Sheet）</td>
+</tr>
+<tr>
+<td>「现金/卡付/团购」chip</td>
+<td><strong>卡上可直改</strong> 适用范围；点后仅切换、<strong>不</strong>打开 Sheet；至少保留一种，否则 toast「至少选一种支付方式」且不改动</td>
+</tr>
+<tr>
+<td>卡面改动</td>
+<td>即时标脏（<code>markDirty</code>），点「保存」后写入方案</td>
 </tr>
 <tr>
 <td>覆盖卡左滑垃圾桶</td>
@@ -1280,19 +1290,23 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tbody>
 <tr>
 <td>单提成</td>
-<td><code>guestSplit=false</code>：只显示<strong>一个数值</strong>（比例带 <code>%</code>，固定带 <code>¥</code>）</td>
+<td><code>guestSplit=false</code>：<code>提成 10%</code>——<strong>恒有</strong>左侧标签；比例带 <code>%</code>，固定带 <code>¥</code>；比例输入框 <code>%</code> 紧贴数值右侧</td>
 </tr>
 <tr>
 <td>开启点客</td>
-<td><code>guestSplit=true</code>：摘要形如 <code>10%·点10%</code>（前为散客/提成，后为点客；「点」为小标签）</td>
+<td><code>guestSplit=true</code>：<code>提成 10% │ 点12%</code>（前为提成值，后为点客值；中间 <strong>1px 竖线</strong>分隔；「点」为小标签，位于点客数值<strong>左侧</strong>，标签中轴与数值中轴对齐）</td>
 </tr>
 <tr>
 <td>按工位</td>
-<td>未开点客：工位全称 + 单值竖排；开点客：工位全称 + <code>10%·点10%</code> 竖排三行</td>
+<td>工位名（同款标签）+ 同格式：未开点客 <code>大工 10%</code>；开点客 <code>大工 10% │ 点12%</code> 竖排三行</td>
+</tr>
+<tr>
+<td>标签</td>
+<td>不分工位用「提成」，按工位用工位名；两者同为 <code>12px / 500 / #8D8D8D</code>，与数值间距 <code>5px</code></td>
 </tr>
 <tr>
 <td>对齐</td>
-<td>参数区左缘与标题图标左缘对齐（<strong>勿</strong>按标题文字缩进）</td>
+<td>参数区左缘与标题图标左缘对齐（<strong>勿</strong>按标题文字缩进）；参数区顶部与右栏控件顶部对齐</td>
 </tr>
 </tbody>
 </table>
@@ -1307,19 +1321,31 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tbody>
 <tr>
 <td>基数段控</td>
-<td>连体胶囊外观；选中白底 + 字色 <code>#E89D64</code>；卡面<strong>只读</strong>；卡面<strong>无</strong>「基数」文案</td>
+<td>连体胶囊外观；选中白底 + 字色 <code>#E89D64</code>；卡面<strong>可点选</strong>（切换 <code>baseMode</code>，不打开 Sheet）；卡面<strong>无</strong>「基数」文案</td>
 </tr>
 <tr>
 <td>适用范围 chip</td>
-<td>独立圆角 <strong>8px</strong>、高 <strong>26px</strong>、字号 11px；卡面<strong>只读</strong>；右侧槽 <strong>120px</strong>、三 chip 均分<strong>强制单行</strong></td>
+<td>独立圆角 <strong>8px</strong>、高 <strong>26px</strong>、字号 11px；卡面<strong>可点选</strong>（至少留一种）；右侧槽 <strong>120px</strong>、三 chip 均分<strong>强制单行</strong></td>
 </tr>
 <tr>
 <td>固定金额</td>
-<td>基数区只读灰标「固定」</td>
+<td>基数区只读灰标「固定」（不可点选，进 Sheet 改回比例）</td>
+</tr>
+<tr>
+<td>卡头分隔线</td>
+<td><code>1px #F2F2F2</code>，<strong>从左侧装饰条右侧 3px 处起画</strong>，装饰条整条贯通、不被压线</td>
+</tr>
+<tr>
+<td>分隔竖线</td>
+<td>提成值与点客值之间：<code>1px × 12px</code>、色 <code>#DCDCDC</code>、左右 <code>4px</code> 间距；与数值中轴对齐</td>
+</tr>
+<tr>
+<td>「点」小标签</td>
+<td>10px / 600、圆角 3px、底色 <code>#F0F0F0</code>、字色 <code>#8D8D8D</code>；位于点客数值<strong>左侧</strong>（右间距 3px），中轴与数值中轴对齐</td>
 </tr>
 <tr>
 <td>整卡 chevron</td>
-<td>最右一列，相对整卡垂直居中</td>
+<td><strong>卡头右侧</strong>，字号 16px、色 <code>#C2C2C2</code></td>
 </tr>
 </tbody>
 </table>
@@ -1400,7 +1426,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tr>
 <td>提成取值</td>
 <td>分段：按比例 % / 固定金额 ¥</td>
-<td>输入框内用 <code>%</code>/<code>¥</code> 或 placeholder；<strong>无</strong>「比例」「金额」字段标签</td>
+<td>输入框内用 <code>%</code>/<code>¥</code> 或 placeholder；<strong>无</strong>「比例」「金额」字段标签；比例输入框<strong>按数值宽度自适应</strong>，<code>%</code> <strong>紧贴数值右侧</strong>（固定金额为 <code>¥</code> 前缀，不变）</td>
 </tr>
 <tr>
 <td>提成 / 点客</td>
@@ -1421,23 +1447,28 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tbody>
 <tr>
 <td>默认关 <code>false</code></td>
-<td>仅一张「提成」输入卡；文字链「设置点客提成」（品牌色 + 小 chevron）</td>
-<td>点客/散客（及各工位）写<strong>同一数值</strong></td>
+<td>左「提成」输入卡 + 右<strong>虚线卡</strong>「+ 点客提成」（灰虚线 <code>#D0D0D0</code>、灰字 <code>#929292</code>、与提成卡<strong>等比并排等高</strong>）；卡片名恒为「提成」</td>
+<td>提成侧（<code>nonDesignated</code>）与各工位写<strong>同一数值</strong></td>
 </tr>
 <tr>
-<td>开 <code>true</code></td>
-<td>「提成」改名为「散客」；另出「点客」卡；点客卡标题旁 <strong>×</strong> 关闭收起</td>
+<td>点虚线卡</td>
+<td>全局 <code>guestSplit=true</code>：右卡变为「点客」卡（标题旁 <strong>×</strong> 取消收起）；按工位时<strong>每个工位行</strong>各出现一张虚线卡，点任一即全局开启</td>
 <td>两端可不同</td>
 </tr>
 <tr>
+<td>开 <code>true</code></td>
+<td>左「提成」+ 右「点客」等比并排；点客卡 <strong>×</strong> 收起后回到虚线卡</td>
+<td>提成侧仍存 <code>nonDesignated</code>（<strong>不再</strong>改名为「散客」）</td>
+</tr>
+<tr>
 <td>旧数据</td>
-<td>若点客≠散客（含任一工位）</td>
+<td>若点客≠提成（含任一工位）</td>
 <td><strong>自动视为已开启</strong>（显示两卡）</td>
 </tr>
 <tr>
 <td>按工位 + 关</td>
-<td>每工位只填/显示一个参数</td>
-<td>开单选员工<strong>不再</strong>选点客/散客（联调页须隐藏）</td>
+<td>每工位只填/显示一个参数（提成卡 + 虚线条并排）</td>
+<td>开单选员工<strong>不再</strong>选点客（联调页须隐藏）</td>
 </tr>
 </tbody>
 </table>
@@ -1576,7 +1607,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 </tr>
 <tr>
 <td>分配模式说明</td>
-<td>不分工位：按点客 / 散客统一提成；按工位分配：固定大 / 中 / 小工分别设置提成；可点工位名改名（全局同步，不可增减）。<strong>开单是否展示「选择工位」</strong>不单看当前规则卡，而按 <strong>§4.5.1 类内 OR · 门店维度</strong>（默认卡 + 该类全部覆盖，任一为按工位 → 该类整类需选工位）</td>
+<td>不分工位：开单不分工位，统一按提成计提、点客可单独设置；按工位分配：固定大 / 中 / 小工分别设置提成；可点工位名改名（全局同步，不可增减）。<strong>开单是否展示「选择工位」</strong>不单看当前规则卡，而按 <strong>§4.5.1 类内 OR · 门店维度</strong>（默认卡 + 该类全部覆盖，任一为按工位 → 该类整类需选工位）</td>
 </tr>
 </tbody>
 </table>
@@ -1805,8 +1836,8 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <h3>6.11.2 头衔管理（<code>screen-emp-roles</code>）</h3>
 <ul>
 <li>标题「<strong>头衔管理</strong>」；列表展示全部头衔；支持添加、重命名、删除。</li>
-<li>名称 ≤6 字；已有员工使用的头衔不可删除（toast 拦截）。</li>
-<li>唯一头衔（如「店主」）占用规则以原型 <code>uniqueRole</code> 为准。</li>
+<li>名称 ≤6 字；<strong>头衔可删除（即使被员工占用）</strong>——删除确认 Dialog「确认删除「{头衔名}」？」；被占用时正文提示「有 N 名员工使用该头衔，删除后其头衔将变为「未设置」」，确认后移除头衔并将这些员工的头衔清空为「未设置」；toast「头衔已删除」/「头衔已删除，已清空 N 名员工的头衔」。</li>
+<li>唯一头衔为「<strong>店主</strong>」与「<strong>店长</strong>」（<code>uniqueRole</code>）：仅可一人持有；他人已占用时 toast「本店已有店主，不可重复设置」/「本店已有店长，不可重复设置」，其余唯一头衔为「该头衔已有人担任」。</li>
 </ul>
 <h3>6.11.3 角色管理（<code>screen-emp-role-perms</code> / <code>screen-emp-role-perm-edit</code>）</h3>
 <ul>
@@ -2448,7 +2479,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tr>
 <td>stationIds</td>
 <td>string[]</td>
-<td>工位 id 列表；默认 <code>['senior','mid','junior']</code>；<strong>最多 3 个</strong>；可新增至上限；<strong>不可删除</strong></td>
+<td>工位 id 列表；固定 <code>['senior','mid','junior']</code>（<strong>3 个，不可增减</strong>）</td>
 </tr>
 <tr>
 <td>stationLabels</td>
@@ -2532,17 +2563,17 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tr>
 <td>guestSplit</td>
 <td>boolean</td>
-<td>是否拆分点客/散客；默认 <code>false</code>；旧数据两端不等时自动为 <code>true</code></td>
+<td>是否拆分点客/提成（点客单独设置）；默认 <code>false</code>；旧数据两端不等时自动为 <code>true</code></td>
 </tr>
 <tr>
 <td>designated</td>
 <td>number</td>
-<td>点客比例（pct）；<code>guestSplit=false</code> 时与散客同值</td>
+<td>点客比例（pct）；<code>guestSplit=false</code> 时与提成侧同值</td>
 </tr>
 <tr>
 <td>nonDesignated</td>
 <td>number</td>
-<td>散客/统一提成比例（pct）</td>
+<td>提成（原「散客」）比例（pct）</td>
 </tr>
 <tr>
 <td>designatedAmt</td>
@@ -2552,7 +2583,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tr>
 <td>nonDesignatedAmt</td>
 <td>number</td>
-<td>散客/统一提成金额（amount）</td>
+<td>提成（原「散客」）金额（amount）</td>
 </tr>
 <tr>
 <td>stations</td>
@@ -2652,7 +2683,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tbody>
 <tr>
 <td>staffIds / staffDesignated / staffRoles</td>
-<td>员工、点散客标记、工位（role）</td>
+<td>员工、点客标记（designated）、工位（role）</td>
 </tr>
 <tr>
 <td>staffAchievements</td>
@@ -2692,7 +2723,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 </tr>
 <tr>
 <td>工位管理</td>
-<td>改名 / 新增（≤3）；<strong>不可删除</strong>；全局同步本店全部方案；新工位各规则块默认参数</td>
+<td>改名（≤6 字）；固定 3 工位，<strong>不可新增 / 删除</strong>；全局同步本店全部方案</td>
 </tr>
 <tr>
 <td>员工分配</td>
@@ -2900,9 +2931,9 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <li><strong>不同行可相加</strong>：不同业务行各自取高后，行与行之间可相加汇总。</li>
 <li><strong>覆盖优先于默认（方案内）</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快捷开单 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），<strong>命中任一条覆盖即不再回落默认分类</strong>（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快捷开单行（<code>kind=quick</code> / 名称「快捷开单」）<strong>只命中系统覆盖</strong>，不吃项目默认。方案之间再执行规则 3。</li>
 <li><strong>计算基数</strong>：见规则 2 分摊公式；§6.9 帮助口径与此一致。<code>valueMode=amount</code> 时按规则 2 对固定额乘分摊系数（不再整单直接取固定额）。</li>
-<li><strong>分配取值</strong>：<code>pickMode=avg</code>（UI「不分工位」）用规则级点客 / 散客；<code>pickMode=station</code> 用订单行 <code>station</code> 对应工位参数；<strong>工位缺失</strong>：用方案 <code>stationIds[0]</code> 对应参数，若无则 <code>defaultPair()</code>（与原型 <code>schemeLineAmount</code> 一致）。
+<li><strong>分配取值</strong>：<code>pickMode=avg</code>（UI「不分工位」）用规则级提成 / 点客（<code>nonDesignated</code> / <code>designated</code>）；<code>pickMode=station</code> 用订单行 <code>station</code> 对应工位参数；<strong>工位缺失</strong>：用方案 <code>stationIds[0]</code> 对应参数，若无则 <code>defaultPair()</code>（与原型 <code>schemeLineAmount</code> 一致）。
 7a. <strong>开单「选择工位」展示（类内 OR · 门店维度）</strong>：对本店<strong>启用中</strong>方案（不按当前服务员工过滤），按业务类考察「默认卡 + 该类全部覆盖」的 <code>pickMode</code>；<strong>任一</strong>为 <code>station</code> → 该类在开单「选择服务员工」（及内嵌选人 Sheet）时<strong>整类</strong>需选工位。覆盖归属按规则目标类别（项目覆盖→项目类等）。详见 §4.5.1。本条约束 UI 采集；计提仍按规则 7。</li>
-<li><strong>金额计算</strong>：<code>pct</code> → <code>round(base × rate / 100)</code>；<code>amount</code> → 固定金额（点客用 <code>designatedAmt</code> / 散客用 <code>nonDesignatedAmt</code>）再乘分摊系数（规则 2）。</li>
+<li><strong>金额计算</strong>：<code>pct</code> → <code>round(base × rate / 100)</code>；<code>amount</code> → 固定金额（点客用 <code>designatedAmt</code> / 提成用 <code>nonDesignatedAmt</code>）再乘分摊系数（规则 2）。</li>
 <li><strong>适用范围合法性</strong>：任一默认块 / 覆盖块的 <code>payScope</code> 至少 1 类；保存时全校验。</li>
 <li><strong>允许重复添加</strong>：不同覆盖卡可包含同一项目 / 产品 / 会员卡；选择页<strong>不禁用</strong>；<strong>无</strong>次数标签。覆盖卡标题按命名规则生成。（整类与单项勾选互斥仍见规则 11。）</li>
 <li><strong>整类与单项互斥</strong>：添加规则项勾选整类组会清掉组内单项勾选；勾选单项会清掉涵盖它的整类勾选。</li>
@@ -2929,7 +2960,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <li><strong>经理签单按 baseMode</strong>：经理签单订单行（<code>sign=true</code>，实收=0）<strong>不走三类适用范围</strong>。命中覆盖/默认块后：<code>baseMode=list</code> → 按原价计提；<code>baseMode=paid</code> → 基数为 0，比例模式下金额为 0（<code>skipped='sign'</code>，note「实收模式下经理签单不计提成」）；<code>valueMode=amount</code> 时仍取固定额。无方案级 <code>signComm</code> 字段。</li>
 </ol>
 <h2>8.1 试算口径（原型试算引擎）</h2>
-<p>原型内置 9 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快捷开单</strong>、<strong>经理签单·深层补水护理</strong>（原价 268 / 实收 0，<code>sign=true</code>）。</p>
+<p>原型内置 10 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、染发·混合支付（原价 100 / 现金 40 + 卡付 60）、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快捷开单</strong>、<strong>经理签单·深层补水护理</strong>（原价 268 / 实收 0，<code>sign=true</code>）。</p>
 <p>计提验证步骤：取员工所属<strong>全部</strong>方案（列表顺序）→ 每行对每个方案解析覆盖/默认块 → 非经理签单行按适用范围分摊基数，经理签单行按命中块 <code>baseMode</code> / <code>valueMode</code> → 计算金额 → <strong>取金额最大者</strong>（并列保留列表更靠前方案）→ 汇总。结果行带 <code>winnerSchemeId</code>。此口径与 §8 一致，作为联调参考样例（非正式接口）。</p>
 <h2>8.2 演示数据（造数参考）</h2>
 <p>原型内置 3 个演示方案：</p>
@@ -2943,11 +2974,11 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <tbody>
 <tr>
 <td>顾问标准提成</td>
-<td>项目 / 产品默认 12%/10% 等；办卡 / 充卡 0；分配给 st1、st2</td>
+<td>项目 12/10、产品 10/10、办卡 5/5、充卡 3/3（提成/点客 %）；分配给 st0、st1、st2、st3</td>
 </tr>
 <tr>
 <td>卡付劳动专项</td>
-<td>项目 / 产品范围仅「卡付」3%；办卡 / 充卡全范围 0；分配给 <strong>st1、st3</strong>（st1 多方案演示）</td>
+<td>项目 / 产品范围仅「卡付」3/3；办卡 / 充卡全范围 0/0；分配给 <strong>st1、st3</strong>（st1 多方案演示）</td>
 </tr>
 <tr>
 <td>资深技师综合方案</td>
@@ -2963,13 +2994,13 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <li><strong>手机号校验</strong>：必填且为 <strong>11 位大陆手机号</strong>（toast「请输入员工手机号」「请输入正确的手机号」）；保存时自动去除非数字字符。</li>
 <li><strong>角色必填 &amp; 合法</strong>：创建/编辑/完善必须选择角色（toast「请选择员工角色」）；角色必须属于五档枚举，否则 toast「请选择有效的角色身份」。</li>
 <li><strong>店主唯一</strong>：新建不可选「店主」（toast「新建员工不可设为店主」）；编辑时本店已有店主且非本人 → toast「本店已有店主（{姓名}）」。</li>
-<li><strong>头衔唯一</strong>：<code>uniqueRole</code> 头衔（如「店主」）仅可一人持有；改/设为该头衔且他人已占用 → toast <code>uniqueRoleTakenMessage</code>（以原型为准）。</li>
+<li><strong>头衔唯一</strong>：<code>uniqueRole</code> 头衔为「<strong>店主</strong>」「<strong>店长</strong>」，仅可一人持有；改/设为该头衔且他人已占用 → toast「本店已有店主，不可重复设置」/「本店已有店长，不可重复设置」，其余唯一头衔为「该头衔已有人担任」。</li>
 <li><strong>从业年限</strong>：非负整数（toast「请输入有效从业年限」）；&gt; 上限（50 年）toast「从业年限不能超过 N 年」。</li>
 <li><strong>基本工资</strong>：必填非负数字（toast「请输入员工基本工资」「请输入有效基本工资」）；&gt; 999,999.99 toast「金额不能超过 N」。</li>
 <li><strong>头衔/角色分离</strong>：头衔为展示用岗位名（头衔管理维护）；角色为五档权限；二者独立校验、独立展示。</li>
 <li><strong>敏感权限跟随角色</strong>：员工能力完全由 <code>roleSensitivePerms[perm]</code> 解析；<strong>无</strong>个人 <code>staff.sensitivePerms</code>；改角色即改读路径。</li>
 <li><strong>员工排序</strong>：员工列表长按拖动排序；松手即提交 <code>EmployeeStore.staff</code> 数组顺序（薪资/分配等展示顺序联动）。</li>
-<li><strong>头衔管理约束</strong>：名称 ≤6 字；被员工占用的头衔不可删除（toast 拦截）；唯一头衔受 §8.3 规则 34 约束。</li>
+<li><strong>头衔管理约束</strong>：名称 ≤6 字；<strong>头衔可删除</strong>（即使被员工占用，删除后相关员工头衔清空为「未设置」，见 §6.11.2）；唯一头衔受 §8.3 规则 34 约束。</li>
 <li><strong>状态与表单</strong>：创建表单不可选「离职」；<strong>员工详情</strong>卡底「状态」行可选在岗/休假/离职（离职确认 Dialog）；头部 chip（详情与我的资料）<strong>仅</strong>在岗/休假；<strong>我的资料</strong>无状态行；编辑表单状态可改。</li>
 </ol>
 <h2>8.4 员工薪资业务规则</h2>
@@ -2992,17 +3023,17 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <p>读者：前端 ✓ · 后端 部分 · 测试 ✓</p>
 </blockquote>
 <h2>9.1 文案清单（须与原型一致）</h2>
-<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、反选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 项、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
-<p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、点客、散客、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
-<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、点客、散客、大工、中工、小工</strong>。</p>
-<p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的散客比例/金额、比例需在 0–100%、名称不能为空、最多 3 个工位。</p>
+<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
+<p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、提成、点客、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
+<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、点客、+ 点客提成、大工、中工、小工</strong>。</p>
+<p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的点客比例/金额、请输入有效的提成比例/金额、比例需在 0–100%、名称不能为空、工位名最多 6 个字。</p>
 <p><strong>员工（表单/详情/列表）</strong>：员工管理、员工详情、我的资料、创建员工、邀请员工、编辑员工、完善员工信息、请完善员工信息，以便正常开单与业绩统计、去完善、信息未完善、添加头衔、头衔管理、角色管理、选择头衔、选择员工角色、权限说明、请选择、请选择员工角色、暂未分配、添加头像、剑号、宝剑、更多信息、性别、年龄段、从业年限、状态（在岗/休假/离职）、保存、已保存、请输入员工姓名、员工姓名最多 N 字、请输入员工手机号、请输入正确的手机号、请选择头衔、请选择员工角色、请选择有效的角色身份、新建员工不可设为店主、本店已有店主（{姓名}）、请输入有效从业年限、从业年限不能超过 N 年、请输入员工基本工资、请输入有效基本工资、金额不能超过 N、注：当修改基本工资后，当月的薪资统计以最新的为准、功能开发中。</p>
 <blockquote>
 <p><strong>不做文案/字段（线上有、原型隐藏）</strong>：选填项、个人项目价格、个人说明。</p>
 </blockquote>
-<p><strong>头衔/角色</strong>：暂无头衔、去头衔管理、暂无员工、已分配 N 人、确定删除该头衔？（以原型为准）、头衔已被员工使用、不可删除（以原型为准）。</p>
+<p><strong>头衔/角色</strong>：暂无头衔、去头衔管理、暂无员工、已分配 N 人、确认删除「{头衔名}」？、有 N 名员工使用该头衔，删除后其头衔将变为「未设置」、头衔已删除、头衔已删除，已清空 N 名员工的头衔、请输入头衔名称、头衔名称不超过 6 个字、该头衔已存在、已添加头衔、头衔已更新、头衔不存在、本店已有店主，不可重复设置、本店已有店长，不可重复设置、该头衔已有人担任。</p>
 <p><strong>薪资</strong>：员工薪资、合计薪酬、我的薪酬、合计、基本工资、提成合计、奖惩合计、项目、产品、办卡/充卡、快捷开单、当月合计薪资、基本薪资、提成总计、奖惩总计、业绩统计、总计、提成统计、服务、售卡、人次、数量、金额、单位：元、本月汇总、本期汇总、当日合计、业绩、提成、奖、扣、奖惩明细、查看记录、收起记录、设奖惩、编辑奖惩、最近记录、本月暂无记录、本月暂无奖惩记录、本周期暂无提成明细、当日暂无提成明细、仅可查本结算周期（{区间}）、选择月份、选择结算期、本月全部、本期全部、今天、昨天、选择查询日期、上一有数据日、下一有数据日、调整提成、请输入奖惩金额、金额不能超过 N、请输入备注、备注最多 N 字、请选择员工、奖惩已保存、奖惩已保存给 N 名员工、已更新奖惩记录、已删除、确定删除该奖惩记录？（以原型为准）、修改记录。</p>
-<p><strong>流水</strong>：业绩（只读）、提成、修改提成、当前为「{角色}」，无法修改提成（以原型为准）。</p>
+<p><strong>流水</strong>：业绩（只读）、提成、修改提成、仅店主/合伙人/店长可调整提成、请输入有效提成金额、金额不能为负、金额未变化、已修改，直接生效。</p>
 <p><strong>空态</strong>：还没有提成方案、点下方按钮添加、该分类下暂无内容、暂无头衔、暂无提成方案、暂无在岗员工、信息未完善。</p>
 <h2>9.2 权限</h2>
 <p><strong>提成设置链路</strong>：</p>
@@ -3192,9 +3223,9 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <ol>
 <li><strong>Given</strong> 方案列表为空，<strong>When</strong> 添加提成方案并命名「测试方案」，<strong>Then</strong> 进入编辑页，5 项默认规则卡齐全；保存后列表出现方案卡、摘要「5 项默认」。</li>
 <li><strong>Given</strong> 编辑「测试方案」，<strong>When</strong> 改项目类适用范围去掉「现金」只剩「卡付、团购」，<strong>Then</strong> 卡片<strong>第二行</strong>适用范围胶囊同步；保存成功。</li>
-<li><strong>Given</strong> 项目类规则，<strong>When</strong> 点散客比例输入 120，<strong>Then</strong> toast「比例需在 0–100%」，不写入。</li>
+<li><strong>Given</strong> 项目类规则，<strong>When</strong> 点提成比例输入 120，<strong>Then</strong> toast「比例需在 0–100%」，不写入。</li>
 <li><strong>Given</strong> 项目类适用范围仅剩 1 类，<strong>When</strong> 再取消该类，<strong>Then</strong> toast「至少选一种支付方式」，适用范围仍保留该类。</li>
-<li><strong>Given</strong> 项目类固定金额且已设置点客提成，<strong>When</strong> 输入散客 ¥3、点客 ¥5 保存，<strong>Then</strong> 规则卡显示「提成¥3」与「点 点客提成¥5」。</li>
+<li><strong>Given</strong> 项目类固定金额且已设置点客提成，<strong>When</strong> 输入提成 ¥3、点客 ¥5 保存，<strong>Then</strong> 规则卡内容区摘要为「提成 ¥3 │ 点¥5」。</li>
 <li><strong>Given</strong> 项目类分配模式「按工位分配」，<strong>When</strong> 进入规则设置 Sheet 按工位态，<strong>Then</strong> 可见固定 3 工位行内改名；<strong>无</strong>添加工位 / 删除入口。</li>
 <li><strong>Given</strong> 规则设置 Sheet 按工位，<strong>When</strong> 点「大工」改名「总监」失焦/回车，<strong>Then</strong> 本店全部方案显示「总监」；全局同步。</li>
 <li><strong>Given</strong> 用户覆盖规则卡，<strong>When</strong> 长按，<strong>Then</strong> 无底部操作 Sheet、无选择适用项/重命名。</li>
@@ -3218,10 +3249,10 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <li><strong>Given</strong> 店员 / 店长 / 高级店员，<strong>When</strong> 点击工作台「提成设置」，<strong>Then</strong> 权限拦截（toast），不进入。</li>
 <li><strong>Given</strong> 方案列表有未分配员工，<strong>When</strong> 查看列表顶部，<strong>Then</strong> 提示「还有 N 人未分配任何提成方案」；点击弹名单；每人至少进一个方案后提示消失。</li>
 <li><strong>Given</strong> 覆盖规则标题「染发、烫发、剑琅玻尿酸精华液」，<strong>When</strong> 卡片横向空间不足，<strong>Then</strong> 行1 标题 &gt;6 字以 <code>…</code> 截断且至少保留约 6 字宽；<code>title</code> 含全文；行1 右侧基数控件完整可见。</li>
-<li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 查看规则卡，<strong>Then</strong> 「大工」「中工」「小工」全称竖排三行于行2左侧，适用范围 chip 相对参数区整体中轴对齐；数值完整可见；参数区左缘与标题图标左缘对齐。</li>
-<li><strong>Given</strong> 任意规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 行1=标题+基数、行2=参数+适用范围；最右「＞」垂直居中；整卡可点进全量 Sheet。</li>
-<li><strong>Given</strong> 不分工位且未开点客，<strong>When</strong> 查看参数，<strong>Then</strong> 只显示一个数值；开启点客后左「提成」右「点客提成」（前有「点」标签）。</li>
-<li><strong>Given</strong> 规则卡，<strong>When</strong> 点击基数段控或适用范围 chip，<strong>Then</strong> 无直改；点击整卡打开全量 Sheet（无参数精简）。</li>
+<li><strong>Given</strong> 按工位分配且三工位均有参数，<strong>When</strong> 查看规则卡，<strong>Then</strong> 「大工」「中工」「小工」全称竖排三行于行2左侧，适用范围 chip 顶部与参数区<strong>顶部对齐</strong>；数值完整可见；参数区左缘与标题图标左缘对齐。</li>
+<li><strong>Given</strong> 任意规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 卡头=图标+标题+「＞」；内容区左参数、右 120px 竖排两控件（可点选）；卡头分隔线从左侧装饰条右侧起画、装饰条贯通不被压线；整卡空白区可点进全量 Sheet。</li>
+<li><strong>Given</strong> 不分工位，<strong>When</strong> 查看参数，<strong>Then</strong> 数值左侧恒有「提成」标签（12px/500/#8D8D8D，与工位名同款，间距 5px）；未开点客为 <code>提成 10%</code>；开启点客为 <code>提成 10% │ 点12%</code>（中间 1px 竖线分隔；「点」标签在点客数值左侧、中轴与数值对齐）。</li>
+<li><strong>Given</strong> 规则卡，<strong>When</strong> 点击「原价/实收」或「现金/卡付/团购」，<strong>Then</strong> 卡上直改该值且<strong>不打开</strong> Sheet，保存后写入方案；只有一种支付方式在选时再取消，toast「至少选一种支付方式」且不改动；固定金额时基数区为只读「固定」，点它进 Sheet 改回比例。</li>
 <li><strong>Given</strong> 员工薪资明细 · 业绩统计，<strong>When</strong> 查看横向比例条，<strong>Then</strong> 字段为现金 / 卡付 / 团购 / 签单（签单含经理签单+欠款）；金额为原价加总；四列之和 = 总计。</li>
 <li><strong>Given</strong> 员工薪资明细 · 提成统计，<strong>When</strong> 查看横向比例条，<strong>Then</strong> 字段为项目 / 产品 / 办卡 / 充卡 / 快捷开单；项目列 = 项目类提成 − 快捷开单提成；五列之和 = 总计。</li>
 <li><strong>Given</strong> 员工薪资明细 · 服务/售卡，<strong>When</strong> 查看摘要，<strong>Then</strong> 服务 = 项目+快消（人次/实收）；售卡 = 办卡+充卡（数量/实收，不含产品）；金额标签为「金额」（无「（实收）」字样）；服务与售卡标题旁均有 <strong>?</strong> 且弹窗相同。</li>
@@ -3240,7 +3271,7 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 <li><strong>Given</strong> 固定金额 + 按工位，<strong>When</strong> 计提含部分适用范围支付的行，<strong>Then</strong> 取对应工位固定额 × (范围内实付 / 全部实付)。</li>
 <li><strong>Given</strong> 同方案两条覆盖均可命中一行，<strong>When</strong> 解析，<strong>Then</strong> 对各命中块试算后取金额更高者；并列用添加顺序更靠前的一条。</li>
 <li><strong>Given</strong> 两方案算出金额均为 0 且均有可用分摊基数，<strong>When</strong> 取高，<strong>Then</strong> 列表更靠前的方案胜出（金额相等规则）。</li>
-<li><strong>Given</strong> 规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 行1=标题+只读基数、行2=参数+只读适用范围；右侧槽 120px；最右「＞」；≤6 字标题完整显示。</li>
+<li><strong>Given</strong> 规则卡，<strong>When</strong> 查看布局，<strong>Then</strong> 卡头 = 图标 + 标题 + 右侧「＞」；内容区 = 左提成参数（标签 + 数值）、右 120px 槽竖排两控件（基数 / 适用范围，<strong>可直接点选</strong>），两者<strong>顶部对齐</strong>；左竖条随卡片圆角轮廓贴合、卡头分隔线不压竖条；≤6 字标题完整显示。</li>
 <li><strong>Given</strong> 规则设置 Sheet，<strong>When</strong> 切换计算基数原价/实收并确定，<strong>Then</strong> 卡面只读段控同步；卡上点击基数不切换。</li>
 <li><strong>Given</strong> 按工位规则卡，<strong>When</strong> 查看参数，<strong>Then</strong> 「大工」「中工」「小工」全称竖排三行，不与适用范围重叠；参数区左缘与标题图标左缘对齐。
 53a. <strong>Given</strong> 默认「项目」=<code>avg</code>，但本店某启用方案存在一条项目类覆盖=<code>station</code>，<strong>When</strong> 开单进入「选择服务员工」（或内嵌选人 Sheet），<strong>Then</strong> <strong>全部项目</strong>均需选工位（类内 OR · 门店维度；见 §4.5.1 / 规则 7a）。
@@ -3251,8 +3282,9 @@ guestSplit=true：左「提成」+ 右「点」标签「点客提成」；工位
 56b. <strong>Given</strong> 同上行、实收模式 10%，<strong>When</strong> 计提，<strong>Then</strong> 基数 = 40（范围内实付），提成 = 4。
 56c. <strong>Given</strong> 同上行、固定额 ¥10，<strong>When</strong> 计提，<strong>Then</strong> 提成 = 10 × (40/100) = 4。</li>
 </ol>
-<p>56d. <strong>Given</strong> 未开点客的规则，<strong>When</strong> 打开 Sheet，<strong>Then</strong> 仅一张「提成」卡 +「设置点客提成」文字链；确定后点客=散客。
-56e. <strong>Given</strong> 已开点客，<strong>When</strong> 点点客卡上的 ×，<strong>Then</strong> 回到单「提成」，两端写同一数值（保留散客侧）。
+<p>56d. <strong>Given</strong> 未开点客的规则，<strong>When</strong> 打开 Sheet，<strong>Then</strong> 左「提成」卡 + 右虚线卡「+ 点客提成」等比并排（等高，灰虚线灰字）；确定后点客=提成侧数值。
+56e. <strong>Given</strong> 未开点客，<strong>When</strong> 点虚线卡，<strong>Then</strong> 全局 <code>guestSplit=true</code>，右卡变「点客」卡；再点「点客」卡 × 收起，回到虚线卡。
+56f. <strong>Given</strong> 按工位分配且未开点客，<strong>When</strong> 打开 Sheet，<strong>Then</strong> 每个工位行各为「提成」卡 + 虚线卡等比并排；点任一虚线卡即三个工位同时开点客。
 56f. <strong>Given</strong> 添加规则项页，<strong>When</strong> 查看，<strong>Then</strong> <strong>无</strong>全选/已选 N/反选工具行；底部「下一步（N）」在 N=0 时禁用。
 65f. <strong>Given</strong> 员工详情 / 我的资料 / 创建·完善表单，<strong>When</strong> 查看内容区底部，<strong>Then</strong> 有次要白底「社区形象」卡，内仅剑号/宝剑；头像仍在顶部主卡。</p>
 <h3>10.3 链路二 · 员工管理 P0</h3>

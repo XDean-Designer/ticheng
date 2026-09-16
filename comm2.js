@@ -23,7 +23,7 @@
     paid: '用开单实收加总'
   };
   var PICK_BRIEF = {
-    avg: '开单不分工位，按点客/散客统一提成',
+    avg: '开单不分工位，统一按提成计提；点客可单独设置',
     station: '固定大/中/小工，可改名，不可增减；改名全局同步'
   };
   var COMM2_QUICK_OV_ID = 'ov_sys_quick';
@@ -95,7 +95,7 @@
     if (rule.guestSplit == null) rule.guestSplit = detectGuestSplit(rule, ids);
     else rule.guestSplit = !!rule.guestSplit;
     if (!rule.guestSplit) {
-      /* 关点客：以散客侧为统一值写入两端 */
+      /* 关点客：以提成（原散客）侧为统一值写入两端 */
       syncPairUnified(rule, false);
       ids.forEach(function (sid) {
         if (rule.stations && rule.stations[sid]) syncPairUnified(rule.stations[sid], false);
@@ -551,7 +551,7 @@
     var des = pairVal(rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     if (!rule.guestSplit) return fmtVal(non, isAmt);
-    return fmtVal(non, isAmt) + '·点' + fmtVal(des, isAmt);
+    return fmtVal(non, isAmt) + '｜点' + fmtVal(des, isAmt);
   }
   function formatPairFlatHtml(rule, isAmt) {
     rule = ensureCat(rule);
@@ -559,7 +559,7 @@
     var non = pairVal(rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     if (!rule.guestSplit) return '<strong>' + fmtValHtml(non, isAmt) + '</strong>';
     return '<strong>' + fmtValHtml(non, isAmt) + '</strong>' +
-      '<span class="comm2-cat__dot">·</span>' +
+      '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
       '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
       '<strong>' + fmtValHtml(des, isAmt) + '</strong>';
   }
@@ -567,14 +567,14 @@
     var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     if (!guestSplit) return fmtVal(non, isAmt);
-    return fmtVal(non, isAmt) + '·点' + fmtVal(des, isAmt);
+    return fmtVal(non, isAmt) + '｜点' + fmtVal(des, isAmt);
   }
   function formatStationPairHtml(sch, st, isAmt, guestSplit) {
     var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     if (!guestSplit) return fmtValHtml(non, isAmt);
     return fmtValHtml(non, isAmt) +
-      '<span class="comm2-cat__dot">·</span>' +
+      '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
       '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
       fmtValHtml(des, isAmt);
   }
@@ -721,16 +721,12 @@
   function chevronSvg() {
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
   }
-  function smallChevronSvg() {
-    return '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
-  }
-
   /** 单值输入卡（未开点客 / 按工位单参） */
   function singleCapHtml(prefix, pair, isAmt, title, opts) {
     opts = opts || {};
     pair = pair || defaultPair();
     var key = isAmt ? 'designatedAmt' : 'designated';
-    /* 单提成展示/编辑用散客侧数值（与 guestSplit 关时两端已同步） */
+    /* 单提成展示/编辑用提成（原散客）侧数值（与 guestSplit 关时两端已同步） */
     var val = isAmt ? pair.nonDesignatedAmt : pair.nonDesignated;
     if (opts.useDes) val = pair[key];
     var ph = isAmt ? '请输入金额' : '请输入比例';
@@ -748,7 +744,7 @@
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
   }
 
-  /** 点客开启后：散客 + 点客双卡左右等比；点客卡用 × 关闭 */
+  /** 点客开启后：提成 + 点客双卡左右等比；点客卡用 × 关闭 */
   function twinHtml(prefix, pair, isAmt, aria, opts) {
     opts = opts || {};
     pair = pair || defaultPair();
@@ -760,11 +756,11 @@
     var cancelBtn = opts.hideCancel
       ? ''
       : '<button type="button" class="comm2-guest-close" data-comm2-guest-split="off" aria-label="取消点客提成">' + guestCloseSvg() + '</button>';
-    return '<div class="comm2-twins" role="group" aria-label="' + esc(aria || '散客与点客') + '">' +
-      '<div class="comm2-cap comm2-cap--non"><div class="comm2-cap__head"><span class="comm2-cap__title">散客</span></div>' +
+    return '<div class="comm2-twins" role="group" aria-label="' + esc(aria || '提成与点客') + '">' +
+      '<div class="comm2-cap comm2-cap--non"><div class="comm2-cap__head"><span class="comm2-cap__title">提成</span></div>' +
       '<div class="comm2-cap__field">' +
       (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
-      '<input class="input-amount" type="text" data-comm2-field="' + prefix + nonKey + '" value="' + esc(nonVal) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="散客" />' +
+      '<input class="input-amount" type="text" data-comm2-field="' + prefix + nonKey + '" value="' + esc(nonVal) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="提成" />' +
       (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
       '</div></div>' +
       '<div class="comm2-cap comm2-cap--des"><div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' + cancelBtn + '</div>' +
@@ -775,16 +771,17 @@
       '</div></div></div>';
   }
 
-  function guestSplitLinkHtml() {
-    return '<button type="button" class="comm2-guest-link" data-comm2-guest-split="on">' +
-      '设置点客提成<span class="comm2-guest-link__chev" aria-hidden="true">' + smallChevronSvg() + '</span></button>';
+  /** 未开点客：与「提成」卡等比并排的虚线卡；点击即全局开启点客 */
+  function guestAddCardHtml() {
+    return '<button type="button" class="comm2-guest-add" data-comm2-guest-split="on">' +
+      '<span class="comm2-guest-add__txt">+ 点客提成</span></button>';
   }
 
   function commissionParamsHtml(prefix, pair, isAmt, guestSplit, aria) {
     if (guestSplit) return twinHtml(prefix, pair, isAmt, aria);
-    return '<div class="comm2-guest-row">' +
+    return '<div class="comm2-guest-row comm2-guest-row--pair">' +
       singleCapHtml(prefix, pair, isAmt, '提成') +
-      guestSplitLinkHtml() +
+      guestAddCardHtml() +
       '</div>';
   }
 
@@ -792,6 +789,33 @@
     if (!el) return;
     el.classList.add('is-flash');
     setTimeout(function () { el.classList.remove('is-flash'); }, 700);
+  }
+
+  /* ---- 比例输入框：宽度贴合数值（使 % 紧贴数字右侧） ---- */
+  var _capMeasureCtx = null;
+  function measureTextPx(text, font) {
+    if (!_capMeasureCtx) {
+      var cv = document.createElement('canvas');
+      _capMeasureCtx = cv.getContext('2d');
+    }
+    _capMeasureCtx.font = font;
+    return _capMeasureCtx.measureText(String(text == null ? '' : text)).width;
+  }
+  function syncCapFieldWidth(input) {
+    if (!input || !input.style) return;
+    var field = input.getAttribute('data-comm2-field') || '';
+    /* 金额模式 ¥ 为前缀，输入框占满剩余宽度即可 */
+    if (/Amt$/.test(field)) { input.style.width = ''; return; }
+    var cs = window.getComputedStyle(input);
+    var font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+    var minW = measureTextPx('00', font);
+    var valW = measureTextPx(input.value || '', font);
+    input.style.width = Math.ceil(Math.max(minW, valW) + 1) + 'px';
+  }
+  function syncCapFieldWidths(root) {
+    var scope = root || document;
+    var list = scope.querySelectorAll ? scope.querySelectorAll('.comm2-cap__field input') : [];
+    Array.prototype.forEach.call(list, syncCapFieldWidth);
   }
 
   function isStationDefault(sch, id) {
@@ -842,27 +866,28 @@
     return block.baseMode === 'paid' ? '实收' : '原价';
   }
 
-  /** 卡上：原价/实收/固定 · 只读展示（仅 Sheet 可改） */
+  /** 卡上：原价/实收 段控（可直接切换；固定金额时为只读灰标「固定」） */
   function barBaseCtrlHtml(block) {
     var isAmt = !!(block.rule && block.rule.valueMode === 'amount');
     if (isAmt) {
       return '<span class="comm2-rule-bar__base is-fixed" aria-label="固定金额">固定</span>';
     }
     var isPaid = block.baseMode === 'paid';
-    return '<span class="comm2-rule-bar__seg is-ro" role="text" aria-label="计算基数 ' + (isPaid ? '实收' : '原价') + '">' +
-      '<span class="comm2-rule-bar__chip' + (!isPaid ? ' on' : '') +
-      (!isPaid ? ' comm2-rule-bar__base is-list' : '') + '" aria-hidden="true">原价</span>' +
-      '<span class="comm2-rule-bar__chip' + (isPaid ? ' on' : '') +
-      (isPaid ? ' comm2-rule-bar__base is-paid' : '') + '" aria-hidden="true">实收</span></span>';
+    return '<div class="comm2-rule-bar__seg" role="radiogroup" aria-label="计算基数">' +
+      '<button type="button" class="comm2-rule-bar__chip' + (!isPaid ? ' on' : '') +
+      (!isPaid ? ' comm2-rule-bar__base is-list' : '') + '" data-comm2-card-base="list" role="radio" aria-checked="' + (!isPaid ? 'true' : 'false') + '">原价</button>' +
+      '<button type="button" class="comm2-rule-bar__chip' + (isPaid ? ' on' : '') +
+      (isPaid ? ' comm2-rule-bar__base is-paid' : '') + '" data-comm2-card-base="paid" role="radio" aria-checked="' + (isPaid ? 'true' : 'false') + '">实收</button></div>';
   }
 
-  /** 卡上：现金/卡付/团购 · 只读 chip */
+  /** 卡上：现金/卡付/团购 chip（可直接点选；至少保留一种） */
   function barPayCtrlHtml(block) {
     ensurePayScopeBlock(block);
-    return '<div class="comm2-rule-bar__scope-chips is-ro" role="group" aria-label="适用范围">' +
+    return '<div class="comm2-rule-bar__scope-chips" role="group" aria-label="适用范围">' +
       COMM2_PAY_SCOPE.map(function (d) {
         var on = !!block.payScope[d.key];
-        return '<span class="comm2-scope-chip' + (on ? ' on' : '') + '" aria-hidden="true">' + esc(d.label) + '</span>';
+        return '<button type="button" class="comm2-scope-chip' + (on ? ' on' : '') +
+          '" data-comm2-card-scope="' + d.key + '" aria-pressed="' + (on ? 'true' : 'false') + '">' + esc(d.label) + '</button>';
       }).join('') + '</div>';
   }
 
@@ -915,8 +940,10 @@
       var des = pairVal(st, isAmt, 'designated', 'designatedAmt');
       var non = pairVal(st, isAmt, 'nonDesignated', 'nonDesignatedAmt');
       var valHtml = split
-        ? (fmtValHtml(non, isAmt) + '<span class="comm2-rule-bar__p-dot">·</span>' +
-          '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' + fmtValHtml(des, isAmt))
+        ? (fmtValHtml(non, isAmt) +
+          '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
+          '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
+          fmtValHtml(des, isAmt))
         : fmtValHtml(non, isAmt);
       return barParamSegHtml(stationShortLabel(sch, sid), valHtml);
     }).join('');
@@ -929,13 +956,13 @@
     var des = pairVal(block.rule, isAmt, 'designated', 'designatedAmt');
     var non = pairVal(block.rule, isAmt, 'nonDesignated', 'nonDesignatedAmt');
     if (!block.rule.guestSplit) {
-      return barParamSegHtml('', fmtValHtml(non, isAmt), { extraClass: 'is-single' });
+      return barParamSegHtml('提成', fmtValHtml(non, isAmt), { extraClass: 'is-single' });
     }
     var valHtml = fmtValHtml(non, isAmt) +
-      '<span class="comm2-rule-bar__p-dot">·</span>' +
+      '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
       '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
       fmtValHtml(des, isAmt);
-    return barParamSegHtml('', valHtml, { extraClass: 'is-guest-sum' });
+    return barParamSegHtml('提成', valHtml, { extraClass: 'is-guest-sum' });
   }
 
   function titleCharCount(s) {
@@ -986,36 +1013,22 @@
     var titleBlock = '<div class="comm2-rule-bar__title-hit">' +
       '<h2 class="comm2-rule-bar__title">' + catIconSvg(iconKey) +
       '<span class="comm2-rule-bar__title-txt' + (titleEllipsis ? ' is-ellipsis' : '') + '" title="' + esc(title) + '">' + esc(title) + '</span></h2></div>';
-    var mainHtml;
-    if (isStation) {
-      /* 按工位：左标题+参数竖排；右列两控件垂直居中、间距规整 */
-      mainHtml = '<div class="comm2-rule-bar__main">' +
-        '<div class="comm2-rule-bar__left">' +
-        titleBlock +
-        '<div class="comm2-rule-bar__params" aria-label="提成参数">' + barParamsHtml(sch, block) + '</div>' +
-        '</div>' +
-        '<div class="comm2-rule-bar__side" aria-hidden="true">' +
-        barFieldHtml(barBaseCtrlHtml(block)) +
-        barFieldHtml(barPayCtrlHtml(block)) +
-        '</div></div>';
-    } else {
-      mainHtml = '<div class="comm2-rule-bar__main">' +
-        '<div class="comm2-rule-bar__row comm2-rule-bar__row--1">' +
-        titleBlock +
-        barFieldHtml(barBaseCtrlHtml(block)) +
-        '</div>' +
-        '<div class="comm2-rule-bar__row comm2-rule-bar__row--2">' +
-        '<div class="comm2-rule-bar__params" aria-label="提成参数">' +
-        barParamsHtml(sch, block) + '</div>' +
-        barFieldHtml(barPayCtrlHtml(block)) +
-        '</div></div>';
-    }
+    /* 卡头：左图标+标题，右「＞」；卡头下方内容区：左提成参数 + 右两控件竖排 */
+    var cardHtml = '<div class="comm2-rule-bar__head">' +
+      titleBlock +
+      '<span class="comm2-rule-bar__chev" aria-hidden="true">' + chevronSvg() + '</span>' +
+      '</div>' +
+      '<div class="comm2-rule-bar__body">' +
+      '<div class="comm2-rule-bar__params" aria-label="提成参数">' + barParamsHtml(sch, block) + '</div>' +
+      '<div class="comm2-rule-bar__side">' +
+      barFieldHtml(barBaseCtrlHtml(block)) +
+      barFieldHtml(barPayCtrlHtml(block)) +
+      '</div></div>';
     var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') +
       (block.rule && block.rule.guestSplit ? ' is-guest-split' : '') +
       '" data-comm2-rule-card="' + esc(target) + '" data-comm2-card-open="' + esc(target) + '" role="button" tabindex="0" aria-label="编辑规则 ' + esc(title) + '"' +
       (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
-      mainHtml +
-      '<span class="comm2-rule-bar__chev" aria-hidden="true">' + chevronSvg() + '</span>' +
+      cardHtml +
       '</article>';
     if (!isOv) return card;
     return '<div class="comm2-rule-swipe-wrap" data-comm2-swipe-ov="' + esc(ovId) + '">' +
@@ -1098,6 +1111,27 @@
     block.pickMode = mode === 'station' ? 'station' : 'avg';
     if (store._sheetContext !== 'pick') markDirty();
     refreshCardSheetBody();
+  }
+
+  /* ---- 卡面直接操作（不进 Sheet）：计算基数 / 适用范围 ---- */
+  /** 卡上「原价/实收」切换；固定金额（只读「固定」）时忽略 */
+  function setCardBase(target, mode) {
+    var sch = editing();
+    var block = sch ? getCardBlock(sch, target) : null;
+    if (!block) return;
+    if (block.rule && block.rule.valueMode === 'amount') return;
+    block.baseMode = mode === 'paid' ? 'paid' : 'list';
+    markDirty();
+    renderEditCards(sch);
+  }
+
+  /** 卡上「现金/卡付/团购」点选；至少保留一种（沿用 Sheet 校验与 toast） */
+  function toggleCardScope(target, key) {
+    var sch = editing();
+    var block = sch ? getCardBlock(sch, target) : null;
+    if (!block || !toggleBlockScope(block, key)) return;
+    markDirty();
+    renderEditCards(sch);
   }
 
   function setSheetCardRole(role) {
@@ -1647,6 +1681,7 @@
     var opts = { variant: store._sheetVariant || 'full' };
     if (store._sheetContext === 'pick' && store._pickType === 'card') opts.showCardRole = true;
     body.innerHTML = renderCardSheetBody(sch, block, opts);
+    syncCapFieldWidths(body);
     if (typeof wireAmountKeypadInputs === 'function') wireAmountKeypadInputs(body);
   }
 
@@ -1693,7 +1728,7 @@
     var ids = getStationIds(sch);
     if (on) {
       block.rule.guestSplit = true;
-      /* 开启时点客默认跟散客当前值 */
+      /* 开启时点客默认跟提成当前值 */
       block.rule.designated = block.rule.nonDesignated;
       block.rule.designatedAmt = block.rule.nonDesignatedAmt;
       ids.forEach(function (sid) {
@@ -1851,7 +1886,7 @@
     var des = parseFloat(desEl && desEl.value);
     var non = parseFloat(nonEl && nonEl.value);
     if (!Number.isFinite(des) || des < 0) return { error: '请输入有效的点客' + unitLbl };
-    if (!Number.isFinite(non) || non < 0) return { error: '请输入有效的散客' + unitLbl };
+    if (!Number.isFinite(non) || non < 0) return { error: '请输入有效的提成' + unitLbl };
     if (!isAmt && (des > 100 || non > 100)) return { error: '比例需在 0–100%' };
     var o = defaultPair();
     if (isAmt) { o.designatedAmt = des; o.nonDesignatedAmt = non; }
@@ -2537,6 +2572,18 @@
         e.preventDefault(); e.stopPropagation();
         return;
       }
+      var baseHit = e.target.closest('[data-comm2-card-base]');
+      if (baseHit) {
+        e.preventDefault(); e.stopPropagation();
+        setCardBase(baseHit.closest('[data-comm2-rule-card]').getAttribute('data-comm2-rule-card'), baseHit.getAttribute('data-comm2-card-base'));
+        return;
+      }
+      var scopeHit = e.target.closest('[data-comm2-card-scope]');
+      if (scopeHit) {
+        e.preventDefault(); e.stopPropagation();
+        toggleCardScope(scopeHit.closest('[data-comm2-rule-card]').getAttribute('data-comm2-rule-card'), scopeHit.getAttribute('data-comm2-card-scope'));
+        return;
+      }
       var openBtn = e.target.closest('[data-comm2-card-open]');
       if (openBtn) {
         e.preventDefault(); e.stopPropagation();
@@ -2545,6 +2592,8 @@
     });
     $('comm2EditCards') && $('comm2EditCards').addEventListener('keydown', function (e) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
+      /* 卡上控件自行处理键盘激活，勿再打开 Sheet */
+      if (e.target.closest('[data-comm2-card-base]') || e.target.closest('[data-comm2-card-scope]')) return;
       var openBtn = e.target.closest('[data-comm2-card-open]');
       if (!openBtn) return;
       e.preventDefault();
@@ -2740,6 +2789,16 @@
         }, 80);
       }
     });
+
+    /* 金额键盘改动比例值后，同步输入框宽度（% 紧贴数值） */
+    function onCapFieldValueChange(e) {
+      var t = e.target;
+      if (!t || !t.classList || !t.classList.contains('input-amount')) return;
+      if (!t.closest || !t.closest('.comm2-cap__field')) return;
+      syncCapFieldWidth(t);
+    }
+    document.addEventListener('input', onCapFieldValueChange);
+    document.addEventListener('change', onCapFieldValueChange);
 
     $('comm2CatSheetCancel') && $('comm2CatSheetCancel').addEventListener('click', closeCatSheet);
     $('comm2CatSheetOk') && $('comm2CatSheetOk').addEventListener('click', saveCatSheet);
