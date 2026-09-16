@@ -5,7 +5,7 @@ from pathlib import Path
 
 import markdown
 
-ROOT = Path(r"d:\RTB打补丁工程\提成设置")
+ROOT = Path(__file__).resolve().parent
 MD = ROOT / "PRD-提成设置.md"
 HTML = ROOT / "PRD-提成设置.html"
 

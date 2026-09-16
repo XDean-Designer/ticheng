@@ -18,6 +18,8 @@
 | 修订（2026-09-16 九次） | **规则卡上的「额外」段改称「顾客指定」**（取值语义不变，仍是叠加在提成之上的顾客指定提成；Sheet 参数卡标题仍为「额外」）；**未开顾客指定时的虚线卡文案由「+ 额外」改为「+ 顾客指定提成」**（不分工位并排卡与按工位「顾客指定」行两处一致）。**修复「比例 / 金额」两段式胶囊溢出 BUG**：Sheet 内参数卡改**分行布局**（第 1 行取值、第 2 行胶囊右对齐贴卡片右下角）；金额模式输入框改为吃掉「输入行 − 胶囊」的剩余宽度 —— 任意数值下胶囊恒定贴卡片右下角、**不溢出卡片**（旧问题：点「金额」后 `<input>` 回落默认宽度把胶囊顶出卡外约 200px，看起来「消失 / 飞走」）。同步 §1.3 / §1.5 / §6.2.1 / §6.2.3 / §6.2.4 / §6.3 / §6.4 / §9.1 / §10.2 |
 | 修订（2026-09-16 十次） | **Sheet 参数卡取值行布局定稿**：**宽卡**（不分工位：「提成」+「额外」并排，卡 175px）值与胶囊**同一行**（左取值、右胶囊）；**窄卡**（按工位：3 工位卡横排一行 + 「顾客指定」行卡，卡 114px）装不下 → **胶囊换到第 2 行右对齐**（= 卡片右下角）、**保持原始尺寸不压缩**，取值行因此可占满整行（金额输入框不再被挤成 22px）。任一情况下胶囊恒定贴卡片右侧 / 右下角、**不溢出卡片**。**PRD 内「额外」统一改称「顾客指定」**（含模型说明、计算规则 7/7a/8/29、字段表、演示数据、文案清单、验收 56i3 / 56i4 等）；**仅 Sheet 参数卡标题**保留「额外」。同步 §1.3 / §1.5 / §5.1 / §6.2.1 / §6.2.3 / §6.2.4 / §6.3 / §6.4 / §7.2.1 / §8 / §8.1 / §8.2 / §9 / §10.2 |
 | 修订（2026-09-16 十一次） | ①**不分工位 + 开顾客指定**的 Sheet 参数区改为**两列并排 + 静态列头**「普通」/「顾客指定」（列头 UI 同工位列头：圆点 + 13px、**不可编辑、无改名图标**，「顾客指定」圆点用品牌红；卡宽仍半宽「宽卡」）；**不分工位 + 未开顾客指定**维持「提成卡 + 虚线卡并排、**无列头**」不变。②**选择服务员工交互重定义**：**工位为必选项**——必须用户手点才勾选（**不再预选默认工位**），未点工位的员工**不计入已选**；先勾「顾客指定」而缺工位时**保持展开**等工位；展开态**再点已勾选的工位不取消**（该卡播 **iOS 抖动**提醒，不弹 toast —— 要改工位就点另一个工位、要取消整人就到收缩态点右侧勾选控件）；「顾客指定」可再点取消——待选工位态取消 → **保持展开**且仍未选，已有工位取消 → 退回仅工位并收起，不分工位取消 → 退回「普通」；「普通」再点 → 取消该员工；收起时**保留**「顾客指定」勾选记忆（Sheet 关闭后再打开仍在）。③**勾选控件新动效**：点按后**快速变红（120ms）→ 勾从左到右画出（220ms）**，取消**反序播放**（收勾 → 褪红）；**切换工位时旧勾先反序收回、再画新勾**；**卡片的收起 / 展开都必须等动效播完**；动效期间的新交互**抢断**当前动效（立即落定后执行，不排队、不丢失）。同步 §4.5.1 / §6.2.3 / §6.2.4 / §6.3 / §6.4 / §6.7.1 / §9 / §10.2.1 |
+| 修订（2026-09-16 十二次） | **勾选动效提速一倍 + 「播完才收起」改为按真实动画终点判定 + 展开态点卡片区任意处都收起**。①**提速一倍**：变红 120ms → **60ms**、画勾 220ms → **110ms**（单轮 **170ms**；切换工位约 **340ms**）。时长抽成 CSS 变量 `--sp-check-red` / `--sp-check-draw`，**JS 与 CSS 同源**（`comm2.js` 直接读变量算门控时长），避免两边对不齐。②**收起 / 展开不再用固定计时**：改为等**真实动画播完**（`Animation.finished`）+ 「已过名义时长」两者取长（+超时兜底）——动效被改慢时收起随之推后；**修复「还没播完就收起」**（原固定 `setTimeout(340ms)` 在主线程卡顿 / 动效期间点其他区域时会提前落定）。③**动效期间的新交互仍抢断**（不排队、不丢失），但抢断时**先把进行中的勾补画成终点态**再落定 —— 勾永远不会停在半路。④**展开态「点选项卡之外的区域都收起」**：**服务员工卡片区**内（编辑卡自身空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / `scrim`）任意点击都收起；**Sheet 标题、提示行、底部栏**（卡片区之外）点了不收起；底部「完成」与 Sheet 外遮罩仍旧**关闭整个 Sheet**；点另一张员工卡 = **收起当前 + 展开新的**；展开 Morph（380ms）播完前不收起。⑤**收起后收缩态员工卡右侧的勾不再重画**（选项卡上已画过，直接呈现完整态）；「不分工位 + 未开顾客指定」的**点选即勾选**态仍在员工卡上**画出**勾（该态无选项卡）。同步 §4.5.1 / §6.4 / §6.7.1 / §9.1 / §10.2.1（新增 53z–53ad） |
+| 修订（2026-09-16 十三次） | **新增 §12「交互动效规范」——全套动效进 PRD，作为唯一规范来源。** 覆盖 **26 项动效**（A 选人 Sheet 13 项 · B 提成设置 6 项 · C 员工管理 / 薪资 4 项 · D 壳层基座 4 项，其中 C 组 2 项属阶梯提成、§1.4 本期不做）。每项固定给出 10 个字段（触发 / 起始态 / 过程 / 结束态 / 时长 / 缓动 / **可中断** / **互斥** / **降级** / 实现锚点），并提供**可照抄的 CSS / JS 代码块**。新增 5 个全局小节：①**时长阶梯**（含 `--sp-check-red 60ms` / `--sp-check-draw 110ms`，要求 JS 门控与 CSS **同源**）；②**缓动曲线**（iOS spring `cubic-bezier(.34,1.3,.64,1)` / Apple 标准 `.22,.82,.24,1` / 抖动 `.36,.07,.19,.97` / 画勾必须 `linear`）；③**几何与视觉 token**（实测 `gridW 332` / `cellW 105.33` / 位移步长 `113.33` 等）；④**触觉**（选人 `8ms`、拖拽 `12ms`）；⑤**按压反馈统一规则**（仅三类元素有形变）。**动效细节实证补全**：Morph 展开的关键帧与公式、**收起为即时重绘（实测 2ms、无过渡）**、同行卡片淡出（瞬时）、选项卡分裂逐张 `0/35/70/105ms`、选项面板淡入（实测 ≈200ms）、门控状态机（`morphUntil` + `checkUntil` 双门 + 名义时长取长 + `300ms` 兜底 + 抢断补画 + 只认最后一次意图）、左滑删除（横向位移绝对量 > 8px 起滑、`clamp(−72,0,dx)`、`dx≤−48` 吸附、`.22s`）、列表拖拽排序（长按 `400ms`、移动 `8px` 取消、`opacity .55 / .15s`）、Toast（`.2s`、`2000/2600ms`、`>18` 字多行）、抽屉（`.28s`、`.55` 阈值、`22px` 热区）。新增 §12.7 组合 / 互斥矩阵、§12.8 降级与可访问性、**§12.9 动效专项验收 N1–N24**、§12.10 实现自检清单 + **2 项已知偏差待确认**（收起与展开不对称、`opened` 判据；原「重绘重播 `staffDonePop`/`staffCheckIn`」已**同批修掉** —— 改为一次性标记 `is-pop` / `is-in`，`spSelectStaff()` 置位、渲染读取、渲染后清空，多选时不再「噗噗」连弹，回归项 N18 / N25）。**同批附带修掉一个连带 BUG**：刚展开（`is-splitting` 仍在 DOM）时点已选工位，抖动会被 `fill: both` 的入场动画吃掉（`is-shake` 被 `staffRoleSplit` 的 `animationend` 在 ≈260ms 截断）—— ① CSS 中抖动规则移到 `is-splitting` 之后并加组合选择器；② `animationend` 回调按 `animationName` 过滤；③ `is-splitting` 延到 `520ms` 才摘除。回归项 **N26**。§12.11 变更流程。§6.7.1 动效表精简为摘要并链至 §12.3。模块编号顺延：原「模块 12 交付物」→ **模块 13 交付物** |
 
 ---
 
@@ -38,7 +40,8 @@
 | 9 | 文案清单与权限 | ✓ | 部分 | ✓ | 文案；角色权限矩阵 |
 | 10 | 验收 P0 + 造数场景 | 了解 | 了解 | **必看** | Given→When→Then |
 | 11 | 非功能（极简） | ✓ | ✓ | ✓ | |
-| 12 | 交付物 | ✓ | — | ✓ | 仅 PRD + 原型 |
+| 12 | 交互动效规范 | ✓ | — | ✓ | **动效唯一规范来源**（26 项 + 全局约定）；§12.3 选人 Sheet 动效墙必看 |
+| 13 | 交付物 | ✓ | — | ✓ | 仅 PRD + 原型 |
 
 **先读这几条（贯穿全文）**
 
@@ -453,7 +456,7 @@ flowchart LR
 - **待选工位态**：先勾「顾客指定」但尚未点工位时，该勾选**立即生效显示**，卡片**保持展开**等待工位；此时若收起卡片 / 关闭 Sheet，该「顾客指定」勾选**保留**（再次展开仍是勾选态，不弹提示），直到用户点工位（→ 完成选择）或手动取消该勾（→ 保持展开且仍未选）。
 - **取消勾选（展开态）**：**工位不可点掉**（抖动提醒）；「**顾客指定**」可再点取消 —— ①**待选工位态**（无工位）取消 → 卡片**保持展开**、员工仍未选；②已有工位取消 → 退回仅工位并收起；③不分工位取消 → 退回「普通」，员工仍为已选；「**普通**」（仅不分工位态）再点 → **取消该员工**选择并收起。
 - **取消选择（收缩态）**：已勾选员工卡右侧的勾选控件可点，点后取消该员工选择（`staffChosen=false`），并清掉其工位 / 顾客指定标记。
-- **动效与门控**：点勾选控件 → **快速变红（120ms）→ 勾从左到右画出（220ms）**，取消**反序播放**（收勾 → 褪红）；**切换工位**时旧勾**先反序收回**、再画新勾（约 680ms）；卡片的**收起 / 展开都必须等动效播完**才发生；**动效期间的新交互抢断当前动效**——立即落定进行中的结果再执行新交互（不排队、不丢失）。`prefers-reduced-motion` 下全部瞬时切态。
+- **动效与门控**：点勾选控件 → **快速变红（60ms）→ 勾从左到右画出（110ms）**，取消**反序播放**（收勾 → 褪红）；**切换工位**时旧勾**先反序收回**、再画新勾（约 340ms）；卡片的**收起 / 展开都必须等动效**（`Animation.finished` + 名义时长取长），**不用固定计时**；**动效期间的新交互抢断当前动效**——**先把勾补画成终点态**再立即落定进行中的结果、随后执行新交互（不排队、不丢失）；**抢断时勾不会停在半路**。展开态下**服务员工卡片区**内点非选项卡区域（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / `scrim`）一律收起；**Sheet 标题 / 提示行 / 底部栏**点了不收起（详见 §6.7.1）。`prefers-reduced-motion` 下全部瞬时切态。
 - **交互呈现（点击后自适应）**：选人列表**不预打标**；点选某员工时按该员工是否需二次选择决定是否展开「员工变为按钮」动效——需采集（工位或顾客指定**任一**）才展开，两者皆否则直接完成勾选。
 - **内嵌选人一并生效**：若「加入购物车」等 Sheet **内嵌**了选服务员工，同一规则一并生效。
 - **未采集时的落库与计提**：未勾选「顾客指定」时，订单行该员工**不含顾客指定提成**（`staffExtra=false`），按命中块「提成」侧取值——`pickMode=avg` 取 rule 级 `nonDesignated`，`pickMode=station` 取该工位 `stations[station].nonDesignated`；未采集「工位」时按 §8 规则 7 缺省回落（`stationIds[0]`）。计提仍按 §8 规则 3 取高、规则 7 取值。
@@ -838,17 +841,26 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 | ✗ | ✓ | 展开 **2 张**：「普通」「顾客指定」；二选一后收缩（员工卡显示 `普通` / `顾客指定`）；再点已勾选的「顾客指定」→ 退回「普通」，再点「普通」→ 取消该员工 |
 | ✗ | ✗ | **点选即勾选**（勾选控件同款画出动效），无展开、无勾选卡（员工卡第三行仍为灰色头衔） |
 
-**动效（iOS 向）**：
+**动效（iOS 向）· 摘要**：
 
-| 参数 | 值 |
-|------|----|
-| 展开 / 让位 | `.38s cubic-bezier(.34,1.3,.64,1)`（轻过冲） |
-| 按下反馈 | `scale(.96)`，约 `80ms` |
-| 勾选控件 | **点按 → 快速变红（120ms）→ 勾从左到右画出（220ms，`stroke-dashoffset` 24→0 线性）**；取消**反序播放**（收勾 220ms → 褪红 120ms）；**切换工位**时旧勾先反序收回、再画新勾（≈680ms）；未勾选 → 勾选有描边弹入 |
-| 工位不可点掉 | 再点已勾选的工位卡 → 卡片播 **iOS 抖动**（`spOptShake`，≈440ms，位移 ±6px + 轻微旋转），**不弹 toast**、不改状态 |
-| 收缩回弹 | `staffDonePop`，同 spring |
+> **完整规格见 §12.3 A 组（A1–A13）**，本节仅保留速查摘要。所有数值以 §12 为准；实现改动须回改 §12。
+
+| 项 | 值（详见 §12.3） |
+|----|------------------|
+| 展开 Morph（A1） | `380ms cubic-bezier(.34,1.3,.64,1)`；卡宽 `cellW → gridW`，位移 `dx = −列号 × (cellW + 8)`；同行其余卡**瞬时**淡出 |
+| 收起（A2） | **即时重绘，无过渡**（实测 2ms） |
+| 选项卡分裂入场（A4） | `staffRoleSplit 380ms` spring，逐张延迟 `0/35/70/105ms` |
+| 选项面板淡入（A5） | `200ms` spring；已展开卡重绘不重播 |
+| 按下反馈（A6 前的 A11…见 §12.2.5） | `scale(.96)`，`80ms` |
+| 勾选控件（A6 / A7） | **变红 `60ms`（`--sp-check-red`）→ 画勾 `110ms`（`--sp-check-draw`，`linear`，`stroke-dashoffset 24→0`）**；取消**反序**（收勾 110 → 褪红 60）；切换工位两轮串行 ≈`340ms` |
+| 收起 / 展开时机（A13） | **等真实动画播完**：`Animation.finished` 与名义时长取长（+`300ms` 兜底）；**Morph 380ms 播完前不收起** |
+| 动效期间点其他处（A13） | **抢断**：先把进行中的勾**补画成终点态**，再落定、随后执行新交互（不排队、点击不丢失，**勾不停在半路**） |
+| 展开态点「选项卡之外」 | **卡片区内**（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / `scrim`）→ **收起**；**Sheet 标题 / 提示行 / 底部栏** → **不收起**；「完成」/ Sheet 外遮罩 → **关闭整个 Sheet**；点另一张员工卡 → 收起当前 + 展开新的 |
+| 收起后的勾（A10） | **不重画**、直接呈现完整态；仅「点选即勾选」态在员工卡上画出 |
+| 工位不可点掉（A12） | 卡片播 **iOS 抖动**（`spOptShake` `440ms`，±6px + 轻微旋转），**不弹 toast**、不改状态 |
+| 收缩回弹（A9） | `staffDonePop` `420ms`，同 spring |
 | 触觉 | `vibrate(8)` |
-| 减弱动态 | `prefers-reduced-motion` 时瞬时切态 |
+| 减弱动态 | `prefers-reduced-motion` 时瞬时切态（终态一致；选项区恒可见。见 §12.8） |
 
 **工位名 / 员工池**：同前（`stationLabels` / `EmployeeDemo.getBillingStaffPool()`）。
 
@@ -1612,6 +1624,8 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 
 ### 10.2.1 关联页面 · 选择服务员工（§6.7.1）P0
 
+> **动效专项验收见 §12.9（N1–N25）**：本节覆盖业务结果，§12.9 覆盖动效过程（时序 / 门控 / 抢断 / 降级）。两者**都要过**。
+
 53n. **Given** 按工位 + 开顾客指定，**When** 点击某员工卡，**Then** 该卡 Morph 展开为**整行 4 张**勾选卡「大工 / 中工 / 小工 / 顾客指定」（工位名按 `stationLabels` 映射），每张**右上角**有**未勾选**控件。
 53o. **Given** 4 张勾选卡已展开且**未点任何工位**，**When** 查看，**Then** 4 张全为**未勾选**态（工位**不预选默认工位**）；**When** 点「大工」，**Then** 勾选控件**变红并画出对勾**，动效播完后该卡变为**已勾选**并**收缩**回员工卡；员工卡显示红色摘要 `大工`，右侧出现**放大勾选控件**（约 20px）且其勾**画出**，**无**右上角 ×。
 53p. **Given** 员工已选「大工」，**When** 再次点击该员工卡，**Then** 重新展开 4 张卡且「大工」为已勾选态；此时再点「顾客指定」，**Then** 「顾客指定」也被勾选，收缩后摘要为 `大工 · 顾客指定`（工位单选 + 顾客指定叠加）。
@@ -1623,8 +1637,12 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 53v. **Given** 按工位 + 开顾客指定且某员工卡已展开、**尚未点工位**，**When** 点「顾客指定」，**Then** 该勾选**立即画出**、卡片**保持展开**等待工位，员工**不计入已选**（入口摘要仍为「未选择」）；**When** 此时收起卡片或关闭 Sheet 后再展开，**Then** 该「顾客指定」**仍为勾选态**（保留记忆，不弹提示）。
 53w. **Given** 处于「顾客指定已勾、工位未点」的待选态，**When** 再点已勾选的「顾客指定」，**Then** 取消该勾、卡片**保持展开**、员工仍未选；**When** 随后点「小工」，**Then** 完成选择并收缩，摘要为 `小工`。
 53x. **Given** 员工已勾选「大工」，**When** 再点「大工」（已勾选的那张），**Then** **不取消**该勾：该卡播 **iOS 抖动动效**提醒（**不弹 toast**），状态与摘要不变；改点「中工」或到收缩态点右侧勾选控件才能变更。
-53y. **Given** 任一勾选动效播放中（约 340ms），**When** 立刻点其他交互（点遮罩收起 / 点另一张卡 / 点另一员工），**Then** 当前动效被**抢断**（立即落定其结果）并执行新交互——不排队、点击不丢失。
+53y. **Given** 任一勾选动效播放中（单轮约 170ms），**When** 立刻点其他交互（点遮罩收起 / 点另一张卡 / 点另一员工），**Then** 当前动效被**抢断**：进行中的勾先**补画成终点态**（不停在半路），随即落定其结果并执行新交互——不排队、点击不丢失。
 53z. **Given** 系统开启「减弱动态效果」，**When** 勾选 / 取消勾选 / 切换工位，**Then** 动效瞬时切态（不播放变红、画勾、抖动），状态变更与摘要仍正确。
+53aa. **Given** 单轮勾选动效（变红 60ms + 画勾 110ms），**When** 点「顾客指定」完成选择，**Then** 卡片**在动效播完后**（≈170ms）才收缩，**不会**在勾还没画完时收起；实测收起时刻 ≥ 动效结束时刻。
+53ab. **Given** 把画勾时长人为拉长（如 `--sp-check-draw: 600ms`），**When** 点「顾客指定」，**Then** 收起时刻随之推后到画勾播完之后（证明门控按**真实动画终点**判定，而非固定 `setTimeout`）。
+53ac. **Given** 某员工卡处于展开态，**When** 点**服务员工卡片区**内任一非选项卡区域（编辑卡自身空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / `scrim`），**Then** 卡片**收起**；**When** 点 **Sheet 标题 / 提示行 / 底部栏空白**，**Then** **不收起**；**When** 点底部「完成」或 Sheet 外遮罩，**Then** **关闭整个 Sheet**；**When** 点另一张员工卡，**Then** 收起当前并展开那一张。
+53ad. **Given** 从选项卡勾选完成并已收缩，**When** 观察收缩后员工卡右侧的勾，**Then** 勾为**完整态**（不重画一遍）；**Given**「不分工位 + 未开顾客指定」态点选员工，**Then** 勾在员工卡上以**画出**动效呈现（该态无选项卡）。
 65f. **Given** 员工详情 / 我的资料 / 创建·完善表单，**When** 查看内容区底部，**Then** 有次要白底「社区形象」卡，内仅剑号/宝剑；头像仍在顶部主卡。
 
 ### 10.3 链路二 · 员工管理 P0
@@ -1682,6 +1700,7 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 > 读者：前端 ✓ · 后端 ✓ · 测试 ✓
 
 - 画布与动效对齐原型 390×844。
+- **交互动效**：全套规格见 **§12 交互动效规范**（唯一规范来源）；性能与降级要求见 §12.2.6 / §12.2.7 / §12.8。
 - 方案数量与员工分配为单店量级；列表无需分页（方案数量少）。
 - 埋点：无专表；若现网统一规范另案。
 - 图片 / 上传：本模块无上传。
@@ -1692,7 +1711,765 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 
 ---
 
-# 模块 12　交付物
+# 模块 12　交互动效规范
+
+> 读者：前端 ✓ · 设计 ✓ · 测试 ✓ · 后端 ✗
+
+**本节性质：全套交互动效的唯一规范来源。** 时长、缓动、几何、时序、可中断性、互斥关系与降级行为**一律以本节为准**；实现需要改动时须**回改本节**（见 §12.11）。文中「实现锚点」只标出原型代码位置，**不构成第二事实来源**。
+
+**覆盖范围**：A 选人 Sheet（12 项）· B 提成设置（6 项）· C 员工管理 / 员工薪资（4 项）· D 壳层基座（4 项），共 **26 项** + 全局约定。**不含**：阶梯提成相关动效（§1.4 本期不做，§C3 / C4 仅列出以便对照原型，不计入验收）。
+
+## 12.1 怎么用这一节
+
+### 12.1.1 单项动效的字段定义
+
+每项动效固定给出 10 个字段。**前端实现时逐字段对齐即可**，不要只看「时长」一列：
+
+| 字段 | 含义 | 为什么必须写 |
+|------|------|--------------|
+| 触发 | 什么交互 / 状态变化启动它 | 决定事件挂载点 |
+| 起始态 | 启动瞬间的精确 DOM/样式（含「同帧关闭过渡」） | 决定是否需要强制 reflow |
+| 过程 | 关键帧或逐段数值 | 决定观感是否一致 |
+| 结束态 | 落定后的稳定样式 / 类名 | 决定是否清理临时类 |
+| 时长 | 精确毫秒 | 见 §12.2.1 阶梯 |
+| 缓动 | 精确曲线 | 见 §12.2.2 |
+| 可中断 | 动效中再次交互会怎样 | **最易被漏写、最易出 bug** |
+| 互斥 / 并行 | 与哪些动效可同时、与哪些必须串行 | 决定门控设计 |
+| 降级 | `prefers-reduced-motion` 下的行为 | 见 §12.8 |
+| 实现锚点 | 原型代码位置 | 便于对照 |
+
+### 12.1.2 分组与依赖顺序
+
+**A 组**是唯一带**状态机门控**的动效组（§12.3 A13），实现时建议**先做 A13 门控，再填各组员动效**——否则「动效没播完就收起」「勾停在半路」两类问题必然复现。
+
+**B / C 组**以独立过渡与闪示为主，可并行开发。**D 组**是全站基座，**先做 D 组**（页面/Sheet/Toast/抽屉），A–C 组依赖它。
+
+## 12.2 全局约定（所有动效共用）
+
+### 12.2.1 时长阶梯
+
+| token | 值 | 用途 |
+|-------|-----|------|
+| 即时 | `0ms` | 状态切换、页面切换、Sheet / Dialog 开合、参数卡选中 —— **刻意不做过渡**（见 §12.6 D1 / D2） |
+| `--sp-check-red` | `60ms` | 勾选控件「变红 / 褪红」 |
+| `--sp-check-draw` | `110ms` | 勾选控件「画勾 / 收勾」 |
+| 微反馈 | `80ms` | 按下 `scale`（`.staff-card__panel:active` / `.staff-opt:active`） |
+| 快过渡 | `.12s` ~ `.18s` | 垃圾桶显隐、chip、段控项、折叠三角、规则卡回弹默认值 |
+| 中过渡 | `.2s` ~ `.22s` | 选项面板淡入、左滑吸附、卡片描边/阴影 |
+| 长过渡 | `.25s` ~ `.28s` | 阶梯条高度、导航抽屉、遮罩 |
+| 弹性 | `380ms` | 选人网格 Morph、选项卡分裂入场 |
+| 回弹 | `420ms` | 收缩回弹 `staffDonePop` |
+| 抖动 | `440ms` | 工位不可点掉 `spOptShake` |
+| 闪示 | `.45s` / `.7s` / `.9s` / `1.8s` | 阶梯步、规则条、Sheet 锚点、薪资行定位 |
+| Toast 停留 | `2000ms` / `2600ms` | 普通 / 警示 |
+
+**单轮勾选 = 60 + 110 = 170ms**（`--sp-check-red + --sp-check-draw`）；**切换工位 = 2 × 170 = 340ms**。
+
+> **强制要求**：`--sp-check-red` / `--sp-check-draw` 必须在 `:root` 定义，**CSS 与 JS 同源**——JS 门控时长直接读这两个变量（§12.3 A13），不得各写一份常量，否则必然对不齐。
+
+### 12.2.2 缓动曲线
+
+| token | 值 | 用途 |
+|-------|-----|------|
+| iOS spring | `cubic-bezier(.34,1.3,.64,1)` | 所有「展开 / 分裂 / 回弹 / 选项淡入」（**轻过冲**） |
+| Apple 标准 | `cubic-bezier(.22,.82,.24,1)` | 左滑吸附、meta 入场、勾弹入、导航抽屉 |
+| 抖动 | `cubic-bezier(.36,.07,.19,.97)` | 工位抖动（衰减振荡手感） |
+| 线性 | `linear` | 画勾 / 收勾（笔迹必须匀速） |
+| `ease` | 默认 | 颜色 / 透明度过渡 |
+| `ease-out` | 默认 | 按下 `scale`（`80ms`） |
+
+> **不要**给「画勾」用缓动曲线：笔顺观感依赖匀速。
+
+### 12.2.3 关键视觉 token（动效涉及部分）
+
+| 名称 | 值 |
+|------|-----|
+| 品牌色 | `--brand: #F32F41` |
+| 品牌浅底 | `--brand-soft: #FFF2F2` |
+| 品牌描边 | `--brand-border: #FFD5D9` |
+| 闪示色 | `#FFF2EE`（规则条 / 锚点行）、`#F0D98C`（薪资行定位环） |
+| 删除红 | `#F32F41`（左滑垃圾桶） |
+| 页面底 | `--bg-page: #F7F7F7`，卡片 `#FFFFFF` |
+| 卡描边 | `#E8E8E8`（选人卡）、`#EDEDED`（分类卡）、`#E6E6E6`（参数卡） |
+| 次要文字 | `--text-sec: #929292` |
+| 圆角 | 卡 `12px`、选项卡 `12px`、参数卡 `10px`、规则卡 `10px`、按钮 `12px`、Sheet 顶 `16px`、胶囊 `999px` |
+| 选人网格 | `grid-template-columns: repeat(3, minmax(0,1fr))`；`gap: 10px 8px`（行 / 列）；`padding: 2px 0 12px` |
+| 选人卡 | `min-height: 96px`；展开态 `height: 96px` |
+| 勾选控件 | 选项卡内 `18×18` / 圆角 `9px` / 描边 `1.5px #D6D6D6`；收缩态 `20×20` / 圆角 `10px` / 实心品牌 |
+| 勾 SVG | `viewBox 0 0 24 24`、`stroke-width 3`、`stroke-linecap/linejoin round`、`d="M5 12l5 5L20 7"`、`stroke-dasharray 24` |
+| 左滑删除位 | 宽 `72px`，`background: #F32F41` |
+| 拖拽阴影 | `0 6px 18px rgba(0,0,0,.1)`；占位 `min-height: 72px` |
+| 抽屉阴影 | `8px 0 28px rgba(0,0,0,.35)` |
+| 遮罩 | `rgba(0,0,0,.45)` |
+| Toast | `rgba(51,51,51,.9)`、白字 `14px`、圆角 `4px`、`max-width: min(310px, calc(100% - 80px))` |
+
+> 390×844 画布实测：选人网格内容宽 `gridW = 332px` → 单格 `cellW = (332 − 8×2) / 3 = 105.33px`；展开位移步长 `cellW + 8 = 113.33px`。
+
+### 12.2.4 触觉反馈（`navigator.vibrate`）
+
+| 场景 | 值 | 说明 |
+|------|-----|------|
+| 选人 Sheet：选中 / 取消 / 抖动提醒 | `8ms` | `spHaptic()` |
+| 列表拖动排序起拖 | `12ms` | 员工列表 / 角色管理 |
+
+**必须**包 `try/catch`，且先判 `navigator.vibrate` 存在（iOS Safari 不支持，须静默跳过）。
+
+### 12.2.5 按压反馈统一规则
+
+**只有三类元素有「按下」形变**，其余一律用 `opacity`/底色：
+
+| 元素 | 按下表现 |
+|------|----------|
+| 选人卡面板、选项卡 | `transform: scale(.96)`，过渡 `transform .08s ease-out`（选项卡：`transform .08s ease-out` 含在基础过渡里） |
+| 收缩态勾选控件 | `transform: scale(.9)`（无过渡声明） |
+| 其余按钮 / 行 / chip | `opacity: .8 ~ .92` 或底色变化，**无位移** |
+
+**禁止**新增大面积 `translate` 按下效果（会与 Morph 的 `transform` 抢同一属性）。
+
+### 12.2.6 减弱动态（`prefers-reduced-motion: reduce`）
+
+**总则：所有动效瞬时切态，终态与常规完全一致。** 具体到 A 组：
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  .staff-card.is-editing .staff-card__panel,
+  .staff-card.is-done .staff-card__panel { animation: none !important; }
+  .staff-card { transition: none !important; }
+  .staff-card__panel { transition: none; }
+  .staff-opt { transition: none !important; animation: none !important; }
+  .staff-opt__box, .staff-opt__box svg path,
+  .staff-card__tick, .staff-card__tick svg path { animation: none !important; transition: none !important; }
+  .staff-opt__box.is-draw svg path, .staff-card__tick.is-draw svg path { stroke-dashoffset: 0; }
+  .staff-opt__box.is-undraw svg path, .staff-card__tick.is-undraw svg path { stroke-dashoffset: 24; }
+  .staff-card.is-expanding .staff-card__opts { transition: none !important; opacity: 1; visibility: visible; }
+  .staff-card:not(.is-expanding) .staff-card__opts { opacity: 1; visibility: visible; }
+}
+```
+
+注意两点：**①** 降级下 `.staff-card__opts` 必须**恒可见**（不能靠 `is-expanding` 才显示），否则会整块看不见；**②** 降级下仍要落 `stroke-dashoffset` 的终值（`0` / `24`），否则勾会停在半画。JS 侧同步：`spReduceMotion()` 为真时**跳过所有门控等待**，直接落定。
+
+### 12.2.7 实现约束（硬性）
+
+1. **只动 `transform` / `opacity` / `width`**：不做 `left/top/height` 逐帧动画（除列表拖拽的 `top`，那是跟手必需的）。
+2. **`getAnimations()` 驱动落定，不用固定计时**：卡片的收起 / 展开必须等**真实动画播完**（§12.3 A13）。固定 `setTimeout` 在主线程卡顿或动效被中断时会提前落定 —— 这正是「还没播完就收起」的根因。
+3. **`innerHTML` 级重绘前先清临时类**：重绘会重建节点，导致 `animation` 类重播。**入场型动效一律用一次性标记**（`is-pop` / `is-in` / `is-draw`），渲染后立即清空；**禁止**把 `animation` 挂在常驻状态类（如 `is-done`）上（见 §12.10）。
+4. **同帧改样式必须强制 reflow**：先 `el.classList.remove(...)` → `void el.offsetWidth` → 再 `add(...)`，否则重播不生效。
+5. **门控状态下必须有超时兜底**：动画被取消 / 元素被移除时 `finished` 可能永不 resolve，兜底 = 名义时长 + `300ms`。
+6. **`will-change` 只给真正在动的元素**：选人卡 `will-change: transform, width`、左滑容器 `will-change: transform`。
+7. **不得阻塞点击**：Morph 期间点击卡片外 / 完成 / 另一张卡都必须**不丢失**（见 §12.3 A13 抢断规则）；`pointer-events` 只在 `is-row-muted` / `scrim` 上按需开关。
+8. **零内联脚本 / 零 `eval`**：原型为满足 CSP 约束，JS 全部外链，动效类名切换走 `classList`；文档中的代码块可直接落库。
+
+### 12.2.8 动效期间的层叠（z-index）
+
+| 层 | z-index | 说明 |
+|----|:---:|------|
+| 被展开的选人卡 | `6` | Morph 期间必须压在同行卡之上 |
+| 选人区遮罩 `scrim` | 低于 6 | 覆盖未展开卡，承接「点卡片区空白收起」 |
+| Sheet / Mask | `30` | `.picker-mask` |
+| Dialog / Mask | `50` | `.dialog-mask` |
+| 金额键盘 Mask | `50` | `#amountKeypadMask.open` |
+| Toast | `50`（`phone-inner` 下 `100`） | `.toast-msg` |
+| 导航抽屉 | `400`（遮罩 `350`、热区 `300`） | 仅 `html.view-mobile` |
+
+## 12.3 A 组 · 选择服务员工（`staff-pick` / 选人 Sheet）
+
+> 共 13 项（A1–A13）。**A13 是门控状态机，是其余各项的调度器，必须一并实现。**
+
+### A1 · 网格 Morph 展开（收起态员工卡 → 整行勾选卡）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 点击收缩态员工卡；且该员工需二次选择（`按工位` 或 `开顾客指定`，即 `pickMode=station` 或 `extraSplit=true`） |
+| 起始态（同帧，过渡关闭） | 被点卡 `width = cellW`、`transform: translateX(0)`、`transition: none`；网格内**所有**卡 `transition: none`，并清掉 `is-expanding` / `is-row-muted` / 内联 `transform`/`width`/`z-index` |
+| 过程（次帧 rAF） | ① 加 `is-expanding`；② 过渡改 `transform 380ms cubic-bezier(.34,1.3,.64,1), width 380ms cubic-bezier(.34,1.3,.64,1)`；③ `width → gridW`、`transform → translateX(dx)`、`z-index: 6` |
+| 几何 | `cellW = (gridW − 列间距×2) / 3`；`dx = −(列号 × (cellW + 列间距))`；列号 = 卡序号 `% 3`。390 画布实测：`gridW 332` / `cellW 105.33` / `dx = 0 / −113.33 / −226.67` |
+| 并行 | 同行其余卡加 `is-row-muted`（**瞬时**，见 A3）；`.staff-opt` 分裂入场（A4）；`.staff-card__opts` 淡入（A5） |
+| 结束态 | 卡宽 = `gridW`（332），`translateX = dx`，`is-expanding` 常驻；网格保留 `is-morphing` |
+| 时长 / 缓动 | `380ms` / iOS spring |
+| **可中断** | **否**。Morph 期间点卡片外 / 完成 / 另一张卡 → **只记录意图**，等 380ms 播完再收起（实测收起发生在 402ms）。**不得**在 Morph 中途收起 |
+| 降级 | 立即落位（无 Morph） |
+| 实现锚点 | `comm2.js` → `spAnimateStaffMorphLayout()`、`spEnterEdit()`、`spGateHoldOnly(380)` |
+
+```css
+.staff-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 8px; padding: 2px 0 12px; position: relative; z-index: 2; overflow: visible;
+}
+.staff-grid.is-morphing > .staff-card { justify-self: start; align-self: start; }
+.staff-card { position: relative; min-height: 96px; width: 100%; box-sizing: border-box; z-index: 1; will-change: transform, width; }
+.staff-card.is-editing { z-index: 6; pointer-events: auto; opacity: 1; filter: none; }
+```
+
+```js
+/* 展开：先清过渡落起始态 → rAF 再加过渡落终态（必须两级 rAF/强制 reflow，否则无动画） */
+var gap = 8, gridW = grid.clientWidth, cellW = (gridW - gap * 2) / 3;
+var dx = -(col * (cellW + gap));
+var spring = 'transform 380ms cubic-bezier(.34,1.3,.64,1), width 380ms cubic-bezier(.34,1.3,.64,1)';
+editing.style.transition = 'none';
+editing.style.width = cellW + 'px';
+editing.style.transform = 'translateX(0)';
+void grid.offsetWidth;                       /* 强制 reflow */
+requestAnimationFrame(function () {
+  editing.classList.add('is-expanding');
+  editing.style.transition = spring;
+  editing.style.width = gridW + 'px';
+  editing.style.transform = 'translateX(' + dx + 'px)';
+  editing.style.zIndex = '6';
+});
+```
+
+### A2 · 网格 Morph 收起（整行勾选卡 → 收起态员工卡）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 勾选完成落定 / 点卡片区空白 / 点 `scrim` / 点另一张卡 / 点已完成卡 |
+| 行为 | **即时重绘，无过渡**。整表 `innerHTML` 重建，卡宽从 `gridW`（332）立刻回到 `cellW`（105.33）。实测耗时 **2ms** |
+| 结束态 | 该员工卡回到网格原位；已选中则带 `is-done`（→ A9）与右侧勾（→ A10） |
+| 时长 | `0ms` |
+| 可中断 | 不适用（瞬时） |
+| 降级 | 同常规 |
+| 实现锚点 | `comm2.js` → `spEditChange()` / `spApplyEdit(null)` / `spRedraw()`；`spAnimateStaffMorphLayout()` 的 `if (!editing)` 分支清空内联样式 |
+
+> **注意**：展开有 380ms 弹性、收起为瞬时，属**当前原型的不对称实现**。若要对称（收起也播弹性回缩），须回改本节并在 §12.10 记录，见「待确认项 2」。
+
+### A3 · 展开时同行其余卡片淡出
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 与 A1 同时 |
+| 范围 | **仅被点卡所在那一行**的其余卡（列 0/1/2 各 2 张；末行不足 3 张时按实际数减 1，实测 5 人时第二行只淡出 1 张） |
+| 样式 | `.staff-card.is-row-muted { opacity: 0; pointer-events: none; }` |
+| 时长 / 缓动 | **瞬时**（无过渡，实测 `transition-property: none`） |
+| 结束态 | 收起重绘时**必须移除** `is-row-muted`，否则卡片永久隐形 |
+| 可中断 | 无 |
+| 降级 | 同常规（仍是瞬时） |
+| 实现锚点 | `comm2.js` → `muteRow()` |
+
+### A4 · 选项卡分裂入场（`is-splitting`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 展开首帧（状态位 `edit.splitting = true`），仅**首次展开**播放 |
+| 起始态 | 选项卡 `opacity: 0`、`transform: scaleX(.42) scaleY(.92)` |
+| 关键帧 | `from { opacity:0; transform: scaleX(.42) scaleY(.92) }` → `to { opacity:1; transform: scaleX(1) scaleY(1) }` |
+| 逐张延迟 | 第 1/2/3/4 张 = `0 / 35 / 70 / 105ms`（第 4 张仅「工位 + 顾客指定」态出现） |
+| 结束态 | 全不透明、无缩放；`splitting` 状态位与 **DOM 类**在 `520ms` 后一并清除（= 第 4 张卡延迟 `105ms` + 时长 `380ms` ≈ `485ms`，留 35ms 余量；**不能在 `420ms` 就摘**，否则会把第 4 张卡的入场截断，也会让抖动被 `fill: both` 的入场动画吃掉 —— 见 A12） |
+| 时长 / 缓动 | `380ms` / iOS spring，`fill: both` |
+| 变换原点 | 按列：列 0 `left center`、列 1 `center center`、列 2 `right center`（记录在 `--staff-origin`，保证从卡片所在侧展开） |
+| 可中断 | 否（纯入场，不承载状态） |
+| 降级 | `animation: none`，直接呈现终态 |
+| 实现锚点 | `comm2.css` → `staffRoleSplit`；`comm2.js` → `spAfterStaffPickerPaint()` 的 420ms 计时 |
+
+```css
+.staff-card.is-splitting .staff-opt { animation: staffRoleSplit 380ms cubic-bezier(.34,1.3,.64,1) both; }
+.staff-card.is-splitting .staff-opt:nth-child(1) { animation-delay: 0ms; }
+.staff-card.is-splitting .staff-opt:nth-child(2) { animation-delay: 35ms; }
+.staff-card.is-splitting .staff-opt:nth-child(3) { animation-delay: 70ms; }
+.staff-card.is-splitting .staff-opt:nth-child(4) { animation-delay: 105ms; }
+@keyframes staffRoleSplit {
+  from { opacity: 0; transform: scaleX(.42) scaleY(.92); }
+  to { opacity: 1; transform: scaleX(1) scaleY(1); }
+}
+```
+
+### A5 · 选项面板淡入（`is-expanding`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 与 A1 同时 |
+| 起始态 | `.staff-card:not(.is-expanding) .staff-card__opts { opacity: 0; visibility: hidden; }` |
+| 过程 | 升至 `opacity: 1`、`visibility: visible`。实测采样：25ms→`0.15`、41ms→`0.41`、75ms→`0.78`、≈200ms→`1` |
+| 时长 / 缓动 | `200ms` / iOS spring |
+| 已展开卡重绘 | 带 `is-opened` 时 **`transition: none`**（不重播淡入，避免勾选态更新时整块闪一下） |
+| 可中断 | 无 |
+| 降级 | 恒 `opacity: 1; visibility: visible`（**关键**，见 §12.2.6） |
+| 实现锚点 | `comm2.css` → `.staff-card.is-expanding .staff-card__opts` / `.is-opened .staff-card__opts` |
+
+### A6 · 勾选控件：变红 + 画勾
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 点击未勾选的选项卡 / 勾选控件；或「点选即勾选」态点员工卡 |
+| 起始态 | 盒 `background #fff`、`border-color #D6D6D6`、`color transparent`；勾路径 `stroke-dashoffset: 24`；清掉 `is-draw` / `is-undraw` 后 `void offsetWidth` 强制 reflow |
+| 过程 | **① 变红（60ms）**：`background-color`/`border-color`/`color` → `#F32F41` / `#F32F41` / `#fff`（过渡，`ease`）；**② 画勾（110ms，延迟 60ms）**：`stroke-dashoffset 24 → 0`，**线性** |
+| 结束态 | 盒实心品牌色、勾完整（`stroke-dashoffset: 0`）；卡加 `is-on`（`border-color: var(--brand)` + `box-shadow: 0 2px 10px rgba(243,47,65,.16)`） |
+| 时长 | **60 + 110 = 170ms**（`--sp-check-red` + `--sp-check-draw`） |
+| 缓动 | 变色 `ease`；**画勾必须 `linear`**（笔顺匀速） |
+| 可中断 | **可抢断**，见 A13：抢断时**先把勾补画到终点**再落定，勾不得停在半路 |
+| 互斥 | 与 A7 互斥（同一控件上不并存） |
+| 降级 | 直接呈现终态（`is-draw` 下 `stroke-dashoffset: 0`、盒实心） |
+| 实现锚点 | `comm2.css` → `spCheckDraw`；`comm2.js` → `spPlayCheck(el, true)` |
+
+```css
+.staff-opt__box.is-draw { background: var(--brand); border-color: var(--brand); color: #fff; }
+.staff-opt__box.is-draw svg path,
+.staff-card__tick.is-draw svg path {
+  animation: spCheckDraw var(--sp-check-draw) linear var(--sp-check-red) both;
+}
+@keyframes spCheckDraw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+```
+
+> **CD 顺序**：变色是 `transition`（60ms），画勾是 `animation` 且 `delay = 60ms` —— 两者靠**延迟对齐**，不是嵌套。改任一时长必须**同时**改另一处，故统一走 CSS 变量。
+
+### A7 · 勾选控件：反序取消（收勾 + 褪红）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 点击已勾选的「顾客指定」/「普通」/ 收缩态勾选控件（工位**不可**此路取消） |
+| 过程 | **① 收勾（110ms）**：`stroke-dashoffset 0 → 24`，**线性**，无延迟；**② 褪红（60ms，延迟 110ms）**：盒 → `#fff` / `#D6D6D6` / `transparent` |
+| 时长 | **110 + 60 = 170ms** |
+| 结束态 | 盒空心态；勾隐藏；相关状态类清空 |
+| 可中断 | 同 A6（可抢断，抢断时补画到终点） |
+| 降级 | 直接终态（`is-undraw` 下 `stroke-dashoffset: 24`、盒白底） |
+| 实现锚点 | `comm2.css` → `spCheckUndraw`；`comm2.js` → `spPlayCheck(el, false)` |
+
+```css
+.staff-opt__box.is-undraw svg path,
+.staff-card__tick.is-undraw svg path { animation: spCheckUndraw var(--sp-check-draw) linear both; }
+.staff-opt__box.is-undraw {
+  background: #fff; border-color: #D6D6D6; color: transparent;
+  transition: background-color var(--sp-check-red) ease var(--sp-check-draw),
+    border-color var(--sp-check-red) ease var(--sp-check-draw),
+    color var(--sp-check-red) ease var(--sp-check-draw);
+}
+.staff-card__tick.is-undraw {
+  background: transparent; box-shadow: none; color: transparent;
+  transition: background-color var(--sp-check-red) ease var(--sp-check-draw),
+    box-shadow var(--sp-check-red) ease var(--sp-check-draw),
+    color var(--sp-check-red) ease var(--sp-check-draw);
+}
+@keyframes spCheckUndraw { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 24; } }
+```
+
+### A8 · 切换工位（两轮串行）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 展开态点**另一个**工位卡（已有工位时） |
+| 过程 | **严格串行**：旧勾播 A7（170ms）→ **播完** → 新勾播 A6（170ms）→ **播完** → 落定（收起） |
+| 时长 | ≈ **340ms**（实测收起发生在 359ms） |
+| 缓动 | 各段同 A6 / A7 |
+| 可中断 | **可**（抢断 → 旧勾补画到终点、当前轮立即落定并执行新交互） |
+| 互斥 | 两轮**不得并行**——并行会看到两个勾同时半画 |
+| 降级 | 瞬时切态 |
+| 实现锚点 | `comm2.js` → `spTapOption()` 的 `prevBox` 分支（嵌套 `spGateAfter`） |
+
+```js
+/* 串行两轮：第一轮播完才启动第二轮；第二轮播完才落定 */
+spPlayCheck(prevBox, false);
+spGateAfter(prevBox, function () {
+  spPlayCheck(nextBox, true);
+  spGateAfter(nextBox, function () { spApplyOptionToggle(sid, key); }, spCheckMs());
+}, spCheckMs());
+```
+
+### A9 · 已选中卡片回弹（`staffDonePop`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 员工被选中后回到收缩态，**且本次交互真的选中了该员工**（`is-pop` 一次性标记） |
+| 起始态 | `transform: scale(.94)` |
+| 关键帧 | `0% scale(.94)` → `55% scale(1.04)` → `100% scale(1)` |
+| 结束态 | `.staff-card.is-done .staff-card__panel { background: linear-gradient(180deg,#FFF8F8,#FFF2F2); border-color:#FFD5D9; box-shadow: inset 0 0 0 1px rgba(243,47,65,.04) }`；头像描边 `0 0 0 2px #FFE0E3` |
+| 时长 / 缓动 | `420ms` / iOS spring |
+| 可中断 | 否（纯入场） |
+| 降级 | `animation: none` |
+| 实现锚点 | `comm2.css` → `.staff-card.is-done.is-pop .staff-card__panel` + `staffDonePop`；`comm2.js` → `spSelectStaff()` 置 `spState.freshDone[sid]`、`spRenderPickerHtml()` 读标记、`spAfterStaffPickerPaint()` 渲染后清空 |
+
+> **一次性标记（与 A10 共用同一标记）**：`.is-pop` / `.is-in` **不是**常驻状态类，而是「本次渲染才播」的一次性标记 —— 由 `spSelectStaff()` 在**真正选中**时置位，渲染函数读取，渲染后立即清空。因此**无关重绘不重播**（如：选完 A 再选 B 时，A 的卡与勾不再弹一遍）。**不要**把 `animation` 写回 `.is-done` / `.staff-card__tick` 基础类，否则必然重播。
+
+### A10 · 收缩态勾选控件入场（`staffCheckIn`）+ 画勾
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 员工卡在已选中状态下渲染，**且本次交互真的选中了该员工**（`is-in` 一次性标记，与 A9 同一标记源） |
+| 起始态（弹入） | `transform: scale(.4)`、`opacity: 0` |
+| 关键帧（弹入） | `0% scale(.4) opacity 0` → `70% scale(1.12)` → `100% scale(1) opacity 1`；时长 `380ms`，缓动 Apple 标准 |
+| 画勾（另一路） | 仅「**点选即勾选**」态（不分工位 + 未开顾客指定，无选项卡可画勾）在员工卡上播 A6 的画勾（170ms）；**从选项卡勾选完成的路径不画**（勾已在选项卡上画过） |
+| 结束态 | 20×20 实心品牌圆角方块 + 完整勾；`box-shadow: 0 2px 8px rgba(243,47,65,.28)`；标记清理后回到静态已勾选态 |
+| 可中断 | 否 |
+| 降级 | 直接终态 |
+| 实现锚点 | `comm2.css` → `.staff-card__tick.is-in` + `staffCheckIn` / `.staff-card__tick.is-draw`；`comm2.js` → `spSelectStaff(sid, roleId, fresh)` 的 `fresh` 位（→ `is-draw`）与 `freshDone`（→ `is-in`） |
+
+### A11 · 摘要行入场（`staffMetaIn`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 已选中员工卡第三行渲染提成摘要（`staff-card__title--pick`） |
+| 起始态 | `opacity: 0`、`transform: translateY(4px)` |
+| 结束态 | `opacity: 1`、`translateY(0)`；文案为 `工位 · 顾客指定` / 仅工位名 / `顾客指定` / `普通` |
+| 时长 / 缓动 | `360ms` / Apple 标准 |
+| 降级 | 直接终态 |
+| 实现锚点 | `comm2.css` → `staffMetaIn` |
+
+### A12 · 工位不可点掉：卡片抖动（`spOptShake`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 展开态点击**已勾选的工位卡**（工位是必选项，不允许点掉） |
+| 起始态 | 移除 `is-shake` 后 `void offsetWidth` 强制 reflow，再加类 |
+| 关键帧 | `0%/100% translateX(0) rotate(0)` → `12% (−6px, −1.2deg)` → `28% (+5px, +1deg)` → `44% (−4px, −.8deg)` → `60% (+3px, .5deg)` → `76% (−2px, 0)` → `90% (+1px, 0)` |
+| 时长 / 缓动 | `440ms` / `cubic-bezier(.36,.07,.19,.97)`（衰减振荡） |
+| 结束态 | 抖动结束移除 `is-shake`；**状态与摘要完全不变** |
+| 触觉 | `vibrate(8)` |
+| **明令禁止** | **不出 toast、不改数据、不收起卡片** |
+| 清理 | 监听 `animationend` 移除类，但**必须按 `animationName === 'spOptShake'` 过滤** —— 同卡上可能还有入场动画（`is-splitting` 的 `staffRoleSplit`）结束得更早，不过滤会把抖动**提前截断到 ≈260ms**；外加 `setTimeout 560ms` 兜底 |
+| **覆盖规则（易踩坑）** | `.is-shake` 与 `.is-splitting` 选择器**特异性相同**，必须靠**源码顺序**取胜 → CSS 中抖动规则要排在 `is-splitting` 规则**之后**（本原型另加 `.staff-card.is-splitting .staff-opt.is-shake` 组合选择器双保险），否则刚展开（`is-splitting` 尚在 DOM）时点已选工位**看不到抖动** |
+| 可中断 | 可重复触发（重播） |
+| 降级 | 无抖动（仅触觉）；**必须仍不改状态** |
+| 实现锚点 | `comm2.js` → `spShakeOpt()`；`comm2.css` → `spOptShake` |
+
+```css
+.staff-card .staff-opt.is-shake { animation: spOptShake 440ms cubic-bezier(.36,.07,.19,.97); }
+@keyframes spOptShake {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  12% { transform: translateX(-6px) rotate(-1.2deg); }
+  28% { transform: translateX(5px) rotate(1deg); }
+  44% { transform: translateX(-4px) rotate(-.8deg); }
+  60% { transform: translateX(3px) rotate(.5deg); }
+  76% { transform: translateX(-2px) rotate(0); }
+  90% { transform: translateX(1px) rotate(0); }
+}
+```
+
+### A13 · 门控状态机（**核心**：收起 / 展开必须等动效真正播完）
+
+**两个独立计时门 + 一个待落定意图。**
+
+| 门 | 含义 | 设置时机 | 清除时机 |
+|----|------|----------|----------|
+| `checkUntil` | 勾选动效门（A6/A7/A8） | 播放勾选动效且尚有动画未结束时 = `now + (名义时长 + 300ms 兜底)` | 落定执行 / 被抢断 |
+| `morphUntil` | 展开 Morph 门（A1，`380ms`） | 展开时 `max(morphUntil, now + 380)` | 到期自动失效；**抢断不清除** |
+
+**落定判定（收起 / 展开共用）**：
+
+```
+可以落定  ⇔  ① 所有相关动画的 animation.finished 均已 resolve
+          且 ② 已过「名义时长」（minMs = 单轮 170ms / 两轮 340ms）
+```
+
+两者**取长者**，并加 `名义时长 + 300ms` 的**超时兜底**（动画被取消或元素被移除时 `finished` 可能永不 resolve）。
+
+**待落定意图（`spEditChange`）**：同一时刻**只认最后一次意图**（后到覆盖先到）。先等 `morphUntil` 到期，再轮询 `checkUntil`（每 `busy + 20ms`），两者都空才执行并重绘。这样「先收起、随后又被旧意图展开」不会发生。
+
+**抢断（`spGateFlush`）**：动效期间的新交互**不排队、不丢失**，先 `snapChecks()` 把进行中的勾**补画到终点**（对每个 `.is-draw`/`.is-undraw` 盒子调 `getAnimations().forEach(a => a.finish())`），再立即落定并执行新交互。
+
+**点击分派表（展开态）**：
+
+| 点击目标 | 行为 | 是否等动效 |
+|----------|------|:---:|
+| 选项卡（未选） | 勾选 → 落定 → 收起 | 等（A6 播完） |
+| 选项卡（已选「顾客指定」/「普通」） | 取消勾 → 落定 → 收起（工位例外 → A12 抖动，不落定） | 等（A7 播完） |
+| 另一工位卡 | A8 两轮串行 → 落定 → 收起 | 等（两轮各播完） |
+| 收缩态勾选控件 | A7 → 移除该员工 | 等（A7 播完） |
+| `scrim` / 编辑卡自身空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 | 收起 | 等（当前勾选动效播完 + Morph 到期） |
+| 另一张员工卡 | 收起当前 + 展开新的（新卡走 A1；Morph 门重新计时） | 等 |
+| **Sheet 标题 / 提示行 / 底部栏**（卡片区之外） | **不收起** | — |
+| 底部「完成」/ Sheet 外遮罩 | **关闭整个 Sheet**（不是收起卡片） | 等（抢断后立即关闭） |
+
+**代码骨架（可直接落库，`roots` 传动画所在的盒子元素）**：
+
+```js
+/* 门控：等真实动画播完 + 名义时长，被抢断则先补画勾再立即落定 */
+function spGateAfter(roots, apply, minMs) {
+  if (spReduceMotion()) { apply(); return null; }
+  var anims = [];
+  (Array.isArray(roots) ? roots : [roots]).forEach(function (r) {
+    if (!r || typeof r.getAnimations !== 'function') return;
+    r.getAnimations().forEach(function (a) { anims.push(a); });
+    var p = r.querySelector && r.querySelector('svg path');
+    if (p) p.getAnimations().forEach(function (a) { anims.push(a); });
+  });
+  var tok = { done: false, animsDone: !anims.length, floorDone: !minMs };
+  var maybe = function () { if (tok.animsDone && tok.floorDone) tok.fire(); };
+  tok.fire = function () {
+    if (tok.done) return;
+    tok.done = true;
+    clearTimeout(tok.guard); clearTimeout(tok.floor);
+    apply();
+  };
+  var guard = Math.max(spCheckMs() + 300, (minMs || 0) + 300);
+  tok.guard = setTimeout(tok.fire, guard);                     /* 兜底 */
+  anims.forEach(function (a) {
+    var one = function () { if (--left === 0) { tok.animsDone = true; maybe(); } };
+    a.finished.then(one, one);
+  });
+  if (minMs) tok.floor = setTimeout(function () { tok.floorDone = true; maybe(); }, minMs);
+  return tok;
+}
+
+/* 抢断：勾不能停在半路 —— 先补画到终点，再落定 */
+function spGateFlush() {
+  document.querySelectorAll('.is-draw, .is-undraw').forEach(function (el) {
+    el.getAnimations().forEach(function (a) { try { a.finish(); } catch (e) {} });
+    var p = el.querySelector('svg path');
+    if (p) p.getAnimations().forEach(function (a) { try { a.finish(); } catch (e) {} });
+  });
+  /* 随后立即执行待落定的状态变更 */
+}
+```
+
+**验收要点**：把 `--sp-check-draw` 临时改成 `600ms`，收起时刻**必须**随之推到 ≈670ms（实测 672ms）。若收起时刻不变，说明用了固定计时 —— 不合格。
+
+## 12.4 B 组 · 提成设置
+
+### B1 · 规则卡左滑露出删除
+
+| 字段 | 内容 |
+|------|------|
+| 结构 | `wrap`（`position: relative; overflow: hidden; border-radius: 10px; isolation: isolate`）内含 `trash`（右贴边 `72px`、`#F32F41`、`opacity: 0`、`transition: opacity .12s ease`、`z-index: 0`）与 `swipe`（`z-index: 1`、`transition: transform .18s ease`、`touch-action: pan-y`、`will-change: transform`） |
+| 起滑判定 | `dx` 绝对量 > 8px，且 `dx` 绝对量 > `dy` 绝对量 × 1.15（保证竖滑不误触） |
+| 拖拽中 | `x = clamp(−72, 0, dx)`；`wrap` 加 `is-dragging` → `.is-dragging .comm2-rule-swipe { transition: none }`，垃圾桶 `opacity: 1` |
+| 跟手 | `pointerdown` 记录 `x0/y0/t0`，`pointermove` 累计 `dx/dy` 并计算速度 `vx`（px/ms）；`setPointerCapture`；移动 > `6px` 视为已拖动（松手后抑制一次 click） |
+| 松手吸附 | `open = dx ≤ −48 ‖ (dx < −24 且 vx < −0.35)`；`transition: transform .22s cubic-bezier(.22,.82,.24,1)`；开 → `translateX(−72px)` + `wrap.is-open`；关 → 清空 `transform`；`220ms` 后清掉内联 `transition` |
+| 互斥 | 打开某张卡前，先把**其他**已打开的卡吸附收起 |
+| 删除 | 点垃圾桶 → `requestDeleteOverride()` 二次确认；**不做**侧滑即删 |
+| 降级 | 关掉过渡（瞬时吸附），手势仍可用 |
+| 实现锚点 | `comm2.js` → `setRuleSwipeX()` / `snapRuleSwipe()` / `wireRuleCardGestures()` |
+
+### B2 · 规则条高亮（`comm2Flash`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 新增 / 定位到某条规则后 |
+| 关键帧 | `0%,100% background #fff` → `40% background var(--brand-soft)（#FFF2EE）` |
+| 时长 / 缓动 | `700ms` / `ease` |
+| 结束态 | 移除 `is-flash` |
+| 降级 | 仍保留（纯颜色闪示，不属位移动效；若需彻底静态可只留底色） |
+| 实现锚点 | `comm2.css` → `comm2Flash` |
+
+### B3 · Sheet 锚点行高亮（`comm2FlashAnchor`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 从规则卡跳进 Sheet 定位到某一行 |
+| 关键帧 | `0%,100% background transparent` → `30% background #FFF2EE`；`border-radius: 8px` |
+| 时长 / 缓动 | `900ms` / `ease`（比 B2 长，因为 Sheet 内滚动定位更慢） |
+| 实现锚点 | `comm2.css` → `comm2FlashAnchor` |
+
+### B4 · 分段控件 / chip / 胶囊
+
+| 元素 | 过渡 | 选中态 | 按下 |
+|------|------|--------|------|
+| `.comm2-cap__seg-item`（比例 / 金额胶囊） | `background .15s, color .15s` | `background: #fff; color: var(--brand); box-shadow: 0 1px 2px rgba(0,0,0,.08)` | 整块热区 `:active { opacity: .8 }` |
+| `.comm2-rule-bar__chip`（基数 chip） | `background .14s ease, color .14s ease, box-shadow .14s ease` | `background:#fff; font-weight:600`；暖色 `#E89D64`、付费 `#E06767` | — |
+| `.comm2-cat`（分类卡） | `border-color .15s, background .15s` | `is-flash` → 品牌描边 + `#FFF2F2` | `:active { background: #F3F3F3 }` |
+| 分段按钮（`.comm2-sheet-mode__btn` / `.comm2-base-seg__btn` / `.comm2-sp-mode__btn` / `.comm2-pick-card-role__btn`） | **无过渡（瞬时）** | `.on { background:#fff; color:var(--brand); font-weight:600; box-shadow: 0 1px 2px rgba(0,0,0,.06) }` | `:active { opacity: .88 }` |
+| `.comm2-cap`（参数卡本体） | **无过渡（瞬时）** | `--extra` 描边 `#FFD5D9` + 左侧 3px 品牌竖条；`--non` 描边 `#DCE3EA` + 3px `#8FA3B8` 竖条 | — |
+
+> **刻意**让「分段按钮 / 参数卡选中」瞬时切换：这两处的状态切换会连带重排大量文案，加过渡反而显得拖。
+
+### B5 · 工位折叠三角
+
+| 字段 | 内容 |
+|------|------|
+| 样式 | `.comm2-station-fold__head-tri { transition: transform .15s }` |
+| 展开态 | `[aria-expanded="true"] … { transform: rotate(180deg) }` |
+| 折叠体 | `display: none ↔ flex`（**瞬时**，不做高度过渡） |
+| 降级 | 关掉旋转过渡 |
+
+## 12.5 C 组 · 员工管理 / 员工薪资
+
+### C1 · 列表长按拖动排序（员工列表 / 角色管理，两处同构）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | ① 长按行 `400ms`；或 ② 直接按住拖拽手柄（`[data-role-drag]`，无需长按） |
+| 取消长按 | 长按计时中移动 > `8px` → 取消长按（让位给滚动） |
+| 起拖 | `root.classList.add('is-reordering')`；被拖行加 `is-dragging`（`position: absolute`、`left: 0`、`width = 原行宽`、`top = rect.top − listRect.top + scrollTop`、`z-index: 20`）；插入占位 `.is-drag-placeholder`（`height = 原行高`、`visibility: hidden`）；`vibrate(12)` |
+| 非拖拽行 | `.is-reordering > .emp-row:not(.is-dragging) { opacity: .55; transition: opacity .15s ease }` |
+| 占位重排 | 按行中线判定：`clientY < rect.top + rect.height / 2` → 插到该行之前，否则追加末尾 |
+| 跟手 | `top = clientY − listRect.top + scrollTop − grabOffsetY`，夹在 `[0, scrollHeight − rowH]` |
+| 松手 | 提交顺序（读 DOM 顺序写回 `EmployeeStore`），并**抑制一次 click**（避免误进详情） |
+| 取消 | `pointercancel` → **不提交**，恢复原序 |
+| 视觉规格 | 拖起阴影 `0 6px 18px rgba(0,0,0,.1)`；占位 `min-height: 72px`、`background: transparent`、无阴影 |
+| 降级 | 关掉 `opacity` 过渡；拖拽本身保留（功能性交互，不做降级） |
+| 实现锚点 | `employee.js` → `wireEmpListReorder()`（`EMP_LIST_LONG_PRESS_MS = 400` / `EMP_LIST_MOVE_PX = 8`）、`wireRoleManageReorder()`（`EMP_ROLE_LONG_PRESS_MS` / `EMP_ROLE_MOVE_PX`）；`salary.css` → `.is-reordering` / `.is-dragging` / `.is-drag-placeholder` |
+
+### C2 · 行定位闪烁（`empCommLineFlash`）
+
+| 字段 | 内容 |
+|------|------|
+| 触发 | 从外部跳转到薪资 / 提成明细的某一行 |
+| 关键帧 | `0%,100% box-shadow: 0 0 0 2px rgba(240,217,140,0)` → `15%,45% box-shadow: 0 0 0 2px #F0D98C, 0 0 0 4px rgba(240,217,140,.45)` |
+| 时长 / 缓动 | `1800ms` / `ease` |
+| 结束态 | `1800ms` 后 JS 移除 `is-flash` |
+| 降级 | 保留（纯描边环，不属位移） |
+| 实现锚点 | `salary.css` → `empCommLineFlash`；`employee.js` → `480/1800ms` 计时 |
+
+> 同类闪示还有薪资阶梯的 `emp-ladder-fold-hint`（`1.1s × 2`）与 `emp-ladder-step-flash`（`.45s`）—— **属阶梯提成（§1.4 本期不做）**，仅列出以便对照原型，**不计入验收**。
+
+## 12.6 D 组 · 壳层基座
+
+### D1 · 页面切换（**刻意无过渡**）
+
+| 字段 | 内容 |
+|------|------|
+| 机制 | 所有 `.screen` 加 `.hidden`（`display: none`），目标页移除 `.hidden` |
+| 时长 | `0ms` |
+| 设计理由 | 原型用于**逐屏对照 / 抓图**，页面级滑动会干扰对齐；真机上由原生路由承担转场 |
+| 实现锚点 | `app.js` → `showOnlyScreen()` |
+
+### D2 · Sheet / Dialog（**刻意无过渡**）
+
+| 字段 | 内容 |
+|------|------|
+| Sheet | `.picker-mask { display: none }` → `.open { display: flex }`；底部对齐；`.picker-sheet` 圆角 `16px 16px 0 0`、`max-height: 85%` |
+| Dialog | `.dialog-mask { display: none }` → `.show { display: flex }`；居中；`.dialog` 圆角 `16px`、`padding: 20px` |
+| 遮罩 | `rgba(0,0,0,.45)` |
+| 时长 | `0ms` |
+| 关闭 | 点遮罩 / 取消 / 完成；`data-outside-close="1"` 的遮罩可点外关闭 |
+| 实现锚点 | `base.css` → `.picker-mask` / `.dialog-mask`；`employee.js` → `openMask()` / `openEmpDialog()` |
+
+### D3 · Toast
+
+| 字段 | 内容 |
+|------|------|
+| 起始态 | `opacity: 0`（居中：`left/top 50%` + `translate(-50%, -50%)`） |
+| 过程 | 加 `.show` → `opacity: 1` |
+| 时长 / 缓动 | `200ms` / `ease`（淡入淡出同一过渡） |
+| 停留 | `2000ms`（普通）/ `2600ms`（警示 `warn`）；**重复调用重置计时**（不叠加多个 toast） |
+| 多行 | 文案长度 > `18` 字 → 加 `is-multiline`（左对齐、`padding 12px 16px`、`line-height 22px`） |
+| 视觉 | 背景 `rgba(51,51,51,.9)`、白字 `14px`、圆角 `4px`、`max-width: min(310px, calc(100% - 80px))` |
+| 降级 | 保留淡入淡出（透明度动效，不属位移） |
+| 实现锚点 | `app.js` → `showToast()`；`base.css` → `.toast-msg` |
+
+### D4 · 移动端导航抽屉（仅 `html.view-mobile`）
+
+| 字段 | 内容 |
+|------|------|
+| 关闭态 | `transform: translate3d(-105%, 0, 0)` |
+| 打开态 | `transform: translate3d(0, 0, 0)` + `box-shadow: 8px 0 28px rgba(0,0,0,.35)` |
+| 过渡 | `transform .28s cubic-bezier(.22,.82,.24,1)`；遮罩 `opacity .28s ease`（`rgba(0,0,0,.45)`） |
+| 唤出热区 | 起点 `clientX ≤ 22px`，或落在 `#navEdgeHit`（宽 `20px`、`z-index 300`） |
+| 拖动中 | 加 `is-dragging` → `transition: none !important`；`tx = clamp(−w, 0, x)`；遮罩不透明度 `p = 1 + tx / w`，`p > .05` 时 `pointer-events: auto` |
+| 松手判定 | `tx > −w × 0.55` → 打开，否则关闭 |
+| 宽度 | `min(86vw, 300px)`，`max-width: 300px` |
+| 降级 | `transition: none !important`（瞬时开合） |
+| 实现锚点 | `shell.css` → `html.view-mobile` 段；`index.html` 内联导航脚本 |
+
+## 12.7 组合 / 互斥 / 穿插矩阵
+
+### 12.7.1 A 组内（展开态同一时刻只允许一条主链）
+
+| 组合 | 关系 | 说明 |
+|------|------|------|
+| A1 + A3 + A4 + A5 | **并行**（同一次展开的不同层） | 网格 Morph（外层几何）、同行淡出（相邻卡）、选项分裂（子元素）、面板淡入（子元素） |
+| A6 / A7 / A8 ↔ A9 / A10 | **串行**（存在时序因果） | 先播选项卡上的勾选动效（A6/A7/A8），落定并收起后，才是收缩态的回弹（A9）与勾弹入（A10） |
+| A6 ↔ A7 | **互斥** | 同一控件上不同时存在 `is-draw` / `is-undraw` |
+| A8 的两轮 | **严格串行** | 第二轮必须等第一轮 `finished` |
+| A12 | **不参与门控** | 抖动不改变任何状态，也不需要等它播完 |
+| 任意勾选动效 ↔ 收起 | **门控**（A13） | 收起必须等勾选动效 `finished` + 名义时长 |
+| A1 ↔ 收起 | **门控** | `morphUntil` 到期前不收起；该门**不被抢断清除** |
+
+### 12.7.2 跨组
+
+| 组合 | 关系 | 说明 |
+|------|------|------|
+| D1 页面切换 | **中断一切** | 切页时 Sheet / 动效直接消失（无需清理，节点被 `.hidden` 隐藏）；重进后从终态重建 |
+| D2 Sheet 关闭 | **中断一切 A 组** | 关闭时取消所有待落定意图（递增意图序号），避免关掉后又被旧意图展开 |
+| B1 左滑 ↔ 卡片点击 | **互斥** | 已拖动（> `6px`）则松手不派发 click |
+| B1 多张卡 | **互斥** | 打开一张先收起其他 |
+| C1 拖动 ↔ 行点击 | **互斥** | 起拖后抑制 click；拖起行 `pointer-events: none` |
+
+## 12.8 降级与可访问性
+
+| 项 | 常规 | `prefers-reduced-motion: reduce` |
+|----|------|----------------------------------|
+| A1 / A2 Morph | 380ms spring | 立即落位 |
+| A4 分裂入场 | 380ms + 逐张延迟 | `animation: none`，直接终态 |
+| A5 选项淡入 | 200ms | **恒可见**（`opacity:1; visibility:visible`） |
+| A6 / A7 / A8 勾选 | 170ms / 340ms | 瞬时切态，仍落 `stroke-dashoffset` 终值 |
+| A12 抖动 | 440ms | 无抖动，**仍不改状态**（触觉保留） |
+| A13 门控 | 等 `finished` | **跳过等待**，直接落定 |
+| B1 左滑 | `.22s` 吸附 | 瞬时吸附（手势可用） |
+| C1 拖动排序 | `.15s` 行淡出 | 瞬时（拖动可用） |
+| D3 Toast | `.2s` 淡入淡出 | 保留 |
+| D4 抽屉 | `.28s` | 瞬时开合 |
+
+**其它可访问性要求**：
+
+- 勾选控件必须是 `<button>` 且带 `aria-pressed`（`true`/`false`），文案 `aria-label` 含员工名（如「取消选择 顾清扬」）。
+- 选项组容器 `role="group"` + `aria-label="选择工位或顾客指定"`；Sheet 容器 `role="dialog"` + `aria-label="选择服务员工"`。
+- 勾 / 删除图标一律 `aria-hidden="true"`（语义由按钮承载）。
+- **动效不得是唯一反馈**：A12 抖动之外，工位必选还须有可读的静态提示（Sheet 提示行文案，见 §6.7.1）。
+- 键盘：`Esc` 关闭 Sheet / Dialog；`Enter`/`Space` 激活选项卡与勾选控件（原生按钮已满足）。
+
+## 12.9 验收用例（动效专项）
+
+> 本节为**动效专项**用例，与 §10.2 业务用例并列。编号 `Nx`。
+
+| # | Given | When | Then |
+|---|-------|------|------|
+| N1 | 选人 Sheet 展开态（按工位 + 开顾客指定） | 打开 DevTools 逐帧观察展开瞬间 | 被点卡由 `cellW 105.33px` 在 `380ms` spring 内长到 `gridW 332px`；列为 1/2 时 `translateX` 分别落 `−113.33 / −226.67px`；**同帧无过渡、次帧才有**（无「瞬间跳到位」） |
+| N2 | 同上 | 展开瞬间观察同行其余卡 | 同行其余卡**瞬时**变 `opacity: 0`（无过渡），`pointer-events: none`；下一行卡片不受影响 |
+| N3 | 同上 | 展开瞬间观察选项卡 | 4 张卡依 `0/35/70/105ms` 逐张由 `scaleX(.42)` 弹到 `1`，总时长 `380 + 105 ≈ 485ms`；**卡片重绘后不重播** |
+| N4 | 同上 | 展开瞬间观察选项区 | 选项区 `opacity` 由 `0` 约 `200ms` 升到 `1`；`visibility` 由 `hidden` 变 `visible` |
+| N5 | 展开态，未勾选任一选项卡 | 点「顾客指定」 | 盒先变红（`60ms`）→ 勾由左向右画出（`110ms`，**匀速**）→ 共 `170ms` 后卡片才收起；勾**完整**（`stroke-dashoffset = 0`） |
+| N6 | 已勾选「顾客指定」 | 再点「顾客指定」 | 勾先由右向左收回（`110ms`）→ 红底褪白（`60ms`）→ 共 `170ms` 后收起；退回「普通」态 |
+| N7 | 已勾选「大工」 | 点「中工」 | 旧勾 A7（170ms）**播完**→ 新勾 A6（170ms）**播完**→ 才落定；两轮**不得并行**；总 ≈`340ms` |
+| N8 | 任一勾选动效播放中 | 立刻点遮罩 / 点另一张卡 | 进行中的勾**先补画到终点**（不停在半路），随即落定并执行新交互；**点击不丢失** |
+| N9 | 单轮勾选动效（170ms） | 点「顾客指定」后记录收起时刻 | 收起时刻 **≥ 170ms**（实测 173ms）；把 `--sp-check-draw` 改为 `600ms` 后收起时刻**随之推到 ≈670ms**（实测 672ms） |
+| N10 | 展开态 | 点编辑卡自身空白 / 选项行间隙 / 卡片区空白 / Sheet 正文空白 / `scrim` | 均**收起**；且收起不早于「Morph 380ms 到期」与「当前勾选动效播完」 |
+| N11 | 展开态 | 点 Sheet 标题「选择服务员工」/ 提示行 / 底部栏空白 | **不收起**（卡片区之外不响应） |
+| N12 | 展开态 | 点底部「完成」/ Sheet 外遮罩 | **关闭整个 Sheet**（不是收起卡片） |
+| N13 | 展开态 | 点另一张员工卡 | 当前卡收起、新卡按 A1 展开；**不出现两卡同时展开** |
+| N14 | 展开态，已勾选「大工」 | 再点「大工」 | 卡片播 `440ms` 抖动（±6px + 轻微旋转），`vibrate(8)`；**不出 toast、状态与摘要不变、卡片保持展开** |
+| N15 | 按工位 + 开顾客指定，未选工位 | 先点「顾客指定」 | 该勾立即可见；卡片**保持展开**等工位；员工仍为**未选**（`getStaffCount()` 不变） |
+| N16 | 承接 N15 | 关闭 Sheet 再打开该员工卡 | 「顾客指定」仍是勾选态，卡片仍是展开态；**不弹提示** |
+| N17 | 承接 N15 | 再点「顾客指定」取消 | 取消该勾、卡片**保持展开**、员工仍未选 |
+| N18 | 员工已被选中 | 观察收缩后的员工卡 | 卡有 `staffDonePop`（`420ms`，`scale .94→1.04→1`）+ 粉底描边；右侧 `20×20` 勾有 `staffCheckIn`（`380ms`，`scale .4→1.12→1`）；两者均**只播一次** |
+| N19 | 从**选项卡**勾选完成并收起 | 观察收缩后员工卡右侧的勾 | **不再播画勾**（`stroke-dashoffset` 直接为 `0`，无 `is-draw`），只保留 `staffCheckIn` 弹入 |
+| N20 | 「不分工位 + 未开顾客指定」态 | 点员工卡 | **不展开**；勾在员工卡上**画出**（`is-draw`，`170ms`）；再点该卡 → 反序取消 |
+| N21 | 系统开启「减弱动态效果」 | 执行 A1–A12 全部交互 | 全部瞬时切态；**终态与常规完全一致**（勾不半画、选项不隐形、状态变更与摘要正确） |
+| N22 | 提成设置 · 规则卡 | 左滑该卡 | 横向位移绝对量 > 8px 且横向占优时才起滑；跟手 `clamp(−72, 0, dx)`；松手 `dx ≤ −48` 或快速左滑 → 吸附露出 `72px` 垃圾桶（`.22s` Apple 标准）；再右滑或滑其他卡 → 收起 |
+| N23 | 员工列表 | 长按行 `400ms` 后拖动 | 起拖 `vibrate(12)`；被拖行绝对定位 + `0 6px 18px rgba(0,0,0,.1)` 阴影；其余行 `opacity: .55`（`.15s`）；占位按行中线让位；松手按新序提交且不误进详情；`pointercancel` 不提交 |
+| N24 | 任意页 | 触发 toast | 居中淡入 `.2s`；`2000ms`（普通）/ `2600ms`（警示）后淡出；`>18` 字左对齐多行；连续触发**重置计时**不叠加 |
+| N25 | **多选**：已选中 A，再选中 B | 观察 A 的卡与勾 | A 的卡**不重播** `staffDonePop`（无 `is-pop`）、A 的勾**不重播** `staffCheckIn`（无 `is-in`）；同一时刻只有刚选中的 B 在播。**关闭 Sheet 再打开**：所有卡与勾均无 `is-pop` / `is-in`、无正在运行的动画。取消 A 时 B 与其余卡同样不重播 |
+| N26 | 已选「大工」，**展开后 120ms（`is-splitting` 仍在 DOM）** 立刻再点一次「大工」 | 观察该卡 | **仍能看到完整抖动**（`is-shake` 存活 ≈`440ms`，不被 `staffRoleSplit` 的 `animationend` 在 ≈`260ms` 截断）；状态与摘要不变、卡片保持展开 |
+
+## 12.10 实现自检清单 + 已知偏差
+
+**自检清单（逐项打勾）**：
+
+- [ ] `:root` 定义了 `--sp-check-red: 60ms` / `--sp-check-draw: 110ms`，且 JS 门控**读取**这两个变量（不得各写常量）
+- [ ] 画勾 / 收勾动画用 `linear`；`delay = 变红时长`（不是 `0`）
+- [ ] 收起 / 展开由 `animation.finished` **+** 名义时长取长驱动，并有 `名义时长 + 300ms` 兜底
+- [ ] 抢断时**先 `finish()` 补画勾**再落定（无半画）
+- [ ] 待落定意图「只认最后一次」，不会被旧意图反向覆盖
+- [ ] `morphUntil`（380ms）独立于勾选门控，抢断不清除
+- [ ] 重绘前清掉 `is-row-muted` / `is-expanding` / `is-splitting` / `is-draw` 等临时类
+- [ ] 回弹（`is-pop`）与勾弹入（`is-in`）走**一次性标记**，渲染后即清空；**不得**把 `animation` 挂在 `.is-done` / `.staff-card__tick` 基础类上（否则每次重绘都重播）
+- [ ] `.is-shake` 规则排在 `.is-splitting` 规则**之后**（或带组合选择器），保证抖动不被入场动画吃掉
+- [ ] `spShakeOpt` 的 `animationend` 回调**按 `animationName` 过滤**（只认 `spOptShake`）
+- [ ] `is-splitting` 在 `520ms`（第 4 张卡播完）才从 DOM 摘除
+- [ ] 同帧改样式处有 `void el.offsetWidth` 强制 reflow
+- [ ] 卡片区之外（Sheet 标题 / 提示行 / 底部栏）点击**不**收起
+- [ ] 「完成」与 Sheet 外遮罩仍**关闭 Sheet**
+- [ ] 降级下选项区**恒可见**，且 `stroke-dashoffset` 落终值
+- [ ] 勾选控件是 `<button>` + `aria-pressed`；图标 `aria-hidden`
+- [ ] 触觉 `try/catch` 且判存在
+- [ ] 只动 `transform` / `opacity` / `width`
+
+**已知偏差 / 待确认（实现前须拍板，本文按「原型现状」记录）**：
+
+| # | 现状 | 影响 | 建议 |
+|---|------|------|------|
+| 1 | A2 收起为**瞬时**（2ms），与 A1 展开的 380ms 弹性**不对称** | 展开有弹性、收起硬切 | 若要对称，收起也加 380ms spring 回缩；须回改 §12.3 A2 |
+| 2 | A1 的「已展开不重播 Morph」依赖状态位 `opened`，而该位仅在「保持展开（待选工位态）」时置 `true`；正常展开路径该位始终 `false` | 若出现「同一张卡保持展开的重绘」，理论上会重播 Morph（实测未复现，因为该路径都走 `opened=true`） | 判据改为「该卡本次是否由**收起**转为**展开**」，比依赖状态位更稳健 |
+
+> **已修（原待确认项 1）**：`staffDonePop` / `staffCheckIn` 曾挂在 `.is-done` / `.staff-card__tick` **基础类**上，导致**每次重绘都重播**（选完 A 再选 B 时 A 也再弹一次）。已改为一次性标记 `is-pop` / `is-in`：`spSelectStaff()` 置位 → 渲染读取 → 渲染后清空。回归项见 §12.9 **N18 / N25**。
+
+## 12.11 变更流程
+
+1. 任何动效改动**先改本节**（数值 / 时序 / 可中断性），标注修订记录。
+2. 再改原型（`comm2.css` / `comm2.js` / `salary.css` / `base.css` / `shell.css`）。
+3. 跑 §12.9 的 `N1–N25`；其中 **N5–N9 / N18 / N21 / N25** 是回归必跑项（勾选动效、门控与一次性标记最易回归）。
+4. 本节新增动效时，必须补齐 §12.1.1 的 10 个字段，缺项视为不合格。
+
+---
+
+# 模块 13　交付物
 
 | 交付 | 说明 |
 |------|------|

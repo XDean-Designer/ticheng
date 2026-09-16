@@ -3183,6 +3183,9 @@
     extraSplit: true,
     edit: null,
     freshTick: null,
+    /* 本次交互**真的选中**了哪些员工 → 下一次渲染才播「回弹 + 勾弹入」；
+       spAfterStaffPickerPaint 渲染后即清空，避免无关重绘（如再选别人）时重播 */
+    freshDone: {},
     row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffExtra: {}, staffChosen: {} }
   };
 
@@ -3343,45 +3346,136 @@
     return '<div class="staff-card__title staff-card__title--pick">' + spEsc(sum) + '</div>';
   }
 
-  /* —— 勾选动效门控：点勾选控件后「快速变红 120ms → 勾从左到右画出 220ms」，取消反序播放；
-     卡片的收起 / 展开都必须等动效播完。动效期间的新交互**抢断**当前动效（q4-C）：
-     立即落定进行中的动效，再执行新交互，不排队。 —— */
-  var SP_CHECK_RED_MS = 120;
-  var SP_CHECK_DRAW_MS = 220;
-  var SP_CHECK_MS = SP_CHECK_RED_MS + SP_CHECK_DRAW_MS;
-  var spGate = { until: 0, timer: 0, pending: null };
+  /* —— 勾选动效门控 ——
+     时长与 CSS **同源**（`--sp-check-red` 变红 + `--sp-check-draw` 画勾，当前 60ms + 110ms），
+     改一处即可，避免 JS 与 CSS 对不齐。
+     卡片的收起 / 展开**必须等动效真正播完**才发生：由 `animation.finished` 驱动 + 超时兜底，
+     **不再用固定计时**（主线程卡顿时固定计时正是「没播完就收起」的根因）。
+     动效期间的新交互**抢断**：先把进行中的勾**补画成终点态**再落定（q3-B）——勾不会停在半路。
+     展开 Morph（380ms）另有**独立占位门**：Morph 播完前不收起；该门不受抢断清除。 —— */
+  var SP_CHECK_RED_FALLBACK = 60;
+  var SP_CHECK_DRAW_FALLBACK = 110;
 
-  function spGateBusy() { return Date.now() < spGate.until; }
-  function spGateElapsed(ms) { return spReduceMotion() ? 0 : ms; }
-  /** 抢断：把进行中的动效立即落定（结果态由随后的重绘直接呈现），并放行新交互 */
-  function spGateFlush() {
-    if (spGate.timer) { clearTimeout(spGate.timer); spGate.timer = 0; }
-    var fn = spGate.pending;
-    spGate.pending = null;
-    spGate.until = 0;
-    if (!fn) return;
-    try { fn(); } catch (e) { /* ignore */ }
+  function spCssMs(name, fallback) {
+    try {
+      var raw = String(getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim();
+      var m = /^([\d.]+)(ms|s)$/.exec(raw);
+      if (!m) return fallback;
+      return m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
+    } catch (e) { return fallback; }
   }
-  /** 只占位等待（展开 Morph 动效播完前不接受收起） */
-  function spGateHoldOnly(ms) {
-    var wait = spGateElapsed(ms);
-    if (!wait) return;
-    spGate.until = Math.max(spGate.until, Date.now() + wait);
+  /** 单轮勾选动效总时长 = 变红 + 画勾（与 CSS 变量同源） */
+  function spCheckMs() {
+    return spCssMs('--sp-check-red', SP_CHECK_RED_FALLBACK) +
+      spCssMs('--sp-check-draw', SP_CHECK_DRAW_FALLBACK);
   }
-  /** 等动效播完再执行一次状态变更（收起 / 展开）；被抢断则立即执行 */
-  function spGateAfter(ms, apply) {
-    var wait = spGateElapsed(ms);
-    if (!wait) { spGate.until = 0; apply(); return; }
-    spGate.until = Date.now() + wait;
-    spGate.pending = apply;
-    spGate.timer = setTimeout(function () {
-      spGate.timer = 0;
-      spGate.pending = null;
-      spGate.until = 0;
+
+  var spGate = { checkUntil: 0, morphUntil: 0, timer: 0, floorTimer: 0, token: null };
+
+  function spGateBusy() { return Date.now() < Math.max(spGate.checkUntil, spGate.morphUntil); }
+
+  /** 勾选控件上正在跑的动效：盒子的红/白过渡 + 勾路径上的画勾 / 收勾 */
+  function spCheckAnims(root) {
+    var out = [];
+    var push = function (el) {
+      if (!el || typeof el.getAnimations !== 'function') return;
+      el.getAnimations().forEach(function (a) { out.push(a); });
+    };
+    if (!root) return out;
+    push(root);
+    if (root.querySelector) push(root.querySelector('svg path'));
+    return out;
+  }
+  /** 把进行中的勾**立即补画到终点**（抢断用：勾不会停在半路就收起） */
+  function spSnapChecks() {
+    var root = spEl('comm2StaffSheetRoot');
+    if (!root || !root.querySelectorAll) return;
+    Array.prototype.slice.call(root.querySelectorAll('.is-draw, .is-undraw')).forEach(function (el) {
+      spCheckAnims(el).forEach(function (a) { try { a.finish(); } catch (e) { /* ignore */ } });
+    });
+  }
+
+  /** 等动效**真正播完**再执行一次状态变更（收起 / 展开）。
+     判定 = 「所有相关动画结束（animation.finished）」**且**「已过 minMs 名义时长」，
+      两者取长者：真实动效被改慢时随之推后，取消（反序）时也不会在褪红还没结束就收起。
+      被抢断则先补画勾再立即落定。 */
+  function spGateAfter(roots, apply, minMs) {
+    if (spReduceMotion()) { apply(); return null; }
+    var list = Array.isArray(roots) ? roots : [roots];
+    var floor = minMs || 0;
+    var tok = { done: false };
+    tok.fire = function () {
+      if (tok.done) return;
+      tok.done = true;
+      if (spGate.token === tok) spGate.token = null;
+      if (spGate.timer) { clearTimeout(spGate.timer); spGate.timer = 0; }
+      if (spGate.floorTimer) { clearTimeout(spGate.floorTimer); spGate.floorTimer = 0; }
+      spGate.checkUntil = 0;
       apply();
-    }, wait);
+    };
+    var anims = [];
+    list.forEach(function (r) { spCheckAnims(r).forEach(function (a) { anims.push(a); }); });
+    var animsDone = !anims.length;
+    var floorDone = !floor;
+    if (animsDone && floorDone) { tok.fire(); return tok; }
+    var maybe = function () { if (animsDone && floorDone) tok.fire(); };
+    spGate.token = tok;
+    var guard = Math.max(spCheckMs() + 300, floor + 300);
+    spGate.checkUntil = Date.now() + guard;
+    spGate.timer = setTimeout(tok.fire, guard);          /* 兜底：动画被取消 / 不触发也能落定 */
+    if (!animsDone) {
+      var left = anims.length;
+      anims.forEach(function (a) {
+        var one = function () { if (--left === 0) { animsDone = true; maybe(); } };
+        try { a.finished.then(one, one); } catch (e) { one(); }
+      });
+    }
+    if (!floorDone) {
+      spGate.floorTimer = setTimeout(function () { spGate.floorTimer = 0; floorDone = true; maybe(); }, floor);
+    }
+    return tok;
   }
-  /** 动效期间的交互：抢断后立即执行（q4-C：点击不丢失，也不等动效播完） */
+
+  /** 展开 Morph 占位门：Morph 播完前不接受收起（独立于勾选门控，抢断不清除） */
+  function spGateHoldOnly(ms) {
+    var wait = spReduceMotion() ? 0 : ms;
+    if (!wait) return;
+    spGate.morphUntil = Math.max(spGate.morphUntil, Date.now() + wait);
+  }
+  /** 收起 / 展开员工卡：等**展开 Morph** 与**勾选动效**都播完再落定，然后重绘。
+      同一时刻只认最后一次意图（后到的覆盖先到的），避免「先收起、随后又被旧意图展开」 */
+  var spEditSeq = 0;
+  function spEditChange(mutator) {
+    var seq = ++spEditSeq;
+    var attempt = function () {
+      if (seq !== spEditSeq) return;                       /* 已被更新的意图取代 */
+      var until = Math.max(spGate.checkUntil, spGate.morphUntil);
+      var busy = spReduceMotion() ? 0 : Math.max(0, until - Date.now());
+      if (busy > 0) { setTimeout(attempt, busy + 20); return; }
+      mutator();
+      spState.freshTick = null;
+      spHaptic();
+      spRedraw();
+    };
+    var wait = spReduceMotion() ? 0 : Math.max(0, spGate.morphUntil - Date.now());
+    if (wait > 0) setTimeout(attempt, wait); else attempt();
+  }
+  /** 落定展开态目标（null = 收起；对象 = 保持展开在该员工上） */
+  function spApplyEdit(next) {
+    spEditChange(function () { spState.edit = next; });
+  }
+
+  /** 抢断：先把进行中的勾补画成完整态，再立即落定本次状态变更（q3-B） */
+  function spGateFlush() {
+    var tok = spGate.token;
+    if (spGate.timer) { clearTimeout(spGate.timer); spGate.timer = 0; }
+    if (spGate.floorTimer) { clearTimeout(spGate.floorTimer); spGate.floorTimer = 0; }
+    spGate.checkUntil = 0;
+    spGate.token = null;
+    spSnapChecks();
+    if (tok) tok.fire();
+  }
+  /** 动效期间的交互：抢断后立即执行（点击不丢失） */
   function spIntend(fn) {
     if (spGateBusy()) spGateFlush();
     fn();
@@ -3415,19 +3509,29 @@
     btn.classList.remove('is-shake');
     void btn.offsetWidth;
     btn.classList.add('is-shake');
-    var stop = function () { btn.classList.remove('is-shake'); };
-    btn.addEventListener('animationend', stop, { once: true });
-    setTimeout(stop, 560);
+    var stop = function (e) {
+      /* 只认抖动自己的结束事件：同卡上可能还有入场动画（`is-splitting` 的 `staffRoleSplit`）
+         结束得更早，若不加判断会把抖动提前截断 */
+      if (e && e.animationName && e.animationName !== 'spOptShake') return;
+      btn.removeEventListener('animationend', stop);
+      btn.classList.remove('is-shake');
+    };
+    btn.addEventListener('animationend', stop);
+    setTimeout(function () { stop(); }, 560);
   }
 
-  /** 选中员工（计入已选）；roleId 为空 = 不分工位（无工位） */
-  function spSelectStaff(sid, roleId) {
+  /** 选中员工（计入已选）；roleId 为空 = 不分工位（无工位）。
+      fresh = true 时收缩态员工卡的勾**画出**（仅「点选即勾选」态 4 用：
+      该态没有选项卡可画勾，勾在员工卡上首现）；从选项卡勾选的路径不重画（q6：勾已在选项卡上画过） */
+  function spSelectStaff(sid, roleId, fresh) {
     var row = spState.row;
     if (row.staffIds.indexOf(sid) < 0) row.staffIds.push(sid);
     row.staffChosen[sid] = true;
     if (roleId) row.staffRoles[sid] = roleId;
     else delete row.staffRoles[sid];
-    spState.freshTick = sid;
+    /* 选中即标记「一次性回弹」：下一次渲染播 staffDonePop + staffCheckIn（重绘不重播） */
+    spState.freshDone[sid] = true;
+    if (fresh) spState.freshTick = sid;
   }
   /** 取消员工选择（保留「顾客指定」勾选记忆，供「先勾顾客指定、等工位」的待选态使用） */
   function spDropStaff(sid) {
@@ -3464,66 +3568,65 @@
           spDropStaff(sid);
           keepOpen = true;                    /* 等工位：保持展开 */
         } else {
-          spSelectStaff(sid, spNeedStation() ? row.staffRoles[sid] : null);
+          spSelectStaff(sid, spNeedStation() ? row.staffRoles[sid] : null, false);
         }
       }
     } else if (opt.kind === 'plain') {
       row.staffExtra[sid] = false;
       if (checked) spDropStaff(sid);          /* 取消「普通」→ 取消该员工选择 */
-      else spSelectStaff(sid, null);
+      else spSelectStaff(sid, null, false);
     } else if (checked) {
       /* 工位不可点掉（q1-C）：已在 spTapOption 抖动提醒，这里兜底不动状态 */
       return;
     } else {
-      spSelectStaff(sid, key);                /* 工位单选：勾新的即替换旧的 */
+      spSelectStaff(sid, key, false);         /* 工位单选：勾新的即替换旧的 */
     }
 
-    spState.edit = keepOpen ? { staffId: sid, splitting: false, opened: true } : null;
-    spHaptic();
-    spRedraw();
+    /* 收起 / 保持展开都必须等勾选动效播完（spGateAfter 驱动），Morph 未播完也不收起 */
+    spApplyEdit(keepOpen ? { staffId: sid, splitting: false, opened: true } : null);
   }
 
-  /** 点展开态选项卡：勾选 / 取消勾选；勾选动效播完才收起或展开（新交互会抢断当前动效） */
+  /** 点展开态选项卡：勾选 / 取消勾选；收起 / 展开等勾选动效**真正播完**才发生（抢断则先补画成完整勾） */
   function spTapOption(sid, key) {
     if (!sid || !key) return;
     if (!spState.edit || spState.edit.staffId !== sid) return;
-    if (spGateBusy()) spGateFlush();                 /* q4-C：抢断进行中的动效 */
+    if (spGateBusy()) spGateFlush();                 /* q3-B：抢断，先把勾补画成完整态 */
     var opt = spOptionByKey(key);
     if (!opt) return;
     var checked = spOptionChecked(sid, opt);
     /* 工位是必选项：再点已勾选的工位**不取消**，改用 iOS 抖动动效提醒（q1-C） */
     if (checked && opt.kind === 'role') { spShakeOpt(sid, key); spHaptic(); return; }
-    /* 切换工位：旧勾先反序收回，再画新勾（q3） */
+    /* 切换工位：旧勾先反序收回（播完）→ 再画新勾（播完）→ 才落定（q3） */
     var prevKey = opt.kind === 'role' ? spState.row.staffRoles[sid] : null;
     var prevBox = (prevKey && prevKey !== key) ? spOptBoxEl(sid, prevKey) : null;
     if (prevBox) {
       spPlayCheck(prevBox, false);
-      var nextBox = spOptBoxEl(sid, key);
-      var delay = spGateElapsed(SP_CHECK_MS);
-      if (delay) setTimeout(function () { spPlayCheck(nextBox, true); }, delay);
-      else spPlayCheck(nextBox, true);
-      spGateAfter(SP_CHECK_MS * 2, function () { spApplyOptionToggle(sid, key); });
+      spGateAfter(prevBox, function () {
+        spPlayCheck(spOptBoxEl(sid, key), true);
+        spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMs());
+      }, spCheckMs());
       return;
     }
     spPlayCheck(spOptBoxEl(sid, key), !checked);
-    spGateAfter(SP_CHECK_MS, function () { spApplyOptionToggle(sid, key); });
+    spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMs());
   }
 
-  /** 收缩态员工卡右侧「取消选择」：反序播放动效后再取消 */
+  /** 收缩态员工卡右侧「取消选择」：反序播放动效（播完）后再取消 */
   function spUntickStaff(sid, tickEl) {
     if (!sid) return;
-    if (spGateBusy()) spGateFlush();                 /* q4-C：抢断 */
-    spPlayCheck(tickEl || spTickEl(sid), false);
-    spGateAfter(SP_CHECK_MS, function () { spRemoveStaff(sid); });
+    if (spGateBusy()) spGateFlush();                 /* 抢断 */
+    var el = tickEl || spTickEl(sid);
+    spPlayCheck(el, false);
+    spGateAfter(el, function () { spRemoveStaff(sid); }, spCheckMs());
   }
 
-  /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾选控件画出）/ 已选再点即取消 */
+  /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾在员工卡上**画出**）/ 已选再点即取消 */
   function spToggleStaff(sid) {
     if (!sid) return;
     spEnsureState();
     if (spStaffIsChosen(sid)) { spUntickStaff(sid, null); return; }
     spState.row.staffExtra[sid] = false;
-    spSelectStaff(sid, null);
+    spSelectStaff(sid, null, true);
     spState.edit = null;
     spHaptic();
     spRedraw();
@@ -3587,10 +3690,13 @@
           spCardPickLineHtml(st, done);
       }
       /* 勾选控件（右侧、稍放大）：仅已勾选显示；点它取消选择。
-         freshTick = 刚被选中的员工 → 勾从左到右画出（与选项卡上的动效衔接） */
+         freshTick = 刚被选中的员工 → 勾从左到右画出（与选项卡上的动效衔接）
+         freshPop  = 刚被选中的员工 → 播「回弹 + 勾弹入」（一次性，重绘不重播） */
       var fresh = spState.freshTick === st.id;
+      var freshPop = !!spState.freshDone[st.id];
       var tickBtn = (done && !isEdit)
-        ? '<button type="button" class="staff-card__tick' + (fresh ? ' is-draw' : '') + '" data-staff-tick data-staff-id="' + spEsc(st.id) +
+        ? '<button type="button" class="staff-card__tick' + (fresh ? ' is-draw' : '') + (freshPop ? ' is-in' : '') +
+          '" data-staff-tick data-staff-id="' + spEsc(st.id) +
           '" aria-pressed="true" aria-label="取消选择 ' + spEsc(st.name) + '">' + tickSvg + '</button>'
         : '';
       if (isEdit) {
@@ -3602,7 +3708,7 @@
           '<div class="staff-card__panel" data-face="opts">' + body + '</div>' +
           '</div>';
       }
-      return '<div class="staff-card' + (done ? ' is-done' : '') + (dim ? ' is-dim' : '') + '"' +
+      return '<div class="staff-card' + (done ? ' is-done' : '') + (done && freshPop ? ' is-pop' : '') + (dim ? ' is-dim' : '') + '"' +
         ' style="--staff-origin:' + origin + '"' +
         ' data-origin="' + originSide + '"' +
         ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
@@ -3701,12 +3807,18 @@
       if (spState.edit && spState.edit.splitting) {
         setTimeout(function () {
           if (spState.edit) spState.edit.splitting = false;
-        }, spReduceMotion() ? 0 : 420);
+          /* 第 4 张卡延迟 105ms + 380ms ≈ 485ms 才播完：等它播完再摘掉类，
+             否则抖动（`.is-shake`）会被带 `fill: both` 的入场动画吃掉 */
+          var el = root && root.querySelector ? root.querySelector('.staff-card.is-splitting') : null;
+          if (el) el.classList.remove('is-splitting');
+        }, spReduceMotion() ? 0 : 520);
       }
-      /* 刚画完勾的标记只用于这一次渲染，清掉后重绘即回到静态已勾选态 */
+      /* 刚画完勾的标记只用于这一次渲染，动效播完（变红 + 画勾）后清掉，重绘即回到静态已勾选态 */
       if (spState.freshTick) {
-        setTimeout(function () { spState.freshTick = null; }, spReduceMotion() ? 0 : 620);
+        setTimeout(function () { spState.freshTick = null; }, spReduceMotion() ? 0 : spCheckMs() + 260);
       }
+      /* 「回弹 + 勾弹入」是一次性标记：本次渲染已消费，立刻清空，后续重绘不再重播 */
+      spState.freshDone = {};
     });
   }
 
@@ -3776,6 +3888,7 @@
   function spOpenSheet() {
     spState.edit = null;
     spState.freshTick = null;
+    spState.freshDone = {};          /* 开场不播回弹：已选员工的卡直接静态呈现 */
     spRenderSheet();
     var mask = spEl('comm2StaffSheetMask');
     if (mask) mask.classList.add('open');
@@ -3783,8 +3896,10 @@
   function spCloseSheet() {
     var mask = spEl('comm2StaffSheetMask');
     if (mask) mask.classList.remove('open');
+    spEditSeq++;                    /* 取消任何待落定的收起 / 展开 */
     spState.edit = null;
     spState.freshTick = null;
+    spState.freshDone = {};
     spRenderScreen();
   }
 
@@ -3821,9 +3936,10 @@
       spToggleStaff(sid);
       return;
     }
+    spEditSeq++;                    /* 最新意图：取消任何待落定的收起 / 展开 */
     spState.edit = { staffId: sid, splitting: true, opened: false };
     spHaptic();
-    spGateHoldOnly(SP_EXPAND_MS);   /* 展开 Morph 动效播完前不接受收起（点击排队） */
+    spGateHoldOnly(SP_EXPAND_MS);   /* 展开 Morph 动效播完前不接受收起 */
     spRedraw();
   }
 
@@ -3891,13 +4007,10 @@
 
       var inSheet = t.closest('#comm2StaffSheetRoot');
       var inScreen = t.closest('#comm2SpBlock');
-      if (!inSheet && !inScreen) return;
+      if (!inSheet && !inScreen) return;   /* 标题 / 提示行 / 底部栏等「卡片区之外」：不收起（q4） */
 
       if (t.closest('[data-staff-scrim]')) {
-        spIntend(function () {
-          spState.edit = null;
-          spRedraw();
-        });
+        spIntend(function () { spApplyEdit(null); });
         return;
       }
 
@@ -3930,14 +4043,19 @@
         e.preventDefault();
         var hSid = staffHit.getAttribute('data-staff-id');
         if (spState.edit && spState.edit.staffId === hSid) {
-          spIntend(function () {
-            spState.edit = null;
-            spHaptic();
-            spRedraw();
-          });
+          spIntend(function () { spApplyEdit(null); });
           return;
         }
+        /* 展开态点另一张员工卡：收起当前 + 展开新的（q5） */
         spIntend(function () { spEnterEdit(hSid); });
+        return;
+      }
+
+      /* 展开态兜底：服务员工卡片区内，凡不是「选项卡 / 勾选控件 / 摘要删除」的点击
+         （编辑卡自身空白、选项行间隙、卡片区空白）一律**先等勾选动效播完、再收起**（q4） */
+      if (spState.edit) {
+        e.preventDefault();
+        spIntend(function () { spApplyEdit(null); });
       }
     });
 
