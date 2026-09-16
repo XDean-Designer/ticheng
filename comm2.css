@@ -265,15 +265,15 @@
   padding: 10px 10px 10px 12px; border-radius: 10px;
   border: 1px solid #E6E6E6; background: #fff; box-sizing: border-box; min-width: 0;
 }
-.comm2-cap--des { border-color: #FFD5D9; }
+.comm2-cap--extra { border-color: #FFD5D9; }
 .comm2-cap--non { border-color: #DCE3EA; }
 .comm2-cap--single { border-color: #E6E6E6; }
-.comm2-cap--des::before,
+.comm2-cap--extra::before,
 .comm2-cap--non::before {
   content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
   border-radius: 0 2px 2px 0;
 }
-.comm2-cap--des::before { background: var(--brand); }
+.comm2-cap--extra::before { background: var(--brand); }
 .comm2-cap--non::before { background: #8FA3B8; }
 .comm2-cap--single::before {
   content: ''; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px;
@@ -281,51 +281,60 @@
 }
 .comm2-cap__head {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
-  padding-left: 4px; min-height: 24px;
+  padding-left: 4px; min-height: 22px;
 }
-.comm2-cap__title { font-size: 13px; color: #1A1A1A; font-weight: 600; flex-shrink: 0; }
-.comm2-cap__head-acts {
-  display: inline-flex; align-items: center; justify-content: flex-end; gap: 4px;
-  flex-shrink: 0; margin-left: auto;
+/* 卡内上方文字「提成」「额外」：#929292 */
+.comm2-cap__title { font-size: 13px; color: #929292; font-weight: 600; flex-shrink: 0; }
+/* 卡内底行：左输入值 + 右侧两段式胶囊（同一行；输入值收缩、胶囊贴卡片右侧，不溢出卡片） */
+.comm2-cap__row {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 8px;
+  min-height: 28px; min-width: 0;
 }
-/* 卡头「比例 / 金额」chip：点按翻转取值模式 */
-.comm2-cap__mode {
+/* 两段式胶囊「比例 / 金额」：整块是点击热区，点一次切换一次 */
+.comm2-cap__seg {
+  display: inline-flex; align-items: center; gap: 0; flex-shrink: 0;
+  margin: 0; padding: 2px; border: 1px solid #E0E0E0; border-radius: 999px;
+  background: #F2F2F2; font-family: inherit; cursor: pointer;
+  box-sizing: border-box; -webkit-tap-highlight-color: transparent;
+}
+.comm2-cap__seg:active { opacity: .8; }
+.comm2-cap__seg-item {
   display: inline-flex; align-items: center; justify-content: center;
-  min-width: 36px; height: 24px; padding: 0 8px; margin: 0;
-  border: 1px solid #E0E0E0; border-radius: 999px; background: #F7F7F7;
-  font-family: inherit; font-size: 11px; font-weight: 600; line-height: 1;
-  color: #666; cursor: pointer; box-sizing: border-box; white-space: nowrap;
-  -webkit-tap-highlight-color: transparent;
+  height: 20px; padding: 0 8px; border-radius: 999px;
+  font-size: 11px; font-weight: 600; line-height: 1; color: #929292;
+  transition: background .15s, color .15s;
 }
-.comm2-cap__mode.is-pct {
-  border-color: #DCE3EA; background: #F3F6F9; color: #5A6F84;
+.comm2-cap__seg-item.is-on {
+  background: #fff; color: var(--brand);
+  box-shadow: 0 1px 2px rgba(0,0,0,.08);
 }
-.comm2-cap__mode.is-amt {
-  border-color: #FFD5D9; background: var(--brand-soft, #FFF2EE); color: var(--brand);
-}
-.comm2-cap__mode:active { opacity: .75; transform: scale(.96); }
 .comm2-cap__label { font-size: 12px; color: #929292; padding-left: 4px; font-weight: 500; }
-.comm2-cap__field { display: flex; align-items: baseline; gap: 2px; padding-left: 4px; }
+.comm2-cap__field { display: flex; align-items: baseline; gap: 2px; padding-left: 4px; min-width: 0; }
 /* 比例输入框：宽度贴合数值（JS 同步），使 % 紧贴数字右侧 */
 .comm2-cap__field input {
   flex: 0 1 auto; min-width: 0; border: none; background: transparent; outline: none;
   font-family: var(--font-data, inherit); font-size: 18px; font-weight: 600; color: #1A1A1A;
   padding: 0; margin: 0;
 }
+/* 金额模式（必须排在上面通用规则之后，两者特异性相同、靠源码顺序取胜）：
+   输入框 flex-basis 归零，只吃「输入行 − 胶囊」的剩余宽度 —— 
+   否则 <input> 默认宽度（≈20 字符）会把同一行的胶囊顶出卡片（BUG：点「金额」后胶囊飞出卡外） */
+.comm2-cap__field--amt { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.comm2-cap__field--amt input { flex: 1 1 0px; width: 0; min-width: 0; }
 .comm2-cap__unit { font-size: 12px; color: #929292; font-weight: 500; pointer-events: none; }
-.comm2-guest-row {
+.comm2-extra-row {
   display: flex; align-items: center; gap: 10px;
 }
-.comm2-guest-row > .comm2-cap--single { flex: 1; min-width: 0; }
-/* 未开点客：提成卡 + 虚线「+ 点客提成」卡 等比并排、等高 */
-.comm2-guest-row--pair {
+.comm2-extra-row > .comm2-cap--single { flex: 1; min-width: 0; }
+/* 未开顾客指定：提成卡 + 虚线「+ 顾客指定提成」卡 等比并排、等高 */
+.comm2-extra-row--pair {
   display: grid; grid-template-columns: 1fr 1fr; align-items: stretch;
 }
-.comm2-guest-row--pair > .comm2-cap--single { min-width: 0; }
-/* 独占一行的单卡/虚线卡：铺满整行（按工位时各工位行、点客行） */
-.comm2-guest-row--solo > .comm2-cap { flex: 1; min-width: 0; }
-.comm2-guest-row--solo > .comm2-guest-add { flex: 1; min-height: 46px; }
-.comm2-guest-add {
+.comm2-extra-row--pair > .comm2-cap { min-width: 0; }
+/* 独占一行的单卡/虚线卡：铺满整行（按工位时各工位行、顾客指定行） */
+.comm2-extra-row--solo > .comm2-cap { flex: 1; min-width: 0; }
+.comm2-extra-row--solo > .comm2-extra-add { flex: 1; min-height: 46px; }
+.comm2-extra-add {
   min-width: 0;
   display: flex; align-items: center; justify-content: center;
   padding: 0; margin: 0;
@@ -334,8 +343,8 @@
   cursor: pointer; box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
-.comm2-guest-add:active { border-color: #BDBDBD; background: #FAFAFA; }
-.comm2-guest-close {
+.comm2-extra-add:active { border-color: #BDBDBD; background: #FAFAFA; }
+.comm2-extra-close {
   display: inline-flex; align-items: center; justify-content: center;
   width: 22px; height: 22px; margin: 0; padding: 0;
   border: 1px solid #D0D0D0; border-radius: 50%; background: #fff;
@@ -343,8 +352,8 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
-.comm2-guest-close svg { display: block; width: 12px; height: 12px; }
-.comm2-guest-close:active { color: var(--text, #1A1A1A); background: #F5F5F5; border-color: #BDBDBD; }
+.comm2-extra-close svg { display: block; width: 12px; height: 12px; }
+.comm2-extra-close:active { color: var(--text, #1A1A1A); background: #F5F5F5; border-color: #BDBDBD; }
 
 .comm2-sheet-mode {
   display: flex; gap: 0; padding: 3px; border-radius: 999px; background: #F2F2F2; margin-bottom: 14px;
@@ -500,6 +509,7 @@
 .comm2-pick-edit .comm2-pick-twin { margin-bottom: 0; }
 .comm2-pick-edit .comm2-cap { padding: 8px 8px 8px 10px; }
 .comm2-pick-edit .comm2-cap__field input { font-size: 16px; }
+.comm2-pick-edit .comm2-extra-row--pair { gap: 8px; }
 
 /* 编辑页 · 规则横条列表 */
 .comm2-edit-cards { display: flex; flex-direction: column; gap: 8px; padding: 6px 6px 0; }
@@ -621,7 +631,7 @@
   background: #F0F0F0; color: #8D8D8D;
   align-self: center; /* 「点」标签中轴与数值对齐 */
 }
-/* 提成值与点客值之间的竖线分隔 */
+/* 提成值与顾客指定值之间的竖线分隔 */
 .comm2-rule-bar__p-sep {
   display: inline-block; width: 1px; height: 12px; flex: 0 0 1px;
   margin: 0 4px; background: #DCDCDC;
@@ -641,7 +651,7 @@
   font-size: 15px; font-weight: 600; color: #1A1A1A; line-height: 1.3;
   display: inline-flex; align-items: baseline; flex-wrap: nowrap;
 }
-/* 按工位：参数竖排；点客与首工位（大工）同行 */
+/* 按工位：参数竖排；顾客指定与首工位（大工）同行 */
 .comm2-rule-bar.is-station .comm2-rule-bar__params {
   display: flex; flex-direction: column; flex-wrap: nowrap;
   align-items: flex-start; gap: 4px;
@@ -793,7 +803,7 @@
   color: #8F959E;
   flex-shrink: 0;
 }
-.comm2-sheet-station__edit svg { width: 14px; height: 14px; display: block; }
+.comm2-sheet-station__edit svg { width: 16px; height: 16px; display: block; }
 .comm2-sheet-station__input {
   width: 88px;
   height: 28px;
@@ -980,26 +990,47 @@
   gap: 8px; align-items: start;
 }
 .comm2-sheet-station-grid .comm2-sheet-station--compact { margin-bottom: 0; }
-.comm2-cat-sheet-body .comm2-guest-row { gap: 8px; }
-.comm2-cat-sheet-body .comm2-guest-add { border-radius: 8px; }
-.comm2-cat-sheet-body .comm2-twins { gap: 6px; }
+.comm2-cat-sheet-body .comm2-extra-row { gap: 8px; }
+.comm2-cat-sheet-body .comm2-extra-add { border-radius: 8px; }
+.comm2-cat-sheet-body .comm2-extra-row--pair { gap: 8px; }
 .comm2-cat-sheet-body .comm2-cap {
   padding: 6px 8px 6px 10px; gap: 4px; border-radius: 8px;
 }
-.comm2-cat-sheet-body .comm2-cap--des::before,
+.comm2-cat-sheet-body .comm2-cap--extra::before,
 .comm2-cat-sheet-body .comm2-cap--non::before { top: 6px; bottom: 6px; }
 .comm2-cat-sheet-body .comm2-cap__label { font-size: 11px; }
 .comm2-cat-sheet-body .comm2-cap__field input { font-size: 15px; }
-.comm2-cat-sheet-body .comm2-cap__mode {
-  min-width: 32px; height: 22px; padding: 0 6px; font-size: 10px;
+.comm2-cat-sheet-body .comm2-cap__seg { padding: 2px; }
+.comm2-cat-sheet-body .comm2-cap__seg-item {
+  height: 18px; padding: 0 6px; font-size: 10px;
 }
-.comm2-cat-sheet-body .comm2-cap__head { min-height: 22px; gap: 4px; }
+/* Sheet 内参数卡两种宽度：
+   · 宽卡（不分工位：「提成」+「额外」并排，内容 ≈150px）——值与胶囊**同一行**（左取值、右胶囊）；
+   · 窄卡（按工位：3 工位卡横排一行 + 「顾客指定」行卡，卡 114px / 内容 ≈96px，装不下 值+胶囊）——
+     **胶囊换到第 2 行**、右对齐贴卡片右下角，**保持胶囊原始尺寸不做压缩**；第 1 行取值占满整行。 */
+.comm2-cat-sheet-body .comm2-cap__row {
+  flex-direction: row; align-items: center; justify-content: space-between;
+  gap: 4px; min-height: 28px; min-width: 0;
+}
+.comm2-cat-sheet-body .comm2-cap__row > .comm2-cap__seg { align-self: center; flex-shrink: 0; }
+.comm2-cat-sheet-body .comm2-cap__field { flex: 1 1 auto; min-width: 0; }
+.comm2-sheet-station-grid .comm2-cap__row,
+.comm2-sheet-station.is-extra .comm2-cap__row {
+  flex-direction: column; align-items: stretch; justify-content: flex-start;
+  gap: 4px; min-height: 0;
+}
+.comm2-sheet-station-grid .comm2-cap__row > .comm2-cap__seg,
+.comm2-sheet-station.is-extra .comm2-cap__row > .comm2-cap__seg { align-self: flex-end; }
+.comm2-sheet-station-grid .comm2-cap__field,
+.comm2-sheet-station.is-extra .comm2-cap__field { flex: 1 1 auto; min-width: 0; }
+.comm2-cat-sheet-body .comm2-cap__head { min-height: 20px; gap: 4px; }
 .comm2-sheet-station--compact {
   margin-bottom: 8px; padding: 0; border: none; background: transparent; border-radius: 0;
 }
 .comm2-sheet-station--compact:last-child { margin-bottom: 0; }
+/* 工位名 /「顾客指定」行标签：字号 = 卡内标题（13px） */
 .comm2-sheet-station--compact .comm2-sheet-station__name {
-  font-size: 12px; margin-bottom: 4px; max-width: 100%;
+  font-size: 13px; margin-bottom: 6px; max-width: 100%;
 }
 .comm2-sheet-station-grid .comm2-sheet-station__label {
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;
@@ -1007,18 +1038,18 @@
 .comm2-sheet-station-grid .comm2-sheet-station__name {
   display: flex; width: 100%; box-sizing: border-box;
 }
-/* 点客行：标签不可改名；宽度 = 单工位卡（1/3 列） */
+/* 顾客指定行：标签不可改名；宽度 = 单工位卡（1/3 列） */
 .comm2-sheet-station__name.is-static { cursor: default; }
 .comm2-sheet-station__name.is-static:active { opacity: 1; }
-.comm2-sheet-station.is-guest {
+.comm2-sheet-station.is-extra {
   margin-top: 10px;
   width: calc((100% - 16px) / 3);
   max-width: calc((100% - 16px) / 3);
   box-sizing: border-box;
 }
-.comm2-sheet-station.is-guest .comm2-sheet-station__dot { background: var(--brand); }
-.comm2-sheet-station.is-guest .comm2-guest-row--solo > .comm2-cap,
-.comm2-sheet-station.is-guest .comm2-guest-row--solo > .comm2-guest-add {
+.comm2-sheet-station.is-extra .comm2-sheet-station__dot { background: var(--brand); }
+.comm2-sheet-station.is-extra .comm2-extra-row--solo > .comm2-cap,
+.comm2-sheet-station.is-extra .comm2-extra-row--solo > .comm2-extra-add {
   flex: none; width: 100%;
 }
 .comm2-rule-add {
@@ -1177,12 +1208,12 @@
   55% { transform: scale(1.04); }
   100% { transform: scale(1); }
 }
-.staff-card.is-editing .staff-card__panel[data-face="path"],
-.staff-card.is-editing .staff-card__panel[data-face="guest"],
-.staff-card.is-editing .staff-card__panel[data-face="role"] {
+/* 展开态：被点卡片撑满整行，内部横向平铺选项卡片（3 工位 / 顾客指定） */
+.staff-card.is-editing .staff-card__panel[data-face="opts"] {
   position: relative;
   width: 100%;
   min-height: 96px;
+  height: 96px;
   padding: 0;
   gap: 0;
   border: none;
@@ -1192,65 +1223,66 @@
   cursor: default;
   box-shadow: none;
 }
-.staff-card.is-editing .staff-card__panel[data-face="path"],
-.staff-card.is-editing .staff-card__panel[data-face="guest"] {
-  height: 108px;
-  min-height: 108px;
-}
-.staff-card.is-editing .staff-card__panel[data-face="role"] {
-  height: 96px;
-}
-.staff-card.is-editing .staff-card__panel[data-face="path"]:active,
-.staff-card.is-editing .staff-card__panel[data-face="guest"]:active,
-.staff-card.is-editing .staff-card__panel[data-face="role"]:active { transform: none; }
-.staff-card.is-expanding .staff-card__split {
+.staff-card.is-editing .staff-card__panel[data-face="opts"]:active { transform: none; }
+.staff-card.is-expanding .staff-card__opts {
   opacity: 1; visibility: visible;
   transition: opacity .2s cubic-bezier(.34,1.3,.64,1);
 }
-.staff-card:not(.is-expanding) .staff-card__split {
+.staff-card:not(.is-expanding) .staff-card__opts {
   opacity: 0; visibility: hidden;
 }
+/* 展开时同行其余卡片淡出，避免与撑满的卡片相互压叠 */
+.staff-card.is-row-muted { opacity: 0; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .staff-card.is-editing .staff-card__panel { animation: none !important; }
   .staff-card.is-done .staff-card__panel { animation: none !important; }
   .staff-card { transition: none !important; }
   .staff-card__panel { transition: none; }
-  .staff-card__split-btn { transition: none !important; animation: none !important; }
-  .staff-card.is-expanding .staff-card__split { transition: none !important; opacity: 1; visibility: visible; }
-  .staff-card:not(.is-expanding) .staff-card__split { opacity: 1; visibility: visible; }
+  .staff-opt { transition: none !important; animation: none !important; }
+  .staff-card.is-expanding .staff-card__opts { transition: none !important; opacity: 1; visibility: visible; }
+  .staff-card:not(.is-expanding) .staff-card__opts { opacity: 1; visibility: visible; }
 }
-.staff-card__split { display: flex; align-items: stretch; width: 100%; height: 100%; gap: 8px; box-sizing: border-box; background: transparent; }
-.staff-card__split--stack { flex-direction: column; gap: 8px; }
-.staff-card__split-btn {
+.staff-card__opts {
+  display: flex; align-items: stretch; width: 100%; height: 100%; gap: 8px;
+  box-sizing: border-box; background: transparent;
+}
+.staff-opt {
   position: relative;
   flex: 1 1 0; min-width: 0;
-  margin: 0; padding: 0 8px;
-  border: 1px solid rgba(0,0,0,.06);
-  border-radius: 10px;
+  margin: 0; padding: 22px 6px 8px;
+  border: 1px solid #E8E8E8;
+  border-radius: 12px;
   background: #fff;
   color: #1a1a1a;
-  font-size: 15px; font-weight: 650; letter-spacing: .02em; line-height: 1.15;
+  font-size: 14px; font-weight: 600; letter-spacing: .02em; line-height: 1.15;
   font-family: inherit; cursor: pointer;
-  display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  display: inline-flex; align-items: center; justify-content: center;
   -webkit-tap-highlight-color: transparent;
   box-shadow: 0 2px 8px rgba(26, 26, 26, .06);
-  transition: background .18s ease, color .18s ease, transform .08s ease-out, box-shadow .2s cubic-bezier(.34,1.3,.64,1);
+  transition: background .18s ease, color .18s ease, border-color .18s ease,
+    transform .08s ease-out, box-shadow .2s cubic-bezier(.34,1.3,.64,1);
 }
-.staff-card__split-btn:active { transform: scale(.96); box-shadow: 0 1px 4px rgba(26, 26, 26, .08); }
-.staff-card__split-btn--des { color: #C62828; background: linear-gradient(180deg, #FFF9F9 0%, #FFF2F2 100%); border-color: rgba(243, 47, 65, .18); }
-.staff-card__split-btn--guest { color: #4A667A; background: linear-gradient(180deg, #F8FAFC 0%, #F1F5F8 100%); border-color: rgba(74, 102, 122, .16); }
-.staff-card__split-btn--pick-station { color: #1a1a1a; background: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%); border-color: #E0E0E0; font-weight: 600; }
-.staff-card__split-btn--role { color: #1a1a1a; background: linear-gradient(180deg, #FFFFFF 0%, #FAFAFA 100%); font-size: 14px; font-weight: 600; }
-.staff-card__split-btn--role:nth-child(1) { color: #6B8F71; border-color: rgba(107, 143, 113, .22); }
-.staff-card__split-btn--role:nth-child(2) { color: #6A7F96; border-color: rgba(106, 127, 150, .22); }
-.staff-card__split-btn--role:nth-child(3) { color: #C62828; border-color: rgba(198, 40, 40, .18); }
-.staff-card__split--3 .staff-card__split-btn { font-size: 14px; font-weight: 600; }
-.staff-card.is-splitting .staff-card__split-btn--role {
-  animation: staffRoleSplit .38s cubic-bezier(.34,1.3,.64,1) both;
+.staff-opt:active { transform: scale(.96); box-shadow: 0 1px 4px rgba(26, 26, 26, .08); }
+.staff-opt--extra { color: #C62828; border-color: rgba(243, 47, 65, .18); background: linear-gradient(180deg, #FFF9F9 0%, #FFF2F2 100%); }
+/* 右上角勾选控件：未勾选空心 */
+.staff-opt__box {
+  position: absolute; top: 6px; right: 6px;
+  width: 18px; height: 18px; border-radius: 9px;
+  border: 1.5px solid #D6D6D6; background: #fff; color: transparent;
+  display: inline-flex; align-items: center; justify-content: center;
+  box-sizing: border-box;
 }
-.staff-card.is-splitting .staff-card__split-btn--role:nth-child(1) { animation-delay: 0ms; }
-.staff-card.is-splitting .staff-card__split-btn--role:nth-child(2) { animation-delay: 35ms; }
-.staff-card.is-splitting .staff-card__split-btn--role:nth-child(3) { animation-delay: 70ms; }
+.staff-opt__box svg { width: 11px; height: 11px; display: block; }
+.staff-opt.is-on { border-color: var(--brand); box-shadow: 0 2px 10px rgba(243, 47, 65, .16); }
+.staff-opt.is-on .staff-opt__box {
+  border-color: var(--brand); background: var(--brand); color: #fff;
+  animation: staffCheckIn .38s cubic-bezier(.22,.82,.24,1);
+}
+.staff-card.is-splitting .staff-opt { animation: staffRoleSplit .38s cubic-bezier(.34,1.3,.64,1) both; }
+.staff-card.is-splitting .staff-opt:nth-child(1) { animation-delay: 0ms; }
+.staff-card.is-splitting .staff-opt:nth-child(2) { animation-delay: 35ms; }
+.staff-card.is-splitting .staff-opt:nth-child(3) { animation-delay: 70ms; }
+.staff-card.is-splitting .staff-opt:nth-child(4) { animation-delay: 105ms; }
 @keyframes staffRoleSplit {
   from { opacity: 0; transform: scaleX(.42) scaleY(.92); }
   to { opacity: 1; transform: scaleX(1) scaleY(1); }
@@ -1280,32 +1312,26 @@
   0% { opacity: 0; transform: translateY(4px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-.staff-card__check {
-  position: absolute; top: 6px; left: 6px;
-  width: 16px; height: 16px; border-radius: 8px;
+/* 员工卡勾选控件：右侧、稍放大；点它即切换「已选 / 未选」 */
+.staff-card__tick {
+  position: absolute; top: 4px; right: 4px; z-index: 2;
+  width: 20px; height: 20px; border-radius: 10px;
+  border: none; padding: 0; margin: 0;
   background: var(--brand); color: #fff;
   display: flex; align-items: center; justify-content: center;
-  pointer-events: none;
+  cursor: pointer; font-family: inherit;
+  box-shadow: 0 2px 8px rgba(243, 47, 65, .28);
+  -webkit-tap-highlight-color: transparent;
   animation: staffCheckIn .38s cubic-bezier(.22,.82,.24,1);
 }
+.staff-card__tick:active { transform: scale(.9); }
 @keyframes staffCheckIn {
   0% { transform: scale(.4); opacity: 0; }
   70% { transform: scale(1.12); }
   100% { transform: scale(1); opacity: 1; }
 }
-.staff-card__check svg { width: 10px; height: 10px; display: block; }
-.staff-card__clear {
-  position: absolute; top: -6px; right: -6px; z-index: 2;
-  width: 22px; height: 22px; border-radius: 11px;
-  border: 1px solid #E8E8E8; background: #fff; color: #929292;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; padding: 0; font-family: inherit;
-  box-shadow: 0 2px 8px rgba(0,0,0,.08);
-  -webkit-tap-highlight-color: transparent;
-}
-.staff-card__clear:active { transform: scale(.92); }
-.staff-card__clear svg { width: 12px; height: 12px; display: block; }
-.staff-card.is-editing .staff-card__clear { display: none; }
+.staff-card__tick svg { width: 12px; height: 12px; display: block; }
+.staff-card.is-editing .staff-card__tick { display: none; }
 
 /* —— 关联页面：入口行 / 已选摘要 / 提成模式开关（源：开单页面 · renderDetailStaffSection） —— */
 .detail-staff-entry {
@@ -1355,7 +1381,7 @@
 .detail-staff-summary__del:active { background: #EBEBEB; color: #666; }
 .detail-staff-summary__del svg { width: 16px; height: 16px; display: block; }
 
-/* 关联页面容器 + 分配模式 / 点客提成开关 */
+/* 关联页面容器 + 分配模式 / 顾客指定提成开关 */
 .comm2-sp-card { margin: 0 16px 12px; padding: 4px 12px 10px; background: #fff; border-radius: 12px; }
 .comm2-sp-card__title { font-size: 13px; font-weight: 600; color: var(--text-sec); padding: 12px 0 2px; }
 .comm2-sp-mode {

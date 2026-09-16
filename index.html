@@ -320,7 +320,7 @@
       </span>
       <span class="hub-card__main">
         <span class="hub-card__title">选择服务员工</span>
-        <span class="hub-card__desc">开单选人卡片网格、Morph 展开与点客/普通 · 工位两步选择</span>
+        <span class="hub-card__desc">开单选人卡片网格、整行展开勾选工位 / 顾客指定</span>
       </span>
       <span class="hub-card__chev" aria-hidden="true">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
@@ -340,9 +340,9 @@
       <button type="button" class="comm2-sp-mode__btn" data-comm2-sp-mode="avg">不分工位</button>
       <button type="button" class="comm2-sp-mode__btn on" data-comm2-sp-mode="station">按工位</button>
     </div>
-    <div class="comm2-sp-mode" id="comm2StaffPickGuest" role="radiogroup" aria-label="点客提成">
-      <button type="button" class="comm2-sp-mode__btn" data-comm2-sp-guest="0">未开点客</button>
-      <button type="button" class="comm2-sp-mode__btn on" data-comm2-sp-guest="1">开点客</button>
+    <div class="comm2-sp-mode" id="comm2StaffPickExtra" role="radiogroup" aria-label="顾客指定提成">
+      <button type="button" class="comm2-sp-mode__btn" data-comm2-sp-extra="0">未开顾客指定</button>
+      <button type="button" class="comm2-sp-mode__btn on" data-comm2-sp-extra="1">开顾客指定</button>
     </div>
     <div class="comm2-sp-card" id="comm2StaffPickCard">
       <div class="comm2-sp-card__title">服务员工</div>
@@ -451,9 +451,9 @@
     <div class="dialog__title" id="comm2PickHelpTitle">分配模式说明</div>
     <div class="dialog__scroll emp-help-body">
       <h4>不分工位</h4>
-      <p>开单不分工位，统一按「提成」计提；点客提成可单独设置（开启后点客顾客按点客值计提）。</p>
+      <p>开单不分工位，统一按「提成」计提；顾客指定提成可单独设置（开启后顾客指定的开单，在提成之上叠加顾客指定值）。</p>
       <h4>按工位分配</h4>
-      <p>固定大 / 中 / 小工，可改名，不可增减；改名全局同步。每个工位各设 1 项提成；点客提成可选，开启后为全局单值、与工位无关。</p>
+      <p>固定大 / 中 / 小工，可改名，不可增减；改名全局同步。每个工位各设 1 项提成；顾客指定提成可选，开启后为全局单值、与工位无关，命中时叠加在该工位提成之上。</p>
     </div>
     <div class="dialog__actions dialog__actions--single">
       <button type="button" class="btn-main" id="comm2PickHelpOk">知道了</button>

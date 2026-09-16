@@ -23,7 +23,7 @@
     paid: '用开单实收加总'
   };
   var PICK_BRIEF = {
-    avg: '开单不分工位，统一按提成计提；点客可单独设置',
+    avg: '开单不分工位，统一按提成计提；顾客指定可单独设置（叠加在原提成之上）',
     station: '固定大/中/小工，可改名，不可增减；改名全局同步'
   };
   var COMM2_QUICK_OV_ID = 'ov_sys_quick';
@@ -62,11 +62,12 @@
 
   function defaultPair() {
     return {
-      designated: 10, nonDesignated: 10, designatedAmt: 0, nonDesignatedAmt: 0,
-      nonDesignatedValueMode: 'pct', designatedValueMode: 'pct'
+      nonDesignated: 10, nonDesignatedAmt: 0, nonDesignatedValueMode: 'pct',
+      extraValue: 0, extraAmt: 0, extraValueMode: 'pct'
     };
   }
-  /* 按工位与点客为「独立」关系：工位仅承载「提成」；点客提成为 rule 级全局单值，与工位无关。
+  /* 按工位与「顾客指定」为「叠加」关系：工位仅承载「提成」；「顾客指定」的值为 rule 级全局单值，
+     与工位无关，计提时**加在**该工位提成之上（不是替换）。
      stations 只存提成侧（nonDesignated / nonDesignatedAmt）+ 本工位 valueMode。 */
   function defaultStationPair() {
     return { nonDesignated: 10, nonDesignatedAmt: 0, valueMode: 'pct' };
@@ -80,8 +81,18 @@
   function nonIsAmt(rule) {
     return isAmtMode(rule && rule.nonDesignatedValueMode);
   }
-  function desIsAmt(rule) {
-    return isAmtMode(rule && rule.designatedValueMode);
+  /** 「顾客指定」值是否按固定金额 */
+  function extraIsAmt(rule) {
+    return isAmtMode(rule && rule.extraValueMode);
+  }
+  /** 顾客指定值（比例 / 金额按各自 mode 读取） */
+  function extraVal(rule, isAmt) {
+    rule = rule || defaultPair();
+    var amt = arguments.length > 1 ? !!isAmt : extraIsAmt(rule);
+    return amt ? (Number(rule.extraAmt) || 0) : (Number(rule.extraValue) || 0);
+  }
+  function extraKey(isAmt) {
+    return isAmt ? 'extraAmt' : 'extraValue';
   }
   function stationIsAmt(st) {
     return isAmtMode(st && st.valueMode);
@@ -97,7 +108,7 @@
     } else if (!nonIsAmt(rule)) {
       return false;
     }
-    if (rule.guestSplit && !desIsAmt(rule)) return false;
+    if (rule.extraSplit && !extraIsAmt(rule)) return false;
     return true;
   }
   /** 同步遗留字段 rule.valueMode（全量固定 → amount，否则 pct） */
@@ -106,48 +117,54 @@
     rule.valueMode = ruleAllAmount(rule, pickMode, stationIds) ? 'amount' : 'pct';
     return rule;
   }
-  function pairValsDiffer(pair, isAmt) {
-    pair = pair || defaultPair();
-    if (isAmt) return Number(pair.designatedAmt) !== Number(pair.nonDesignatedAmt);
-    return Number(pair.designated) !== Number(pair.nonDesignated);
-  }
-  /* 旧数据判定：仅当工位确实带点客字段时才比较（新形态工位无点客字段） */
-  function stationPairSplits(st, isAmt) {
-    if (!st) return false;
+  /* —— 旧模型字段迁移：点客（替换式）→ 顾客指定（叠加式）——
+     旧：designated / designatedAmt / designatedValueMode / guestSplit
+     新：extraValue / extraAmt / extraValueMode / extraSplit
+     值不变，仅把「点客值」改解释为「顾客指定值」；旧按工位 3×2 正交时取首个工位的点客值。 */
+  function legacyPairSplits(pair, isAmt) {
+    pair = pair || {};
     var desKey = isAmt ? 'designatedAmt' : 'designated';
     var nonKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
-    if (st[desKey] == null) return false;
-    return Number(st[desKey]) !== Number(st[nonKey]);
+    if (pair[desKey] == null) return false;
+    return Number(pair[desKey]) !== Number(pair[nonKey]);
   }
-  /* 是否开启点客拆分（只看 rule 级；工位不再承载点客值） */
-  function detectGuestSplit(rule) {
-    if (!rule) return false;
-    return pairValsDiffer(rule, isAmtMode(rule.valueMode));
-  }
-  /* 旧模型迁移：按工位 × 点客 正交（3×2 = 6 值）→ 新模型（3 工位提成 + 1 全局点客 = 4 值）。
-     点客值提升为 rule 级单值，取首个工位的点客值；stations 只保留提成侧。 */
-  function migrateGuestSplitModel(rule, stationIds) {
-    if (!rule || rule._gs2) return rule;
+  function migrateExtraFields(rule, stationIds) {
+    if (!rule || rule._ex1) return rule;
     var ids = stationIds || [];
     var isAmt = isAmtMode(rule.valueMode);
-    var desKey = isAmt ? 'designatedAmt' : 'designated';
-    var legacySplit = pairValsDiffer(rule, isAmt);
+    var legacyFlag = rule.extraSplit != null ? rule.extraSplit : rule.guestSplit;
+    var legacySplit = legacyFlag != null ? !!legacyFlag : legacyPairSplits(rule, isAmt);
     if (!legacySplit) {
       for (var i = 0; i < ids.length; i++) {
-        if (stationPairSplits(rule.stations && rule.stations[ids[i]], isAmt)) { legacySplit = true; break; }
+        if (legacyPairSplits(rule.stations && rule.stations[ids[i]], isAmt)) { legacySplit = true; break; }
       }
     }
-    if (legacySplit) {
-      var first = (ids.length && rule.stations) ? rule.stations[ids[0]] : null;
+    if (rule.extraValue == null) {
+      rule.extraValue = Number.isFinite(Number(rule.designated)) ? Number(rule.designated) : 0;
+    }
+    if (rule.extraAmt == null) {
+      rule.extraAmt = Number.isFinite(Number(rule.designatedAmt)) ? Number(rule.designatedAmt) : 0;
+    }
+    if (rule.extraValueMode == null) {
+      rule.extraValueMode = normalizeValueMode(rule.designatedValueMode != null ? rule.designatedValueMode : rule.valueMode);
+    }
+    if (legacySplit && ids.length && rule.stations) {
+      var first = rule.stations[ids[0]];
+      var desKey = isAmt ? 'designatedAmt' : 'designated';
       if (first && first[desKey] != null && Number.isFinite(Number(first[desKey]))) {
-        rule[desKey] = Number(first[desKey]);
+        rule[isAmt ? 'extraAmt' : 'extraValue'] = Number(first[desKey]);
       }
-      if (rule.guestSplit == null) rule.guestSplit = true;
     }
-    rule._gs2 = true;
+    if (legacySplit) rule.extraSplit = true;
+    delete rule.guestSplit;
+    delete rule.designated;
+    delete rule.designatedAmt;
+    delete rule.designatedValueMode;
+    delete rule._gs2;
+    rule._ex1 = true;
     return rule;
   }
-  /* 旧：规则级单一 valueMode → 新：提成 / 点客 / 各工位各自 valueMode */
+  /* 旧：规则级单一 valueMode → 新：提成 / 顾客指定 / 各工位各自 valueMode */
   function migratePerValueModes(rule, stationIds) {
     if (!rule || rule._vm2) return rule;
     var legacy = normalizeValueMode(rule.valueMode);
@@ -163,28 +180,15 @@
     rule._vm2 = true;
     return rule;
   }
-  function syncPairUnified(pair, preferDes) {
-    pair = pair || defaultPair();
-    if (preferDes !== false) {
-      pair.nonDesignated = pair.designated;
-      pair.nonDesignatedAmt = pair.designatedAmt;
-      if (pair.designatedValueMode != null) pair.nonDesignatedValueMode = pair.designatedValueMode;
-    } else {
-      pair.designated = pair.nonDesignated;
-      pair.designatedAmt = pair.nonDesignatedAmt;
-      if (pair.nonDesignatedValueMode != null) pair.designatedValueMode = pair.nonDesignatedValueMode;
-    }
-    return pair;
-  }
-  function applyGuestSplitFlag(rule, stationIds) {
+  function applyExtraSplitFlag(rule, stationIds) {
     var ids = stationIds || COMM2_STATIONS.map(function (s) { return s.id; });
-    migrateGuestSplitModel(rule, ids);
+    migrateExtraFields(rule, ids);
     migratePerValueModes(rule, ids);
-    if (rule.guestSplit == null) rule.guestSplit = detectGuestSplit(rule);
-    else rule.guestSplit = !!rule.guestSplit;
-    if (!rule.guestSplit) {
-      /* 关点客：rule 级点客值跟提成（原散客）侧同值；工位不再同步点客值 */
-      syncPairUnified(rule, false);
+    rule.extraSplit = !!rule.extraSplit;
+    /* 关闭「顾客指定」：顾客指定值归零（q2-A：不保留旧值，再次开启需重新输入） */
+    if (!rule.extraSplit) {
+      rule.extraValue = 0;
+      rule.extraAmt = 0;
     }
     return rule;
   }
@@ -195,10 +199,12 @@
     return Object.assign(defaultPair(), {
       valueMode: 'pct',
       nonDesignatedValueMode: 'pct',
-      designatedValueMode: 'pct',
-      guestSplit: false,
+      extraValueMode: 'pct',
+      extraValue: 0,
+      extraAmt: 0,
+      extraSplit: false,
       stations: stations,
-      _gs2: true,
+      _ex1: true,
       _vm2: true
     });
   }
@@ -224,8 +230,9 @@
     if (rule.valueMode !== 'amount') rule.valueMode = 'pct';
     if (!rule.stations) rule.stations = {};
     migratePerValueModes(rule, ids);
+    migrateExtraFields(rule, ids);
     rule.nonDesignatedValueMode = normalizeValueMode(rule.nonDesignatedValueMode);
-    rule.designatedValueMode = normalizeValueMode(rule.designatedValueMode);
+    rule.extraValueMode = normalizeValueMode(rule.extraValueMode);
     ids.forEach(function (sid) {
       var st = rule.stations[sid];
       if (!st) { rule.stations[sid] = defaultStationPair(); return; }
@@ -233,10 +240,10 @@
       if (!Number.isFinite(Number(st.nonDesignatedAmt))) st.nonDesignatedAmt = 0;
       st.valueMode = normalizeValueMode(st.valueMode);
     });
-    ['designated', 'nonDesignated', 'designatedAmt', 'nonDesignatedAmt'].forEach(function (k) {
+    ['nonDesignated', 'nonDesignatedAmt', 'extraValue', 'extraAmt'].forEach(function (k) {
       if (!Number.isFinite(Number(rule[k]))) rule[k] = defaultPair()[k];
     });
-    return applyGuestSplitFlag(rule, ids);
+    return applyExtraSplitFlag(rule, ids);
   }
   function defaultPayScope() {
     return { cash: true, memberCard: true, groupBuy: true };
@@ -382,58 +389,63 @@
     delete sch.signComm;
     return sch;
   }
-  function catRulePct(des, non) {
+  /* 演示造数：不分工位 · 提成为 non%，顾客指定的值为 extra%（默认 0 = 未开顾客指定） */
+  function catRulePct(non, extra) {
     var ids = COMM2_STATIONS.map(function (s) { return s.id; });
     var r = defaultCatRule();
-    r.designated = des;
-    r.nonDesignated = non;
+    r.nonDesignated = Number(non) || 0;
+    r.nonDesignatedAmt = 0;
     r.nonDesignatedValueMode = 'pct';
-    r.designatedValueMode = 'pct';
+    r.extraValue = Number(extra) || 0;
+    r.extraAmt = 0;
+    r.extraValueMode = 'pct';
+    r.extraSplit = (Number(extra) || 0) > 0;
     ids.forEach(function (sid) {
-      r.stations[sid] = { nonDesignated: non, nonDesignatedAmt: 0, valueMode: 'pct' };
+      r.stations[sid] = { nonDesignated: Number(non) || 0, nonDesignatedAmt: 0, valueMode: 'pct' };
     });
-    r.guestSplit = null;
-    r._gs2 = true;
+    r._ex1 = true;
     r._vm2 = true;
-    return applyGuestSplitFlag(r, ids);
+    return applyExtraSplitFlag(r, ids);
   }
-  function catRuleAmt(desAmt, nonAmt) {
+  /* 演示造数：固定金额，提成 nonAmt 元，顾客指定 extraAmt 元 */
+  function catRuleAmt(nonAmt, extraAmt) {
     var ids = COMM2_STATIONS.map(function (s) { return s.id; });
     var r = defaultCatRule();
     r.valueMode = 'amount';
     r.nonDesignatedValueMode = 'amount';
-    r.designatedValueMode = 'amount';
-    r.designatedAmt = desAmt;
-    r.nonDesignatedAmt = nonAmt;
+    r.extraValueMode = 'amount';
+    r.nonDesignatedAmt = Number(nonAmt) || 0;
+    r.extraAmt = Number(extraAmt) || 0;
+    r.extraValue = 0;
+    r.extraSplit = (Number(extraAmt) || 0) > 0;
     ids.forEach(function (sid) {
-      r.stations[sid] = { nonDesignated: 0, nonDesignatedAmt: nonAmt, valueMode: 'amount' };
+      r.stations[sid] = { nonDesignated: 0, nonDesignatedAmt: Number(nonAmt) || 0, valueMode: 'amount' };
     });
-    r.guestSplit = null;
-    r._gs2 = true;
+    r._ex1 = true;
     r._vm2 = true;
-    return applyGuestSplitFlag(r, ids);
+    return applyExtraSplitFlag(r, ids);
   }
-  /* 按工位演示：stations 仅存逐工位「提成」；点客为 rule 级全局单值（guestVal） */
-  function catRuleStationPct(stationNonMap, guestVal) {
+  /* 演示造数：按工位，stations 仅存逐工位「提成」；「顾客指定」为 rule 级全局值（extraPct） */
+  function catRuleStationPct(stationNonMap, extraPct) {
     var ids = COMM2_STATIONS.map(function (s) { return s.id; });
     var r = defaultCatRule();
     var firstNon = (stationNonMap && Number.isFinite(Number(stationNonMap[ids[0]])))
       ? Number(stationNonMap[ids[0]]) : 10;
-    r.designated = Number.isFinite(Number(guestVal)) ? Number(guestVal) : firstNon;
-    r.designatedAmt = 0;
+    r.extraValue = Number.isFinite(Number(extraPct)) ? Number(extraPct) : 0;
+    r.extraAmt = 0;
     r.nonDesignated = firstNon;
     r.nonDesignatedAmt = 0;
     r.nonDesignatedValueMode = 'pct';
-    r.designatedValueMode = 'pct';
+    r.extraValueMode = 'pct';
+    r.extraSplit = (Number(r.extraValue) || 0) > 0;
     ids.forEach(function (sid) {
       var non = (stationNonMap && Number.isFinite(Number(stationNonMap[sid])))
         ? Number(stationNonMap[sid]) : firstNon;
       r.stations[sid] = { nonDesignated: non, nonDesignatedAmt: 0, valueMode: 'pct' };
     });
-    r.guestSplit = true;
-    r._gs2 = true;
+    r._ex1 = true;
     r._vm2 = true;
-    return applyGuestSplitFlag(r, ids);
+    return applyExtraSplitFlag(r, ids);
   }
   function scopeOnly(keys) {
     return {
@@ -451,7 +463,7 @@
         payScope: s.payScope ? scopeOnly(s.payScope) : defaultPayScope(),
         baseMode: s.baseMode || 'list',
         pickMode: s.pickMode || 'avg',
-        rule: s.rule || catRulePct(10, 10)
+        rule: s.rule || catRulePct(10)
       });
     });
     return out;
@@ -475,7 +487,7 @@
         belongCat: 'labor',
         title: '深层补水护理',
         payScope: ['cash', 'memberCard', 'groupBuy'],
-        rule: catRulePct(18, 15),
+        rule: catRulePct(15, 3),
         targets: [{ kind: 'project', refId: 'p21', name: '深层补水护理' }]
       }),
       overrideRow({
@@ -483,7 +495,7 @@
         belongCat: 'labor',
         title: '染发、烫发、剑琅玻尿酸精华液',
         payScope: ['cash', 'memberCard', 'groupBuy'],
-        rule: catRulePct(20, 15),
+        rule: catRulePct(15, 5),
         targets: [
           { kind: 'project', refId: 'p6', name: '染发' },
           { kind: 'project', refId: 'p8', name: '烫发' },
@@ -495,7 +507,7 @@
         belongCat: 'issue',
         title: '尊享组合卡',
         payScope: ['cash', 'groupBuy'],
-        rule: catRulePct(12, 10),
+        rule: catRulePct(10, 2),
         targets: [{ kind: 'card', refId: 'demo_vip_combo', name: '尊享组合卡', cardRole: 'issue' }]
       }),
       overrideRow({
@@ -503,7 +515,7 @@
         belongCat: 'labor',
         title: '洗头',
         payScope: ['groupBuy'],
-        rule: catRuleAmt(5, 5),
+        rule: catRuleAmt(5, 2),
         targets: [{ kind: 'project', refId: 'p19', name: '洗头' }]
       }),
       overrideRow({
@@ -512,7 +524,7 @@
         title: '烫染',
         payScope: ['cash', 'memberCard'],
         pickMode: 'station',
-        rule: catRuleStationPct({ senior: 15, mid: 12, junior: 10 }, 20),
+        rule: catRuleStationPct({ senior: 15, mid: 12, junior: 10 }, 5),
         targets: [{ kind: 'group', refId: 'g_proj_tang', name: '烫染', groupKind: 'project' }]
       })
     ];
@@ -521,10 +533,10 @@
         id: 'c2_advisor',
         name: '顾问标准提成',
         defaults: buildDefaults({
-          labor: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(12, 10) },
-          sales: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(10, 10) },
-          issue: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(5, 5) },
-          card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(3, 3) }
+          labor: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(10, 2) },
+          sales: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(10) },
+          issue: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(5) },
+          card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(3) }
         }),
         overrides: [],
         assigneeIds: ['st0', 'st1', 'st2', 'st3']
@@ -533,10 +545,10 @@
         id: 'c2_cardpay',
         name: '卡付劳动专项',
         defaults: buildDefaults({
-          labor: { payScope: ['memberCard'], rule: catRulePct(3, 3) },
-          sales: { payScope: ['memberCard'], rule: catRulePct(3, 3) },
-          issue: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0, 0) },
-          card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0, 0) }
+          labor: { payScope: ['memberCard'], rule: catRulePct(3) },
+          sales: { payScope: ['memberCard'], rule: catRulePct(3) },
+          issue: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0) },
+          card: { payScope: ['cash', 'memberCard', 'groupBuy'], rule: catRulePct(0) }
         }),
         overrides: [],
         /* 演示多方案：st1 同时在顾问方案 + 本方案，卡付行取高 */
@@ -549,20 +561,20 @@
           labor: {
             payScope: ['cash', 'memberCard'],
             pickMode: 'station',
-            rule: catRuleStationPct({ senior: 12, mid: 10, junior: 8 }, 15)
+            rule: catRuleStationPct({ senior: 12, mid: 10, junior: 8 }, 5)
           },
           sales: {
             payScope: ['cash', 'memberCard', 'groupBuy'],
             baseMode: 'paid',
-            rule: catRulePct(10, 10)
+            rule: catRulePct(10)
           },
           issue: {
             payScope: ['cash', 'groupBuy'],
-            rule: catRulePct(15, 12)
+            rule: catRulePct(12, 3)
           },
           card: {
             payScope: ['cash'],
-            rule: catRulePct(8, 8)
+            rule: catRulePct(8)
           }
         }),
         overrides: flagshipOverrides,
@@ -669,28 +681,34 @@
   function fmtValHtml(v, isAmt) {
     return isAmt ? fmtYenHtml(v) : (v + '%');
   }
+  /* 顾客指定值展示：+3% / +¥5（叠加在提成之上） */
+  function formatExtraVal(rule, isAmt) {
+    var amt = arguments.length > 1 ? !!isAmt : extraIsAmt(rule);
+    return '+' + fmtVal(extraVal(rule, amt), amt);
+  }
+  function formatExtraValHtml(rule, isAmt) {
+    var amt = arguments.length > 1 ? !!isAmt : extraIsAmt(rule);
+    return '+' + fmtValHtml(extraVal(rule, amt), amt);
+  }
   function formatPairFlat(rule, isAmt) {
     rule = ensureCat(rule);
     var nonAmt = arguments.length > 1 ? !!isAmt : nonIsAmt(rule);
-    var desAmt = desIsAmt(rule);
-    var des = pairVal(rule, desAmt, 'designated', 'designatedAmt');
     var non = pairVal(rule, nonAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!rule.guestSplit) return fmtVal(non, nonAmt);
-    return fmtVal(non, nonAmt) + '｜点' + fmtVal(des, desAmt);
+    if (!rule.extraSplit) return fmtVal(non, nonAmt);
+    return fmtVal(non, nonAmt) + ' + 顾客指定 ' + formatExtraVal(rule);
   }
   function formatPairFlatHtml(rule, isAmt) {
     rule = ensureCat(rule);
     var nonAmt = arguments.length > 1 ? !!isAmt : nonIsAmt(rule);
-    var desAmt = desIsAmt(rule);
-    var des = pairVal(rule, desAmt, 'designated', 'designatedAmt');
     var non = pairVal(rule, nonAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!rule.guestSplit) return '<strong>' + fmtValHtml(non, nonAmt) + '</strong>';
-    return '<strong>' + fmtValHtml(non, nonAmt) + '</strong>' +
+    var html = '<strong>' + fmtValHtml(non, nonAmt) + '</strong>';
+    if (!rule.extraSplit) return html;
+    return html +
       '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
-      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
-      '<strong>' + fmtValHtml(des, desAmt) + '</strong>';
+      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">顾客指定</span>' +
+      '<strong>' + formatExtraValHtml(rule) + '</strong>';
   }
-  /* 按工位时工位仅承载「提成」；点客值由 rule 级全局值单独一段/一行 */
+  /* 按工位时工位仅承载「提成」；顾客指定值由 rule 级全局值单独一段/一行 */
   function stationNonVal(st, isAmt) {
     st = st || defaultStationPair();
     var amt = arguments.length > 1 ? !!isAmt : stationIsAmt(st);
@@ -704,36 +722,32 @@
     var amt = arguments.length > 2 ? !!isAmt : stationIsAmt(st);
     return fmtValHtml(stationNonVal(st, amt), amt);
   }
+  /* 摘要（纯文本）：按工位 → 首工位同行追加「顾客指定」；不分工位 → 「提成 + 顾客指定」 */
   function formatBlockSummary(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var split = !!block.rule.guestSplit;
+    var split = !!block.rule.extraSplit;
     if (block.pickMode === 'station') {
-      var segs = getStationIds(sch).map(function (sid) {
+      var segs = getStationIds(sch).map(function (sid, idx) {
         var st = block.rule.stations[sid] || defaultStationPair();
-        return stationLabel(sch, sid) + ' ' + formatStationPair(sch, st);
+        var seg = stationLabel(sch, sid) + ' ' + formatStationPair(sch, st);
+        if (split && idx === 0) seg += ' 顾客指定' + formatExtraVal(block.rule);
+        return seg;
       });
-      if (split) {
-        var dAmt = desIsAmt(block.rule);
-        segs.push('点客 ' + fmtVal(pairVal(block.rule, dAmt, 'designated', 'designatedAmt'), dAmt));
-      }
       return segs.join('；');
     }
     return formatPairFlat(block.rule);
   }
   function formatBlockSummaryHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var split = !!block.rule.guestSplit;
+    var split = !!block.rule.extraSplit;
     if (block.pickMode === 'station') {
-      var html = getStationIds(sch).map(function (sid) {
+      return getStationIds(sch).map(function (sid, idx) {
         var st = block.rule.stations[sid] || defaultStationPair();
-        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st) + '</strong></div>';
+        var extraHtml = (split && idx === 0)
+          ? '<span class="comm2-rule-card__params-sub">顾客指定</span><strong>' + formatExtraValHtml(block.rule) + '</strong>'
+          : '';
+        return '<div class="comm2-rule-card__params-row"><span>' + esc(stationLabel(sch, sid)) + '</span><strong>' + formatStationPairHtml(sch, st) + '</strong>' + extraHtml + '</div>';
       }).join('');
-      if (split) {
-        var dAmt = desIsAmt(block.rule);
-        html += '<div class="comm2-rule-card__params-row"><span>点客</span><strong>' +
-          fmtValHtml(pairVal(block.rule, dAmt, 'designated', 'designatedAmt'), dAmt) + '</strong></div>';
-      }
-      return html;
     }
     return '<div class="comm2-rule-card__params-row comm2-rule-card__params-row--flat"><span>提成参数</span><strong>' + formatPairFlatHtml(block.rule) + '</strong></div>';
   }
@@ -857,105 +871,106 @@
   function chevronSvg() {
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
   }
-  /** 卡头「比例 / 金额」chip：点一下翻转本卡取值模式 */
-  function capModeChipHtml(isAmt, modeKey) {
-    var label = isAmt ? '金额' : '比例';
+  /** 卡内两段式胶囊「比例 / 金额」：整块为点击热区，点一次切换一次（右下角） */
+  function capSegHtml(isAmt, modeKey) {
     var aria = isAmt ? '当前固定金额，点按切换为按比例' : '当前按比例，点按切换为固定金额';
-    return '<button type="button" class="comm2-cap__mode' + (isAmt ? ' is-amt' : ' is-pct') +
-      '" data-comm2-cap-mode="' + esc(modeKey) + '" aria-label="' + aria + '">' + label + '</button>';
+    return '<button type="button" class="comm2-cap__seg" data-comm2-cap-mode="' + esc(modeKey) + '" aria-label="' + aria + '">' +
+      '<span class="comm2-cap__seg-item' + (isAmt ? '' : ' is-on') + '">比例</span>' +
+      '<span class="comm2-cap__seg-item' + (isAmt ? ' is-on' : '') + '">金额</span>' +
+      '</button>';
   }
-  function capHeadActsHtml(isAmt, modeKey, extraHtml) {
-    return '<span class="comm2-cap__head-acts">' +
-      capModeChipHtml(isAmt, modeKey) +
-      (extraHtml || '') +
-      '</span>';
+  /** 卡内底行：左=输入值，右=两段式胶囊 */
+  function capRowHtml(fieldHtml, isAmt, modeKey) {
+    return '<div class="comm2-cap__row">' + fieldHtml + capSegHtml(isAmt, modeKey) + '</div>';
   }
-  /** 输入行单位只读展示（切换改走卡头 chip） */
+  /** 单张参数卡：卡头仅标题；底行 = 输入值 + 胶囊 */
+  function capCardHtml(opts) {
+    return '<div class="comm2-cap ' + opts.variant + (opts.extraClass ? (' ' + opts.extraClass) : '') + '">' +
+      '<div class="comm2-cap__head"><span class="comm2-cap__title">' + esc(opts.title) + '</span>' +
+      (opts.headExtra || '') + '</div>' +
+      capRowHtml(capFieldHtml(opts.prefix, opts.fieldKey, opts.val, opts.isAmt, opts.title), opts.isAmt, opts.modeKey) +
+      '</div>';
+  }
+  /** 输入行：单位只读展示（比例/金额切换走右下角胶囊）；
+      金额模式：输入框吃掉剩余宽度（`--amt`），避免默认宽度把胶囊顶出卡片 */
   function capFieldHtml(prefix, fieldKey, val, isAmt, aria) {
     var ph = isAmt ? '请输入金额' : '请输入比例';
-    return '<div class="comm2-cap__field">' +
+    return '<div class="comm2-cap__field' + (isAmt ? ' comm2-cap__field--amt' : '') + '">' +
       (isAmt ? '<span class="comm2-cap__unit">¥</span>' : '') +
       '<input class="input-amount" type="text" data-comm2-field="' + prefix + fieldKey + '" value="' + esc(val) + '" inputmode="decimal" placeholder="' + esc(ph) + '" aria-label="' + esc(aria) + '" />' +
       (isAmt ? '' : '<span class="comm2-cap__unit">%</span>') +
-      '</div>';
+    '</div>';
   }
-  /** 单值输入卡（未开点客 / 按工位单参） */
+  /** 「提成」参数卡（按工位单参 / 不分工位） */
   function singleCapHtml(prefix, pair, title, opts) {
     opts = opts || {};
     pair = pair || defaultPair();
     var isAmt = opts.isAmt != null ? !!opts.isAmt : nonIsAmt(pair);
     var val = isAmt ? pair.nonDesignatedAmt : pair.nonDesignated;
-    if (opts.useDes) {
-      isAmt = opts.isAmt != null ? !!opts.isAmt : desIsAmt(pair);
-      val = isAmt ? pair.designatedAmt : pair.designated;
-    }
-    var fieldKey = opts.useDes
-      ? (isAmt ? 'designatedAmt' : 'designated')
-      : (isAmt ? 'nonDesignatedAmt' : 'nonDesignated');
-    var modeKey = opts.modeKey || (opts.useDes ? 'base.des' : 'base.non');
-    var headExtra = opts.headExtra || '';
-    var variant = opts.asNon ? 'comm2-cap--non' : 'comm2-cap--single';
-    return '<div class="comm2-cap ' + variant + (opts.extraClass ? (' ' + opts.extraClass) : '') + '">' +
-      '<div class="comm2-cap__head"><span class="comm2-cap__title">' + esc(title) + '</span>' +
-      capHeadActsHtml(isAmt, modeKey, headExtra) + '</div>' +
-      capFieldHtml(prefix, fieldKey, val, isAmt, title) +
-      '</div>';
+    var fieldKey = isAmt ? 'nonDesignatedAmt' : 'nonDesignated';
+    return capCardHtml({
+      variant: opts.asNon ? 'comm2-cap--non' : 'comm2-cap--single',
+      title: title,
+      prefix: prefix,
+      fieldKey: fieldKey,
+      val: val,
+      isAmt: isAmt,
+      modeKey: opts.modeKey || 'base.non',
+      extraClass: opts.extraClass,
+      headExtra: opts.headExtra
+    });
   }
 
-  function guestCloseSvg() {
+  function extraCloseSvg() {
     return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>';
   }
 
-  /** 点客开启后：提成 + 点客双卡左右等比；各自独立比例/金额 */
-  function twinHtml(prefix, pair, aria, opts) {
+  /** 「额外」参数卡：「顾客指定」命中时在提成之上叠加；右上角 × 关闭顾客指定 */
+  function extraCapHtml(prefix, rule, opts) {
     opts = opts || {};
-    pair = pair || defaultPair();
-    var nonAmt = nonIsAmt(pair);
-    var desAmt = desIsAmt(pair);
+    rule = rule || defaultPair();
+    var isAmt = extraIsAmt(rule);
+    var cancelBtn = opts.hideCancel
+      ? ''
+      : '<button type="button" class="comm2-extra-close" data-comm2-extra="off" aria-label="关闭顾客指定提成">' + extraCloseSvg() + '</button>';
+    return capCardHtml({
+      variant: 'comm2-cap--extra',
+      title: '额外',
+      prefix: prefix,
+      fieldKey: extraKey(isAmt),
+      val: extraVal(rule, isAmt),
+      isAmt: isAmt,
+      modeKey: 'base.extra',
+      extraClass: opts.extraClass,
+      headExtra: cancelBtn
+    });
+  }
+
+  /** 未开顾客指定：与「提成」卡等比并排的虚线卡；点击即开启（文案 = 顾客指定提成） */
+  function extraAddCardHtml() {
+    return '<button type="button" class="comm2-extra-add" data-comm2-extra="on">' +
+      '<span class="comm2-extra-add__txt">+ 顾客指定提成</span></button>';
+  }
+
+  /** 不分工位：开 → 「提成 + 额外」双卡并排；未开 → 提成卡 + 虚线卡 */
+  function commissionParamsHtml(prefix, rule, extraSplit, aria) {
+    var nonAmt = nonIsAmt(rule);
     var nonKey = nonAmt ? 'nonDesignatedAmt' : 'nonDesignated';
-    var desKey = desAmt ? 'designatedAmt' : 'designated';
-    var cancelBtn = opts.hideCancel
-      ? ''
-      : '<button type="button" class="comm2-guest-close" data-comm2-guest-split="off" aria-label="取消点客提成">' + guestCloseSvg() + '</button>';
-    return '<div class="comm2-twins" role="group" aria-label="' + esc(aria || '提成与点客') + '">' +
-      '<div class="comm2-cap comm2-cap--non"><div class="comm2-cap__head"><span class="comm2-cap__title">提成</span>' +
-      capHeadActsHtml(nonAmt, 'base.non') + '</div>' +
-      capFieldHtml(prefix, nonKey, pair[nonKey], nonAmt, '提成') +
-      '</div>' +
-      '<div class="comm2-cap comm2-cap--des"><div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' +
-      capHeadActsHtml(desAmt, 'base.des', cancelBtn) + '</div>' +
-      capFieldHtml(prefix, desKey, pair[desKey], desAmt, '点客') +
-      '</div></div>';
-  }
-
-  /** 点客卡（独立单张）：按工位时作为第 2 行，宽同单工位卡 */
-  function guestCapHtml(prefix, pair, opts) {
-    opts = opts || {};
-    pair = pair || defaultPair();
-    var isAmt = desIsAmt(pair);
-    var desKey = isAmt ? 'designatedAmt' : 'designated';
-    var cancelBtn = opts.hideCancel
-      ? ''
-      : '<button type="button" class="comm2-guest-close" data-comm2-guest-split="off" aria-label="取消点客提成">' + guestCloseSvg() + '</button>';
-    return '<div class="comm2-cap comm2-cap--des">' +
-      '<div class="comm2-cap__head"><span class="comm2-cap__title">点客</span>' +
-      capHeadActsHtml(isAmt, 'base.des', cancelBtn) + '</div>' +
-      capFieldHtml(prefix, desKey, pair[desKey], isAmt, '点客') +
-      '</div>';
-  }
-
-  /** 未开点客：与「提成」卡等比并排的虚线卡；点击即全局开启点客 */
-  function guestAddCardHtml() {
-    return '<button type="button" class="comm2-guest-add" data-comm2-guest-split="on">' +
-      '<span class="comm2-guest-add__txt">+ 点客提成</span></button>';
-  }
-
-  function commissionParamsHtml(prefix, pair, guestSplit, aria) {
-    if (guestSplit) return twinHtml(prefix, pair, aria);
-    return '<div class="comm2-guest-row comm2-guest-row--pair">' +
-      singleCapHtml(prefix, pair, '提成', { modeKey: 'base.non' }) +
-      guestAddCardHtml() +
-      '</div>';
+    var nonCard = capCardHtml({
+      variant: 'comm2-cap--non',
+      title: '提成',
+      prefix: prefix,
+      fieldKey: nonKey,
+      val: rule[nonKey],
+      isAmt: nonAmt,
+      modeKey: 'base.non'
+    });
+    if (!extraSplit) {
+      return '<div class="comm2-extra-row comm2-extra-row--pair" role="group" aria-label="' + esc(aria || '提成参数') + '">' +
+        nonCard + extraAddCardHtml() + '</div>';
+    }
+    return '<div class="comm2-extra-row comm2-extra-row--pair" role="group" aria-label="' + esc(aria || '提成与额外') + '">' +
+      nonCard + extraCapHtml(prefix, rule) + '</div>';
   }
 
   function flashEl(el) {
@@ -1106,19 +1121,18 @@
       '<strong class="comm2-rule-bar__p-val">' + valHtml + '</strong></span>';
   }
 
-  /* 按工位 + 点客：3 工位竖排；点客与首工位（大工）同行、间距 16 */
+  /* 按工位：3 工位竖排；「顾客指定」（叠加值）与首工位同行、间距 16 */
   function barStationParamsHtml(sch, block) {
     block.rule = ensureCat(block.rule, getStationIds(sch));
-    var split = !!block.rule.guestSplit;
+    var split = !!block.rule.extraSplit;
     var ids = getStationIds(sch);
     return ids.map(function (sid, idx) {
       var st = block.rule.stations[sid] || defaultStationPair();
       var stAmt = stationIsAmt(st);
       var seg = barParamSegHtml(stationShortLabel(sch, sid), fmtValHtml(stationNonVal(st, stAmt), stAmt));
       if (split && idx === 0) {
-        var dAmt = desIsAmt(block.rule);
-        var guestSeg = barParamSegHtml('点客', fmtValHtml(pairVal(block.rule, dAmt, 'designated', 'designatedAmt'), dAmt));
-        return '<span class="comm2-rule-bar__param-row">' + seg + guestSeg + '</span>';
+        var extraSeg = barParamSegHtml('顾客指定', formatExtraValHtml(block.rule));
+        return '<span class="comm2-rule-bar__param-row">' + seg + extraSeg + '</span>';
       }
       return seg;
     }).join('');
@@ -1128,17 +1142,14 @@
     block.rule = ensureCat(block.rule, getStationIds(sch));
     if (block.pickMode === 'station') return barStationParamsHtml(sch, block);
     var nonAmt = nonIsAmt(block.rule);
-    var desAmt = desIsAmt(block.rule);
-    var des = pairVal(block.rule, desAmt, 'designated', 'designatedAmt');
     var non = pairVal(block.rule, nonAmt, 'nonDesignated', 'nonDesignatedAmt');
-    if (!block.rule.guestSplit) {
+    if (!block.rule.extraSplit) {
       return barParamSegHtml('提成', fmtValHtml(non, nonAmt), { extraClass: 'is-single' });
     }
-    var valHtml = fmtValHtml(non, nonAmt) +
-      '<span class="comm2-rule-bar__p-sep" aria-hidden="true"></span>' +
-      '<span class="comm2-rule-bar__p-tag" aria-hidden="true">点</span>' +
-      fmtValHtml(des, desAmt);
-    return barParamSegHtml('提成', valHtml, { extraClass: 'is-guest-sum' });
+    return '<span class="comm2-rule-bar__param-row">' +
+      barParamSegHtml('提成', fmtValHtml(non, nonAmt)) +
+      barParamSegHtml('顾客指定', formatExtraValHtml(block.rule)) +
+      '</span>';
   }
 
   function titleCharCount(s) {
@@ -1202,7 +1213,7 @@
       barFieldHtml(barPayCtrlHtml(block)) +
       '</div></div>';
     var card = '<article class="comm2-rule-bar' + (isOv ? ' is-override' : ' is-default') + (isStation ? ' is-station' : '') +
-      (block.rule && block.rule.guestSplit ? ' is-guest-split' : '') +
+      (block.rule && block.rule.extraSplit ? ' is-extra-split' : '') +
       '" data-comm2-rule-card="' + esc(target) + '" data-comm2-card-open="' + esc(target) + '" role="button" tabindex="0" aria-label="编辑规则 ' + esc(title) + '"' +
       (isOv ? ' data-comm2-ov-id="' + esc(ovId) + '"' : '') + '>' +
       cardHtml +
@@ -1392,16 +1403,16 @@
   /* ==== 试算引擎：按行 payScope 过滤 → 多方案候选 → 金额取高（并列按方案列表顺序） ==== */
 
   var COMM2_TRIAL_LINES = [
-    { id: 'tl1', name: '开卡 · 尊享组合卡', cat: 'issue', kind: 'card', refId: 'demo_vip_combo', cardRole: 'issue', pay: 'cash', list: 2000, paid: 2000, designated: true },
-    { id: 'tl2', name: '充卡 · 老客续充', cat: 'card', pay: 'cash', list: 1000, paid: 1000, designated: true },
-    { id: 'tl3', name: '深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', pay: 'memberCard', list: 268, paid: 268, designated: true },
-    { id: 'tl4', name: '染发', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', list: 358, paid: 358, designated: true, station: 'senior' },
-    { id: 'tl4b', name: '染发 · 混合支付', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', payParts: { cash: 40, memberCard: 60, groupBuy: 0 }, list: 100, paid: 100, designated: true, station: 'senior' },
-    { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, designated: true },
-    { id: 'tl6', name: '团购体验 · 洗头', cat: 'labor', kind: 'project', refId: 'p19', pay: 'groupBuy', list: 28, paid: 28, designated: false },
-    { id: 'tl7', name: '卡付 · 时尚洗吹', cat: 'labor', kind: 'project', refId: 'p1', pay: 'memberCard', list: 58, paid: 58, designated: false },
-    { id: 'tl8', name: '快捷开单', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, designated: true },
-    { id: 'tl9', name: '经理签单 · 深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', sign: true, list: 268, paid: 0, designated: true }
+    { id: 'tl1', name: '开卡 · 尊享组合卡', cat: 'issue', kind: 'card', refId: 'demo_vip_combo', cardRole: 'issue', pay: 'cash', list: 2000, paid: 2000, extra: true },
+    { id: 'tl2', name: '充卡 · 老客续充', cat: 'card', pay: 'cash', list: 1000, paid: 1000, extra: true },
+    { id: 'tl3', name: '深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', pay: 'memberCard', list: 268, paid: 268, extra: true },
+    { id: 'tl4', name: '染发', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', list: 358, paid: 358, extra: true, station: 'senior' },
+    { id: 'tl4b', name: '染发 · 混合支付', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', payParts: { cash: 40, memberCard: 60, groupBuy: 0 }, list: 100, paid: 100, extra: true, station: 'senior' },
+    { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, extra: true },
+    { id: 'tl6', name: '团购体验 · 洗头', cat: 'labor', kind: 'project', refId: 'p19', pay: 'groupBuy', list: 28, paid: 28, extra: false },
+    { id: 'tl7', name: '卡付 · 时尚洗吹', cat: 'labor', kind: 'project', refId: 'p1', pay: 'memberCard', list: 58, paid: 58, extra: false },
+    { id: 'tl8', name: '快捷开单', cat: 'labor', kind: 'quick', refId: 'quick', pay: 'cash', list: 98, paid: 98, extra: true },
+    { id: 'tl9', name: '经理签单 · 深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', sign: true, list: 268, paid: 0, extra: true }
   ];
 
   function schemesForStaff(staffId) {
@@ -1481,14 +1492,10 @@
     return Math.round(list * (inScope / total) * 100) / 100;
   }
 
-  /* 费率取值口径（按工位与点客为「独立」关系）：
-     点客顾客 → 一律取 rule 级全局点客值（与工位无关），mode 用 designatedValueMode；
-     非点客顾客 → 不分工位取 rule 级提成值（nonDesignatedValueMode）；按工位取该工位提成值（stations[sid].valueMode）。 */
+  /* 费率取值口径（「顾客指定」= 在提成之上叠加该值，不再替换）：
+     先取基础费率 → 按工位取该工位提成值（stations[sid].valueMode）/ 不分工位取 rule 级提成值（nonDesignatedValueMode）；
+     若该开单为顾客指定且已开启顾客指定提成，再叠加 rule 级顾客指定值（见 lineExtraAmount / lineExtraLabel）。 */
   function lineRateMeta(sch, block, rule, line) {
-    if (line.designated) {
-      var dAmt = desIsAmt(rule);
-      return { rate: pairVal(rule, dAmt, 'designated', 'designatedAmt'), isAmt: dAmt };
-    }
     if (block.pickMode === 'station') {
       var stId = line.station || getStationIds(sch)[0];
       var st = rule.stations[stId] || defaultStationPair();
@@ -1497,6 +1504,26 @@
     }
     var nAmt = nonIsAmt(rule);
     return { rate: pairVal(rule, nAmt, 'nonDesignated', 'nonDesignatedAmt'), isAmt: nAmt };
+  }
+  /** 顾客指定提成金额（叠加）：比例 → 基数×比例；金额 → 固定额按实收占比缩放 */
+  function lineExtraAmount(rule, line, base, ratio) {
+    if (!lineExtra(line) || !rule.extraSplit) return 0;
+    var amt = extraIsAmt(rule);
+    var v = extraVal(rule, amt);
+    if (amt) return Math.round(v * ratio * 100) / 100;
+    return Math.round(base * v) / 100;
+  }
+  /** 订单行「顾客指定」标记：新字段 `extra`，兼容旧字段 `designated` */
+  function lineExtra(line) {
+    if (!line) return false;
+    if (typeof line.extra === 'boolean') return line.extra;
+    return !!line.designated;
+  }
+  /** 「顾客指定」标签：顾客指定 3% / 顾客指定 ¥5 */
+  function lineExtraLabel(rule, line) {
+    if (!lineExtra(line) || !rule.extraSplit) return '';
+    var amt = extraIsAmt(rule);
+    return '顾客指定 ' + fmtVal(extraVal(rule, amt), amt);
   }
 
   function schemeLineAmount(sch, line) {
@@ -1510,14 +1537,18 @@
       var rateS = metaS.rate;
       var isAmtS = metaS.isAmt;
       var baseS = block.baseMode === 'paid' ? 0 : (Number(line.list) || 0);
+      var extraS = lineExtraAmount(ruleS, line, baseS, 1);
+      var extraLblS = lineExtraLabel(ruleS, line);
+      var sepS = extraLblS ? ' + ' : '';
       var amountS = isAmtS ? rateS : Math.round(baseS * rateS) / 100;
-      if (!isAmtS && baseS <= 0) {
+      amountS = Math.round((amountS + extraS) * 100) / 100;
+      if (!isAmtS && baseS <= 0 && extraS <= 0) {
         return { amount: 0, skipped: 'sign', rateLabel: rateS + '%', base: 0 };
       }
       return {
         amount: amountS,
         skipped: '',
-        rateLabel: isAmtS ? ('¥' + fmtMoney(rateS)) : (rateS + '%'),
+        rateLabel: (isAmtS ? ('¥' + fmtMoney(rateS)) : (rateS + '%')) + sepS + extraLblS,
         base: baseS
       };
     }
@@ -1532,21 +1563,25 @@
     var rate = meta.rate;
     var isAmt = meta.isAmt;
     var ratio = totalPaid > 0 ? (inScope / totalPaid) : 0;
+    var extraLbl = lineExtraLabel(rule, line);
+    var sep = extraLbl ? ' + ' : '';
     if (isAmt) {
       var amtFixed = Math.round(rate * ratio * 100) / 100;
+      var amtTotal = Math.round((amtFixed + lineExtraAmount(rule, line, inScope, ratio)) * 100) / 100;
       return {
-        amount: amtFixed,
+        amount: amtTotal,
         skipped: '',
-        rateLabel: '¥' + fmtMoney(rate),
+        rateLabel: '¥' + fmtMoney(rate) + sep + extraLbl,
         base: inScope
       };
     }
     var base = lineBaseAmount(block, line);
     var amount = Math.round(base * rate) / 100;
+    amount = Math.round((amount + lineExtraAmount(rule, line, base, ratio)) * 100) / 100;
     return {
       amount: amount,
       skipped: '',
-      rateLabel: rate + '%',
+      rateLabel: rate + '%' + sep + extraLbl,
       base: base
     };
   }
@@ -1810,13 +1845,13 @@
 
   function renderRuleSheetBody(sch, block, rule) {
     rule = ensureCat(rule, getStationIds(sch));
-    var guestSplit = !!rule.guestSplit;
+    var extraSplit = !!rule.extraSplit;
     var hint = '<span class="comm2-sheet-params-hint">点「比例 / 金额」切换</span>';
     var html = sheetRowHtml('提成参数', hint, 'comm2-sheet-row--params-head', ' data-comm2-sheet-anchor="params"');
     html += '<div class="comm2-sheet-params-body" data-comm2-sheet-anchor="params-body">';
     if (block.pickMode === 'station') {
       var ids = getStationIds(sch);
-      /* 3 工位并列一行；各仅 1 张「提成」卡 */
+      /* 第 1 行：3 工位并列一行；各仅 1 张「提成」卡 */
       html += '<div class="comm2-sheet-station-grid">';
       ids.forEach(function (sid) {
         var st = rule.stations[sid] || defaultStationPair();
@@ -1825,23 +1860,23 @@
           (editingName
             ? '<div class="comm2-sheet-station__name is-editing"><input type="text" class="comm2-sheet-station__input" maxlength="6" data-comm2-station-inline-input="' + esc(sid) + '" value="' + esc(stationLabel(sch, sid)) + '" /></div>'
             : '<button type="button" class="comm2-sheet-station__name" data-comm2-station-inline-edit="' + esc(sid) + '" aria-label="改名工位"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">' + esc(stationLabel(sch, sid)) + '</span><span class="comm2-sheet-station__edit" aria-hidden="true">' + editIconSvg() + '</span></button>') +
-          '<div class="comm2-guest-row comm2-guest-row--solo">' +
+          '<div class="comm2-extra-row comm2-extra-row--solo">' +
           singleCapHtml('st.' + sid + '.', st, '提成', {
-            asNon: guestSplit,
+            asNon: extraSplit,
             isAmt: stationIsAmt(st),
             modeKey: 'st.' + sid
           }) +
           '</div></div>';
       });
       html += '</div>';
-      /* 第 2 行：点客（宽同单个工位卡）；未开点客时为虚线卡 */
-      html += '<div class="comm2-sheet-station comm2-sheet-station--compact is-guest">' +
-        '<div class="comm2-sheet-station__name is-static"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">点客</span></div>' +
-        '<div class="comm2-guest-row comm2-guest-row--solo">' +
-        (guestSplit ? guestCapHtml('base.', rule) : guestAddCardHtml()) +
+      /* 第 2 行：顾客指定（宽同单个工位卡）；顾客指定值叠加在工位提成之上；未开时为虚线卡 */
+      html += '<div class="comm2-sheet-station comm2-sheet-station--compact is-extra">' +
+        '<div class="comm2-sheet-station__name is-static"><i class="comm2-sheet-station__dot" aria-hidden="true"></i><span class="comm2-sheet-station__label">顾客指定</span></div>' +
+        '<div class="comm2-extra-row comm2-extra-row--solo">' +
+        (extraSplit ? extraCapHtml('base.', rule) : extraAddCardHtml()) +
         '</div></div>';
     } else {
-      html += commissionParamsHtml('base.', rule, guestSplit, '提成');
+      html += commissionParamsHtml('base.', rule, extraSplit, '提成');
     }
     html += '</div>';
     return html;
@@ -1910,7 +1945,8 @@
     }
   }
 
-  function setSheetGuestSplit(on) {
+  /** 「顾客指定」开关：开 → 「额外」卡（默认 0，需自行填写）；关 → 顾客指定值归零 */
+  function setSheetExtraSplit(on) {
     var sch = editing();
     var block = sch ? getSheetBlock(sch) : null;
     if (!sch || !block) return;
@@ -1918,21 +1954,19 @@
     block.rule = ensureCat(block.rule, getStationIds(sch));
     var ids = getStationIds(sch);
     if (on) {
-      block.rule.guestSplit = true;
-      /* 开启时点客默认跟提成当前值 / mode；按工位时取首个工位 */
+      block.rule.extraSplit = true;
+      /* 开启时顾客指定值默认 0，与提成同 mode（叠加值，不跟提成数值） */
       if (block.pickMode === 'station') {
         var firstSt = block.rule.stations[ids[0]] || defaultStationPair();
-        block.rule.designated = firstSt.nonDesignated;
-        block.rule.designatedAmt = firstSt.nonDesignatedAmt;
-        block.rule.designatedValueMode = normalizeValueMode(firstSt.valueMode);
+        block.rule.extraValueMode = normalizeValueMode(firstSt.valueMode);
       } else {
-        block.rule.designated = block.rule.nonDesignated;
-        block.rule.designatedAmt = block.rule.nonDesignatedAmt;
-        block.rule.designatedValueMode = normalizeValueMode(block.rule.nonDesignatedValueMode);
+        block.rule.extraValueMode = normalizeValueMode(block.rule.nonDesignatedValueMode);
       }
+      if (extraIsAmt(block.rule)) block.rule.extraAmt = Number(block.rule.extraAmt) || 0;
+      else block.rule.extraValue = Number(block.rule.extraValue) || 0;
     } else {
-      block.rule.guestSplit = false;
-      applyGuestSplitFlag(block.rule, ids);
+      block.rule.extraSplit = false;
+      applyExtraSplitFlag(block.rule, ids);
     }
     refreshCardSheetBody();
   }
@@ -1992,14 +2026,14 @@
       var nAmt = nonIsAmt(rule);
       tryWrite('base.', nAmt ? 'nonDesignatedAmt' : 'nonDesignated', rule);
     }
-    if (rule.guestSplit) {
-      var dAmt = desIsAmt(rule);
-      tryWrite('base.', dAmt ? 'designatedAmt' : 'designated', rule);
+    if (rule.extraSplit) {
+      var eAmt = extraIsAmt(rule);
+      tryWrite('base.', extraKey(eAmt), rule);
     }
     block.rule = rule;
   }
 
-  /** 点单位切换：modeKey = 'base.non' | 'base.des' | 'st.{sid}' */
+  /** 点单位切换：modeKey = 'base.non' | 'base.extra' | 'st.{sid}' */
   function toggleCapValueMode(modeKey) {
     var sch = editing();
     var block = sch ? getSheetBlock(sch) : null;
@@ -2011,8 +2045,8 @@
     }
     if (modeKey === 'base.non') {
       rule.nonDesignatedValueMode = flip(rule.nonDesignatedValueMode);
-    } else if (modeKey === 'base.des') {
-      rule.designatedValueMode = flip(rule.designatedValueMode);
+    } else if (modeKey === 'base.extra') {
+      rule.extraValueMode = flip(rule.extraValueMode);
     } else if (modeKey.indexOf('st.') === 0) {
       var sid = modeKey.slice(3);
       if (!rule.stations[sid]) rule.stations[sid] = defaultStationPair();
@@ -2026,15 +2060,15 @@
   }
 
   function applySheetPairs(block, sch, rule) {
-    var guestSplit = !!rule.guestSplit;
+    var extraSplit = !!rule.extraSplit;
     var ids = getStationIds(sch);
-    if (guestSplit) {
-      var dAmt = desIsAmt(rule);
-      var desKey = dAmt ? 'designatedAmt' : 'designated';
-      var g = readSheetNum('base.', desKey);
-      if (!Number.isFinite(g) || g < 0) return '请输入有效的点客' + (dAmt ? '金额' : '比例');
-      if (!dAmt && g > 100) return '比例需在 0–100%';
-      rule[desKey] = g;
+    if (extraSplit) {
+      var eAmt = extraIsAmt(rule);
+      var eKey = extraKey(eAmt);
+      var g = readSheetNum('base.', eKey);
+      if (!Number.isFinite(g) || g < 0) return '请输入有效的顾客指定' + (eAmt ? '金额' : '比例');
+      if (!eAmt && g > 100) return '比例需在 0–100%';
+      rule[eKey] = g;
     }
     if (block.pickMode === 'station') {
       for (var i = 0; i < ids.length; i++) {
@@ -2056,7 +2090,7 @@
       if (!nAmt && non > 100) return '比例需在 0–100%';
       rule[nKey] = non;
     }
-    if (!guestSplit) applyGuestSplitFlag(rule, ids);
+    if (!extraSplit) applyExtraSplitFlag(rule, ids);
     syncLegacyValueMode(rule, block.pickMode, ids);
     return null;
   }
@@ -3000,9 +3034,9 @@
       }
       var cardRoleBtn = e.target.closest('[data-comm2-sheet-card-role]');
       if (cardRoleBtn) { setSheetCardRole(cardRoleBtn.getAttribute('data-comm2-sheet-card-role')); return; }
-      var guestBtn = e.target.closest('[data-comm2-guest-split]');
+      var guestBtn = e.target.closest('[data-comm2-extra]');
       if (guestBtn) {
-        setSheetGuestSplit(guestBtn.getAttribute('data-comm2-guest-split') === 'on');
+        setSheetExtraSplit(guestBtn.getAttribute('data-comm2-extra') === 'on');
         return;
       }
       var modeToggle = e.target.closest('[data-comm2-cap-mode]');
@@ -3095,21 +3129,24 @@
 /* ==========================================================================
  * 关联页面 · 选择服务员工（提成设置 → 开单侧选人 UI/UX）
  *
- * 四态采集（对照 §4.5.1）：
- *   按工位+开点客 → 纵排「点客 / 选工位」；点客即完成；选工位→裂成 3 工位
- *   按工位+未开点客 → 直接裂成 3 工位
- *   不分工位+开点客 → 纵排「点客 / 普通」，点一即完成
- *   不分工位+未开点客 → 点选即勾选（无展开）
+ * 四态采集（对照 §4.5.1 / §6.7.1，整行勾选卡）：
+ *   按工位+开顾客指定 → 整行 4 张：大工/中工/小工 +「顾客指定」（工位单选，顾客指定可叠加）
+ *   按工位+未开       → 整行 3 张工位卡（单选）
+ *   不分工位+开       → 整行 2 张：「普通」/「顾客指定」（二选一）
+ *   不分工位+未开     → 点选即勾选（无展开、无勾选卡）
+ * 勾选后收缩为员工卡：显示摘要 + 右侧放大勾选控件（点它取消选择）；右上角 × 已删除
  * 动效：iOS 向 spring（cubic-bezier(.34,1.3,.64,1)）+ 按下 scale(.96) + vibrate(8)
  * ======================================================================== */
 (function () {
   'use strict';
 
   var SP_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+  var SP_CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
 
   var SP_SCHEME_DEFAULT = 'c2_flagship';
   var SP_ROLE_IDS = ['junior', 'mid', 'senior'];
   var SP_ROLE_DEFAULT = 'senior';
+  var SP_GRID_GAP = 8;
   var SP_SPRING = 'cubic-bezier(.34,1.3,.64,1)';
   var SP_EXPAND_MS = 380;
 
@@ -3125,9 +3162,9 @@
 
   var spState = {
     mode: 'station',
-    guestSplit: true,
+    extraSplit: true,
     edit: null,
-    row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffDesignated: {} }
+    row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffExtra: {}, staffChosen: {} }
   };
 
   var spVibrate = 8;
@@ -3168,7 +3205,13 @@
     return roleId;
   }
   function spStationLabelsJoined() {
-    return SP_ROLE_IDS.map(spStationLabel).filter(Boolean).join('/');
+    return spStationIds().map(spStationLabel).filter(Boolean).join('/');
+  }
+  /** 工位顺序：以方案 stationIds 为准（大工 / 中工 / 小工） */
+  function spStationIds() {
+    var sch = spScheme();
+    if (sch && sch.stationIds && sch.stationIds.length) return sch.stationIds.slice();
+    return ['senior', 'mid', 'junior'];
   }
   function spDefaultStationId() {
     var sch = spScheme();
@@ -3191,50 +3234,121 @@
     var row = spState.row;
     if (!Array.isArray(row.staffIds)) row.staffIds = [];
     if (!row.staffRoles || typeof row.staffRoles !== 'object') row.staffRoles = {};
-    if (!row.staffDesignated || typeof row.staffDesignated !== 'object') row.staffDesignated = {};
+    if (!row.staffExtra || typeof row.staffExtra !== 'object') row.staffExtra = {};
+    if (!row.staffChosen || typeof row.staffChosen !== 'object') row.staffChosen = {};
     Object.keys(row.staffRoles).forEach(function (sid) {
       if (row.staffIds.indexOf(sid) < 0) delete row.staffRoles[sid];
     });
-    Object.keys(row.staffDesignated).forEach(function (sid) {
-      if (row.staffIds.indexOf(sid) < 0) delete row.staffDesignated[sid];
+    Object.keys(row.staffExtra).forEach(function (sid) {
+      if (row.staffIds.indexOf(sid) < 0) delete row.staffExtra[sid];
+    });
+    Object.keys(row.staffChosen).forEach(function (sid) {
+      if (row.staffIds.indexOf(sid) < 0) delete row.staffChosen[sid];
     });
     row.staffIds.forEach(function (sid) {
       if (!row.staffRoles[sid]) row.staffRoles[sid] = spDefaultStationId();
-      if (typeof row.staffDesignated[sid] !== 'boolean') row.staffDesignated[sid] = false;
+      if (typeof row.staffExtra[sid] !== 'boolean') row.staffExtra[sid] = false;
+      if (typeof row.staffChosen[sid] !== 'boolean') row.staffChosen[sid] = false;
     });
   }
   function spNeedStation() { return spState.mode === 'station'; }
-  function spNeedGuest() { return !!spState.guestSplit; }
+  function spNeedExtra() { return !!spState.extraSplit; }
+  /** 是否需要「点卡片 → 展开选项」二次确认；否 = 点卡片即完成选择（点选即勾选） */
+  function spNeedsPick() { return spNeedStation() || spNeedExtra(); }
   function spIsAvg() { return !spNeedStation(); }
   function spSheetOpen() {
     var mask = spEl('comm2StaffSheetMask');
     return !!(mask && mask.classList.contains('open'));
   }
-  /** 卡片/入口摘要：点客→「点客」；选了工位→仅工位名；不分工位+开点客非点客→「普通」；态4无摘要文案 */
-  function spSummaryText(sid) {
-    if (spState.row.staffDesignated[sid] === true) return '点客';
+  /** 展开后的选项（交互四态 · q13-A）：
+     按工位 + 顾客指定 → 3 工位 + 「顾客指定」（工位单选，「顾客指定」可与任一工位同时被选）
+     按工位（未开）  → 3 工位
+     不分工位 + 顾客指定 → 「普通」/「顾客指定」
+     不分工位（未开）  → 无选项（点卡片即完成） */
+  function spOptionList() {
+    var out = [];
     if (spNeedStation()) {
-      var role = spState.row.staffRoles[sid] ? spStationLabel(spState.row.staffRoles[sid]) : '';
-      return role || '';
+      spStationIds().forEach(function (rid) {
+        out.push({ key: rid, kind: 'role', label: spStationLabel(rid) });
+      });
+      if (spNeedExtra()) out.push({ key: 'extra', kind: 'extra', label: '顾客指定' });
+      return out;
     }
-    if (spNeedGuest()) return '普通';
+    if (spNeedExtra()) {
+      out.push({ key: 'plain', kind: 'plain', label: '普通' });
+      out.push({ key: 'extra', kind: 'extra', label: '顾客指定' });
+    }
+    return out;
+  }
+  function spOptionChecked(sid, opt) {
+    if (!opt) return false;
+    var row = spState.row;
+    var chosen = !!row.staffChosen[sid];
+    if (!chosen) return false;
+    if (opt.kind === 'extra') return row.staffExtra[sid] === true;
+    if (opt.kind === 'plain') return row.staffExtra[sid] !== true;
+    return row.staffRoles[sid] === opt.key;
+  }
+  /** 卡片/入口摘要：工位名（顾客指定时叠加「· 顾客指定」）/「顾客指定」/「普通」；态4无摘要 */
+  function spSummaryText(sid) {
+    var row = spState.row;
+    var chosen = !!row.staffChosen[sid];
+    var extra = row.staffExtra[sid] === true;
+    if (spNeedStation()) {
+      var role = (chosen && row.staffRoles[sid]) ? spStationLabel(row.staffRoles[sid]) : '';
+      if (!role) return '';
+      return extra ? (role + ' · 顾客指定') : role;
+    }
+    if (spNeedExtra()) {
+      if (!chosen) return '';
+      return extra ? '顾客指定' : '普通';
+    }
     return '';
   }
-  /** 卡片第三行：态4（不分工位+未开点客）选中后仍灰字头衔；其余选中显示红色摘要 */
+  /** 卡片第三行：态4（不分工位+未开顾客指定）选中后仍灰字头衔；其余选中显示红色摘要 */
   function spCardPickLineHtml(st, done) {
     var jobTitle = spJobTitleHtml(st);
     if (!done) return jobTitle;
-    if (!spNeedStation() && !spNeedGuest()) return jobTitle;
+    if (!spNeedsPick()) return jobTitle;
     var sum = spSummaryText(st.id);
     if (!sum) return jobTitle;
     return '<div class="staff-card__title staff-card__title--pick">' + spEsc(sum) + '</div>';
   }
 
-  function spCompleteStaff(sid, designated, roleId) {
+  /** 勾选一个选项：工位单选；「顾客指定」叠加（可与任一工位同选）；「普通」= 非顾客指定 */
+  function spChooseOption(sid, optKey) {
+    if (!sid) return;
     spEnsureState();
-    if (spState.row.staffIds.indexOf(sid) < 0) spState.row.staffIds.push(sid);
-    spState.row.staffDesignated[sid] = !!designated;
-    spState.row.staffRoles[sid] = roleId || spDefaultStationId();
+    var row = spState.row;
+    if (row.staffIds.indexOf(sid) < 0) row.staffIds.push(sid);
+    row.staffChosen[sid] = true;
+    if (optKey === 'extra') {
+      row.staffExtra[sid] = true;
+    } else if (optKey === 'plain') {
+      row.staffExtra[sid] = false;
+    } else {
+      row.staffRoles[sid] = optKey || spDefaultStationId();
+      if (!spNeedExtra()) row.staffExtra[sid] = false;
+    }
+    spState.edit = null;
+    spHaptic();
+    spRedraw();
+  }
+
+  /** 态4：点卡片即勾选；已勾选再点即取消 */
+  function spToggleStaff(sid) {
+    if (!sid) return;
+    spEnsureState();
+    var row = spState.row;
+    var i = row.staffIds.indexOf(sid);
+    if (i >= 0) {
+      spRemoveStaff(sid);
+      return;
+    }
+    row.staffIds.push(sid);
+    row.staffChosen[sid] = true;
+    row.staffRoles[sid] = spDefaultStationId();
+    row.staffExtra[sid] = false;
     spState.edit = null;
     spHaptic();
     spRedraw();
@@ -3259,23 +3373,22 @@
     return 'center center';
   }
 
-  function spPathPanelHtml(sid) {
-    return '<div class="staff-card__split staff-card__split--stack" role="group" aria-label="点客或选工位">' +
-      '<button type="button" class="staff-card__split-btn staff-card__split-btn--des" data-staff-opt-path="guest" data-staff-id="' + spEsc(sid) + '">点客</button>' +
-      '<button type="button" class="staff-card__split-btn staff-card__split-btn--pick-station" data-staff-opt-path="station" data-staff-id="' + spEsc(sid) + '">选工位</button>' +
+  /** 展开态：整行横向平铺 N 个卡片按钮；每张右上角一个勾选控件（未勾选 → 空心） */
+  function spOptionsPanelHtml(sid) {
+    var opts = spOptionList();
+    var box = '<span class="staff-opt__box" aria-hidden="true">' + SP_CHECK_SVG + '</span>';
+    return '<div class="staff-card__opts" role="group" aria-label="选择工位或顾客指定">' +
+      opts.map(function (o) {
+        var on = spOptionChecked(sid, o);
+        return '<button type="button" class="staff-opt' + (on ? ' is-on' : '') +
+          (o.kind === 'extra' ? ' staff-opt--extra' : '') + '"' +
+          ' data-staff-opt="' + spEsc(o.key) + '" data-staff-id="' + spEsc(sid) + '"' +
+          ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+          box +
+          '<span class="staff-opt__txt">' + spEsc(o.label) + '</span>' +
+          '</button>';
+      }).join('') +
       '</div>';
-  }
-  function spGuestPanelHtml(sid) {
-    return '<div class="staff-card__split staff-card__split--stack" role="group" aria-label="点客或普通">' +
-      '<button type="button" class="staff-card__split-btn staff-card__split-btn--des" data-staff-opt-designate="1" data-staff-id="' + spEsc(sid) + '">点客</button>' +
-      '<button type="button" class="staff-card__split-btn staff-card__split-btn--guest" data-staff-opt-designate="0" data-staff-id="' + spEsc(sid) + '">普通</button>' +
-      '</div>';
-  }
-  function spRolePanelHtml(sid) {
-    var roleBtns = SP_ROLE_IDS.map(function (rid) {
-      return '<button type="button" class="staff-card__split-btn staff-card__split-btn--role" data-staff-opt-role="' + spEsc(rid) + '" data-staff-id="' + spEsc(sid) + '">' + spEsc(spStationLabel(rid)) + '</button>';
-    }).join('');
-    return '<div class="staff-card__split staff-card__split--3" role="group" aria-label="选择工位">' + roleBtns + '</div>';
   }
 
   function spRenderPickerHtml() {
@@ -3283,8 +3396,7 @@
     var it = spState.row;
     var edit = spState.edit;
     var pool = spStaffPool();
-    var checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
-    var clearSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+    var tickSvg = SP_CHECK_SVG;
     var cards = pool.map(function (st, index) {
       var done = it.staffIds.indexOf(st.id) >= 0;
       var isEdit = !!(edit && edit.staffId === st.id);
@@ -3292,37 +3404,31 @@
       var origin = spCardOrigin(index);
       var originSide = index % 3 === 0 ? 'left' : index % 3 === 2 ? 'right' : 'center';
       var body = '';
-      var face = isEdit ? edit.face : '';
-      if (isEdit && face === 'path') {
-        body = spPathPanelHtml(st.id);
-      } else if (isEdit && face === 'guest') {
-        body = spGuestPanelHtml(st.id);
-      } else if (isEdit && face === 'role') {
-        body = spRolePanelHtml(st.id);
+      if (isEdit) {
+        body = spOptionsPanelHtml(st.id);
       } else {
-        var pickLine = spCardPickLineHtml(st, done);
-        body =
-          (done ? '<span class="staff-card__check">' + checkSvg + '</span>' : '') +
-          spAvatarHtml(st) +
+        body = spAvatarHtml(st) +
           '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
-          pickLine;
+          spCardPickLineHtml(st, done);
       }
-      var clearBtn = (done && !isEdit)
-        ? '<button type="button" class="staff-card__clear" data-staff-clear data-staff-id="' + spEsc(st.id) + '" aria-label="清空选择">' + clearSvg + '</button>'
+      /* 勾选控件（右侧、稍放大）：仅已勾选显示；点它取消选择 */
+      var tickBtn = (done && !isEdit)
+        ? '<button type="button" class="staff-card__tick" data-staff-tick data-staff-id="' + spEsc(st.id) +
+          '" aria-pressed="true" aria-label="取消选择 ' + spEsc(st.name) + '">' + tickSvg + '</button>'
         : '';
       if (isEdit) {
         return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') + '"' +
           ' style="--staff-origin:' + origin + '"' +
           ' data-origin="' + originSide + '"' +
           ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
-          '<div class="staff-card__panel" data-face="' + spEsc(face) + '">' + body + '</div>' +
+          '<div class="staff-card__panel" data-face="opts">' + body + '</div>' +
           '</div>';
       }
       return '<div class="staff-card' + (done ? ' is-done' : '') + (dim ? ' is-dim' : '') + '"' +
         ' style="--staff-origin:' + origin + '"' +
         ' data-origin="' + originSide + '"' +
         ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
-        clearBtn +
+        tickBtn +
         '<button type="button" class="staff-card__panel" data-staff-card-hit data-staff-id="' + spEsc(st.id) + '" aria-label="' + spEsc(st.name) + '">' +
         body +
         '</button>' +
@@ -3334,6 +3440,7 @@
       '</div>';
   }
 
+  /* 展开：被点卡片横向撑满整行（3 列宽），行内其余卡片淡出 */
   function spAnimateStaffMorphLayout(grid) {
     if (!grid) return;
     var token = (grid._staffMorphToken = (grid._staffMorphToken || 0) + 1);
@@ -3342,7 +3449,7 @@
     var reduce = spReduceMotion();
 
     cards.forEach(function (c) {
-      c.classList.remove('is-pinching', 'is-expanding');
+      c.classList.remove('is-expanding', 'is-row-muted');
       c.style.transition = 'none';
       c.style.transform = '';
       c.style.width = '';
@@ -3358,49 +3465,30 @@
       return;
     }
 
-    var gap = 8;
+    var gap = SP_GRID_GAP;
     var gridW = grid.clientWidth;
     if (gridW <= 0) return;
     var cellW = (gridW - gap * 2) / 3;
-    var faceEl = editing.querySelector('[data-face]');
-    var face = faceEl ? faceEl.getAttribute('data-face') : '';
-    var editW = face === 'role'
-      ? gridW
-      : Math.min(gridW, Math.round(cellW * 1.15));
-    editW = Math.max(cellW, editW);
     var idx = cards.indexOf(editing);
     if (idx < 0) return;
     var col = idx % 3;
     var rowStart = idx - col;
-    var natural = [0, cellW + gap, 2 * (cellW + gap)];
-    var lefts = [natural[0], natural[1], natural[2]];
-    if (col === 0) {
-      lefts[0] = 0;
-      lefts[1] = editW + gap;
-      lefts[2] = editW + gap * 2 + cellW;
-    } else if (col === 2) {
-      lefts[2] = gridW - editW;
-      lefts[1] = lefts[2] - gap - cellW;
-      lefts[0] = lefts[1] - gap - cellW;
-    } else {
-      lefts[1] = (gridW - editW) / 2;
-      lefts[0] = lefts[1] - gap - cellW;
-      lefts[2] = lefts[1] + editW + gap;
-    }
-
+    var dx = -(col * (cellW + gap));
     var springTrans = 'transform ' + (SP_EXPAND_MS / 1000) + 's ' + SP_SPRING + ', width ' + (SP_EXPAND_MS / 1000) + 's ' + SP_SPRING;
 
-    var applyFinalLayout = function () {
+    var muteRow = function (on) {
       for (var i = 0; i < 3; i++) {
         var card = cards[rowStart + i];
-        if (!card) continue;
-        var dx = lefts[i] - natural[i];
-        var w = (i === col) ? editW : cellW;
-        card.style.transition = springTrans;
-        card.style.width = w + 'px';
-        card.style.transform = 'translateX(' + dx + 'px)';
-        if (i === col) card.style.zIndex = '6';
+        if (!card || card === editing) continue;
+        card.classList.toggle('is-row-muted', on);
       }
+    };
+    var applyFinalLayout = function () {
+      editing.style.transition = springTrans;
+      editing.style.width = gridW + 'px';
+      editing.style.transform = 'translateX(' + dx + 'px)';
+      editing.style.zIndex = '6';
+      muteRow(true);
     };
 
     editing.style.zIndex = '6';
@@ -3409,16 +3497,8 @@
       applyFinalLayout();
       return;
     }
-
     editing.style.width = cellW + 'px';
     editing.style.transform = 'translateX(0)';
-    for (var i = 0; i < 3; i++) {
-      if (i === col) continue;
-      var card = cards[rowStart + i];
-      if (!card) continue;
-      card.style.width = cellW + 'px';
-      card.style.transform = 'translateX(0)';
-    }
     void grid.offsetWidth;
 
     requestAnimationFrame(function () {
@@ -3478,11 +3558,11 @@
 
   function spHintText() {
     var needS = spNeedStation();
-    var needG = spNeedGuest();
-    if (!needS && !needG) return '可多选员工；点卡片即完成选择。';
-    if (!needS && needG) return '可多选员工；点卡片后选择点客或普通。';
-    if (needS && !needG) return '可多选员工；点卡片后选择工位（' + spStationLabelsJoined() + '）。';
-    return '可多选员工；点卡片后选点客即完成，或点选工位再选（' + spStationLabelsJoined() + '）。';
+    var needE = spNeedExtra();
+    if (!needS && !needE) return '可多选员工；点卡片即完成选择。';
+    if (!needS && needE) return '可多选员工；点卡片后勾选「普通」或「顾客指定」（顾客指定提成另计）。';
+    if (needS && !needE) return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位单选。';
+    return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位单选；「顾客指定」可与任一工位同时勾选，顾客指定提成叠加。';
   }
 
   function spRenderScreen() {
@@ -3528,11 +3608,11 @@
         b.classList.toggle('on', b.getAttribute('data-comm2-sp-mode') === spState.mode);
       });
     }
-    var guest = spEl('comm2StaffPickGuest');
-    if (guest) {
-      var on = spState.guestSplit ? '1' : '0';
-      guest.querySelectorAll('[data-comm2-sp-guest]').forEach(function (b) {
-        b.classList.toggle('on', b.getAttribute('data-comm2-sp-guest') === on);
+    var extra = spEl('comm2StaffPickExtra');
+    if (extra) {
+      var on = spState.extraSplit ? '1' : '0';
+      extra.querySelectorAll('[data-comm2-sp-extra]').forEach(function (b) {
+        b.classList.toggle('on', b.getAttribute('data-comm2-sp-extra') === on);
       });
     }
   }
@@ -3543,25 +3623,12 @@
 
   function spEnterEdit(sid) {
     spEnsureState();
-    var needS = spNeedStation();
-    var needG = spNeedGuest();
-    if (!needS && !needG) {
-      spCompleteStaff(sid, false, spDefaultStationId());
+    if (!spNeedsPick()) {
+      /* 态4：点卡片即完成选择 / 再点取消 */
+      spToggleStaff(sid);
       return;
     }
-    if (needS && !needG) {
-      spState.edit = { staffId: sid, face: 'role', draftDesignated: false, splitting: true };
-      spHaptic();
-      spRedraw();
-      return;
-    }
-    if (!needS && needG) {
-      spState.edit = { staffId: sid, face: 'guest', draftDesignated: null };
-      spHaptic();
-      spRedraw();
-      return;
-    }
-    spState.edit = { staffId: sid, face: 'path', draftDesignated: null };
+    spState.edit = { staffId: sid, splitting: true };
     spHaptic();
     spRedraw();
   }
@@ -3599,12 +3666,12 @@
         return;
       }
 
-      var guestBtn = t.closest('[data-comm2-sp-guest]');
+      var guestBtn = t.closest('[data-comm2-sp-extra]');
       if (guestBtn) {
         e.preventDefault();
-        var gs = guestBtn.getAttribute('data-comm2-sp-guest') === '1';
-        if (gs !== spState.guestSplit) {
-          spState.guestSplit = gs;
+        var gs = guestBtn.getAttribute('data-comm2-sp-extra') === '1';
+        if (gs !== spState.extraSplit) {
+          spState.extraSplit = gs;
           spState.edit = null;
           spSyncModeButtons();
           spRedraw();
@@ -3645,47 +3712,21 @@
         return;
       }
 
-      var staffClear = t.closest('[data-staff-clear]');
-      if (staffClear) {
+      /* 勾选控件（右侧）：点它取消选择 */
+      var tickBtn = t.closest('[data-staff-tick]');
+      if (tickBtn) {
         e.preventDefault(); e.stopPropagation();
-        spRemoveStaff(staffClear.getAttribute('data-staff-id'));
+        spRemoveStaff(tickBtn.getAttribute('data-staff-id'));
         return;
       }
 
-      var pathOpt = t.closest('[data-staff-opt-path]');
-      if (pathOpt) {
+      /* 展开态：点选项卡片任意处 = 勾选该卡并收缩 */
+      var optBtn = t.closest('[data-staff-opt]');
+      if (optBtn) {
         e.preventDefault(); e.stopPropagation();
-        var pSid = pathOpt.getAttribute('data-staff-id');
-        if (!spState.edit || spState.edit.staffId !== pSid) return;
-        var path = pathOpt.getAttribute('data-staff-opt-path');
-        if (path === 'guest') {
-          spCompleteStaff(pSid, true, spDefaultStationId());
-          return;
-        }
-        spState.edit = { staffId: pSid, face: 'role', draftDesignated: false, splitting: true };
-        spHaptic();
-        spRedraw();
-        return;
-      }
-
-      var designateOpt = t.closest('[data-staff-opt-designate]');
-      if (designateOpt) {
-        e.preventDefault(); e.stopPropagation();
-        var dSid = designateOpt.getAttribute('data-staff-id');
-        if (!spState.edit || spState.edit.staffId !== dSid) return;
-        var designated = designateOpt.getAttribute('data-staff-opt-designate') === '1';
-        spCompleteStaff(dSid, designated, spDefaultStationId());
-        return;
-      }
-
-      var roleOpt = t.closest('[data-staff-opt-role]');
-      if (roleOpt) {
-        e.preventDefault(); e.stopPropagation();
-        var rSid = roleOpt.getAttribute('data-staff-id');
-        if (!spState.edit || spState.edit.staffId !== rSid) return;
-        var role = roleOpt.getAttribute('data-staff-opt-role') || spDefaultStationId();
-        var draftDes = spState.edit.draftDesignated === true;
-        spCompleteStaff(rSid, draftDes, role);
+        var oSid = optBtn.getAttribute('data-staff-id');
+        if (!spState.edit || spState.edit.staffId !== oSid) return;
+        spChooseOption(oSid, optBtn.getAttribute('data-staff-opt'));
         return;
       }
 
@@ -3712,7 +3753,8 @@
     spEnsureState();
     spState.row.staffIds = spState.row.staffIds.filter(function (x) { return x !== sid; });
     delete spState.row.staffRoles[sid];
-    delete spState.row.staffDesignated[sid];
+    delete spState.row.staffExtra[sid];
+    delete spState.row.staffChosen[sid];
     if (spState.edit && spState.edit.staffId === sid) spState.edit = null;
     spHaptic();
     spRedraw();
@@ -3732,12 +3774,14 @@
       spSyncModeButtons();
       spRenderScreen();
     },
-    setGuestSplit: function (on) {
-      spState.guestSplit = !!on;
+    setExtraSplit: function (on) {
+      spState.extraSplit = !!on;
       spState.edit = null;
       spSyncModeButtons();
       spRenderScreen();
     },
+    /* 兼容旧抓取脚本命名 */
+    setGuestSplit: function (on) { this.setExtraSplit(on); },
     getStaffCount: function () { return (spState.row.staffIds || []).length; },
     getSchemeName: spCurrentSchemeName
   };

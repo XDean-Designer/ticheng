@@ -328,25 +328,46 @@
       var out = [go('comm2-list', 60), click(firstSel, 220)];
       return (extra || []).length ? out.concat(extra) : out;
     }
-    /* 规则设置 Sheet：把「点客提成」关掉，采到「按工位分配 + 未开点客」态 */
-    function closeSheetGuestSplit() {
+    /* 规则设置 Sheet：把「顾客指定提成」关掉，采到「按工位分配 + 未开顾客指定」态 */
+    function closeSheetExtraSplit() {
       return step(function () {
-        var off = document.querySelector('#comm2CatSheetBody [data-comm2-guest-split="off"]');
+        var off = document.querySelector('#comm2CatSheetBody [data-comm2-extra="off"]');
         if (off) off.click();
-        else console.warn('[capture] guest split off button missing (already off?)');
+        else console.warn('[capture] extra split off button missing (already off?)');
       }, 260);
     }
-    /* 关联页面 · 选择服务员工：切换「不分工位 / 按工位」与「点客」 */
+    /* 覆盖（后添加）规则卡：滚到可视区并左滑 72px 露出红色删除按钮（不点删除） */
+    function openOverrideSwipe() {
+      return step(function () {
+        var wrap = document.querySelector('#comm2EditCards .comm2-rule-swipe-wrap');
+        if (!wrap) { console.warn('[capture] override swipe wrap missing'); return; }
+        try { wrap.scrollIntoView({ block: 'center' }); } catch (e) { /* ignore */ }
+        document.querySelectorAll('#comm2EditCards .comm2-rule-swipe-wrap').forEach(function (el) {
+          var sw = el.querySelector('.comm2-rule-swipe');
+          if (!sw) return;
+          sw.style.transition = 'none';
+          if (el === wrap) {
+            sw.style.transform = 'translateX(-72px)';
+            el.classList.add('is-open');
+          } else {
+            sw.style.transform = '';
+            el.classList.remove('is-open');
+          }
+        });
+      }, 420);
+    }
+
+    /* 关联页面 · 选择服务员工：切换「不分工位 / 按工位」与「顾客指定」 */
     function spSetMode(mode) {
       return step(function () {
         if (g.Comm2StaffPick && typeof g.Comm2StaffPick.setMode === 'function') g.Comm2StaffPick.setMode(mode);
         else console.warn('[capture] Comm2StaffPick.setMode missing');
       }, 60);
     }
-    function spSetGuest(on) {
+    function spSetExtra(on) {
       return step(function () {
-        if (g.Comm2StaffPick && typeof g.Comm2StaffPick.setGuestSplit === 'function') g.Comm2StaffPick.setGuestSplit(!!on);
-        else console.warn('[capture] Comm2StaffPick.setGuestSplit missing');
+        if (g.Comm2StaffPick && typeof g.Comm2StaffPick.setExtraSplit === 'function') g.Comm2StaffPick.setExtraSplit(!!on);
+        else console.warn('[capture] Comm2StaffPick.setExtraSplit missing');
       }, 60);
     }
 
@@ -375,29 +396,33 @@
 
       /* 提成设置弹层 */
       'comm2-cat-sheet': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 260)],
-      'comm2-cat-sheet-noguest': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 260), closeSheetGuestSplit()],
+      'comm2-cat-sheet-noguest': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 260), closeSheetExtraSplit()],
       'comm2-assign': openListThen('#comm2List [data-comm2-assign]'),
       'comm2-menu': openListThen('#comm2List [data-comm2-menu]'),
       'comm2-name': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="rename"]', 240)]),
       'comm2-delete': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="delete"]', 240)]),
       'comm2-unsaved': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-bar-base-toggle]', 240), click('#comm2EditBack', 200)],
       'comm2-override-del': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-swipe-del]', 260)],
+      'comm2-override-swipe': [openFlagshipEdit(), openOverrideSwipe()],
       'comm2-help': [go('comm2-list', 60), click('#comm2HelpBtn', 220)],
       'comm2-unassigned': [go('comm2-list', 60), click('#comm2UnassignedTip', 220)],
 
       /* 关联页面 · 选择服务员工 */
       'staff-pick': [go('staff-pick', 80)],
       'staff-pick-sheet': [go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
-      'staff-pick-edit': [spSetGuest(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 420)],
-      'staff-pick-role': [spSetGuest(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 420), click('#comm2StaffSheetRoot [data-staff-opt-path="station"]', 420)],
-      'staff-pick-avg': [spSetGuest(true), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
-      'staff-pick-direct': [spSetGuest(false), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      /* 展开态 = 整行勾选卡片（3 工位 + 顾客指定） */
+      'staff-pick-edit': [spSetExtra(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 460)],
+      'staff-pick-role': [spSetExtra(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 460)],
+      'staff-pick-avg': [spSetExtra(true), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      'staff-pick-direct': [spSetExtra(false), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      /* 已选：工位 + 顾客指定 同时勾选 */
       'staff-pick-sel': [
-        spSetGuest(true), spSetMode('station'), go('staff-pick', 80),
+        spSetExtra(true), spSetMode('station'), go('staff-pick', 80),
         click('#comm2SpBlock [data-open-comm2-sp-staff]', 300),
-        click('#comm2StaffSheetRoot [data-staff-card-hit]', 420),
-        click('#comm2StaffSheetRoot [data-staff-opt-path="station"]', 420),
-        click('#comm2StaffSheetRoot [data-staff-opt-role]', 420),
+        click('#comm2StaffSheetRoot [data-staff-card-hit]', 460),
+        click('#comm2StaffSheetRoot [data-staff-opt="senior"]', 460),
+        click('#comm2StaffSheetRoot [data-staff-card-hit]', 460),
+        click('#comm2StaffSheetRoot [data-staff-opt="extra"]', 460),
         click('#comm2StaffSheetDone', 360)
       ],
 
