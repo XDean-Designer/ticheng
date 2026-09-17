@@ -3379,15 +3379,12 @@
     if (p.extra) out.push('顾客指定');
     return out.join(' · ');
   }
-  /** 卡片摘要（**带样式**）：缺工位时把提成位置画成**灰字「无工位」**、「顾客指定」仍是红字 */
+  /** 卡片摘要（**带样式**）：十八次起按工位下「只勾顾客指定、没选工位」**只画红字「顾客指定」**
+      —— 与不分工位态同款，不再前置灰字「无工位」（缺工位信息只在入口摘要行保留）。 */
   function spSummaryHtml(sid) {
     var p = spSummaryParts(sid);
     if (!p) return '';
-    if (p.miss) {
-      return '<span class="staff-card__pick-miss">' + spEsc(p.miss) + '</span>' +
-        '<span class="staff-card__pick-miss"> · </span>' +
-        '<span class="staff-card__pick-x">顾客指定</span>';
-    }
+    if (p.miss) return '<span class="staff-card__pick-x">顾客指定</span>';
     var out = [];
     if (p.main) out.push(p.main);
     if (p.extra) out.push('顾客指定');
