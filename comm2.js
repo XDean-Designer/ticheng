@@ -3182,8 +3182,10 @@
   var SP_ROLE_IDS = ['junior', 'mid', 'senior'];
   var SP_ROLE_DEFAULT = 'senior';
   var SP_GRID_GAP = 8;
-  var SP_SPRING = 'cubic-bezier(.34,1.3,.64,1)';
+  var SP_SPRING = 'cubic-bezier(.34,1.3,.64,1)';    /* iOS spring：展开 Morph */
+  var SP_EASE_STD = 'cubic-bezier(.22,.82,.24,1)';  /* Apple 标准：收起 Morph（A2） */
   var SP_EXPAND_MS = 380;
+  var SP_COLLAPSE_FALLBACK_MS = 220;              /* 与 CSS `--sp-collapse` 同源，读不到时兜底 */
 
   var SP_FALLBACK_STAFFS = [
     { id: 'st0', name: '顾清扬', short: '顾', role: '店主', avatar: 'assets/emp-avatars/man-e.jpg' },
@@ -3199,8 +3201,7 @@
     mode: 'station',
     extraSplit: true,
     edit: null,
-    freshTick: null,
-    /* 本次交互**真的选中**了哪些员工 → 下一次渲染才播「回弹 + 勾弹入」；
+    /* 本次交互**真的选中**了哪些员工 → 下一次渲染才播「回弹」（`is-pop`）；
        spAfterStaffPickerPaint 渲染后即清空，避免无关重绘（如再选别人）时重播 */
     freshDone: {},
     row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffExtra: {}, staffChosen: {} }
@@ -3303,7 +3304,7 @@
      按工位 + 顾客指定 → 3 工位 + 「顾客指定」；**工位之间单选（可点掉、可全不选）**，
                           「顾客指定」独立可勾选，两者**互不排斥** —— 都不勾 = 未选。
      按工位（未开）  → 3 工位
-     不分工位 + 顾客指定 → 「提成」/「顾客指定」；**两者可叠加**（先勾「提成」再勾「顾客指定」），
+     不分工位 + 顾客指定 → 「服务提成」/「顾客指定」；**两者可叠加**（先勾「服务提成」再勾「顾客指定」），
                           也可只勾「顾客指定」单独分配（只发顾客指定提成）。
      不分工位（未开）  → 无选项（点卡片即完成） */
   function spOptionList() {
@@ -3316,7 +3317,7 @@
       return out;
     }
     if (spNeedExtra()) {
-      out.push({ key: SP_PICK_AVG, kind: 'plain', label: '提成' });
+      out.push({ key: SP_PICK_AVG, kind: 'plain', label: '服务提成' });
       out.push({ key: 'extra', kind: 'extra', label: '顾客指定' });
     }
     return out;
@@ -3509,27 +3510,104 @@
     if (!wait) return;
     spGate.morphUntil = Math.max(spGate.morphUntil, Date.now() + wait);
   }
+
+  /* —— 收起动画（A2 / 十九次）——
+     现状曾是**裸 innerHTML 重绘**（实测 2ms、无过渡）。现在让「已展开的那张卡」先把宽度与位移
+     收回它自己的格子内、播完再重绘，即**展开 Morph 的镜像**，但更快更干脆（220ms / Apple 标准）：
+       · 卡宽 gridW（332）→ cellW（105.33）、translateX(dx) → 0；
+       · 同行其余卡片**淡入回**（摘掉 is-row-muted，各自 opacity 过渡）；
+       · 4 张选项卡**整体淡出**（.staff-card.is-collapsing 下的 .staff-card__opts）；
+       · 同时**下层头像卡面**（.staff-card__panel--base）**淡入** —— 两层交叉，
+         避免「选项卡淡完 → 空卡 → 重绘后啪地跳出头像/姓名」的跳帧。
+     时长与缓动由 CSS 变量 `--sp-collapse` / `--sp-ease-std` 给出，JS 读同一个变量（**同源**）。 */
+  function spCollapseMs() {
+    var root = document.documentElement;
+    if (!root) return SP_COLLAPSE_FALLBACK_MS;
+    var v = getComputedStyle(root).getPropertyValue('--sp-collapse');
+    var n = parseFloat(v);
+    return isNaN(n) ? SP_COLLAPSE_FALLBACK_MS : (v.indexOf('ms') > 0 ? n : n * 1000);
+  }
+  function spCollapseTarget() {
+    var root = spEl('comm2StaffSheetRoot');
+    if (!root) return null;
+    var grid = root.querySelector('.staff-grid');
+    if (!grid) return null;
+    var card = grid.querySelector(':scope > .staff-card.is-editing');
+    if (!card) return null;
+    var cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > .staff-card'));
+    return { grid: grid, card: card, cards: cards };
+  }
+  /** 播放收起动画；播完（或无需播放）后调用 done()。done **只被调用一次**。 */
+  function spCollapseMorph(done) {
+    var t = spReduceMotion() ? null : spCollapseTarget();
+    if (!t) { done(); return; }
+    var gridW = t.grid.clientWidth;
+    var idx = t.cards.indexOf(t.card);
+    if (gridW <= 0 || idx < 0) { done(); return; }
+    var cellW = (gridW - SP_GRID_GAP * 2) / 3;
+    var col = idx % 3;
+    var ms = spCollapseMs();
+    var sec = (ms / 1000) + 's';
+    var trans = 'transform ' + sec + ' ' + SP_EASE_STD + ', width ' + sec + ' ' + SP_EASE_STD;
+    /* 同行其余卡片淡入回（淡出是瞬时的，淡入给 220ms 过渡，只在收起时挂内联过渡） */
+    for (var i = 0; i < 3; i++) {
+      var c = t.cards[idx - col + i];
+      if (!c || c === t.card) continue;
+      c.style.transition = 'opacity ' + sec + ' ' + SP_EASE_STD;
+      c.classList.remove('is-row-muted');
+    }
+    t.card.classList.add('is-collapsing');
+    t.card.style.zIndex = '6';
+    t.card.style.transition = trans;
+    void t.card.offsetWidth;                     /* 先落起始态（gridW / dx），再改目标值 */
+    t.card.style.width = cellW + 'px';
+    t.card.style.transform = 'translateX(0)';
+    var fired = false;
+    var finish = function () {
+      if (fired) return;
+      fired = true;
+      t.card.style.transition = 'none';
+      done();
+    };
+    t.card.addEventListener('transitionend', function (e) {
+      if (e && e.propertyName === 'width') finish();
+    });
+    setTimeout(finish, ms + 40);                 /* 兜底：transition 被取消也能落定 */
+  }
+
   /** 收起 / 展开员工卡：等**展开 Morph** 与**勾选动效**都播完再落定，然后重绘。
       同一时刻只认最后一次意图（后到的覆盖先到的），避免「先收起、随后又被旧意图展开」 */
   var spEditSeq = 0;
-  function spEditChange(mutator) {
+  function spEditChange(mutator, collapse) {
     var seq = ++spEditSeq;
+    var commit = function () {
+      mutator();
+      spHaptic();
+      spRedraw();
+    };
     var attempt = function () {
       if (seq !== spEditSeq) return;                       /* 已被更新的意图取代 */
       var until = Math.max(spGate.checkUntil, spGate.morphUntil);
       var busy = spReduceMotion() ? 0 : Math.max(0, until - Date.now());
       if (busy > 0) { setTimeout(attempt, busy + 20); return; }
-      mutator();
-      spState.freshTick = null;
-      spHaptic();
-      spRedraw();
+      /* 收起（且有展开卡）→ 先播反向 Morph，播完再重绘落定 */
+      if (collapse && spCollapseTarget()) {
+        spGateHoldOnly(spCollapseMs());
+        spCollapseMorph(function () {
+          if (seq !== spEditSeq) return;
+          commit();
+        });
+        return;
+      }
+      commit();
     };
     var wait = spReduceMotion() ? 0 : Math.max(0, spGate.morphUntil - Date.now());
     if (wait > 0) setTimeout(attempt, wait); else attempt();
   }
-  /** 落定展开态目标（null = 收起；对象 = 保持展开在该员工上） */
+  /** 落定展开态目标（null = 收起；对象 = 保持展开在该员工上）。
+      收起走**反向 Morph 动画**（`collapse=true`）；展开由 `spEnterEdit` 走 A4 Morph。 */
   function spApplyEdit(next) {
-    spEditChange(function () { spState.edit = next; });
+    spEditChange(function () { spState.edit = next; }, next === null);
   }
 
   /** 抢断：先把进行中的勾补画成完整态，再立即落定本次状态变更（q3-B） */
@@ -3549,12 +3627,12 @@
     return true;
   }
 
-  /** 勾选控件的**宿主卡片**：工位/顾客指定选项卡 → `.staff-opt`；收缩态员工卡的勾 → `.staff-card`。
-      反向（取消）时宿主一起标 `is-undraw`：整张卡的红色（选项卡红边/红投影、员工卡粉底/粉描边/
-      头像粉圈）与勾选框**同节拍快速淡出** —— 否则红色只会在落定重绘那一帧硬切消失（q7-C）。 */
+  /** 勾选控件的**宿主卡片**：展开态选项卡 → `.staff-opt`。反向（取消）时宿主一起标 `is-undraw`：
+      整张选项卡的红色（红边 + 红投影）与勾选框**同节拍快速淡出** —— 否则红色只会在落定重绘那一帧硬切。
+      注：十九次起收缩态员工卡不再有勾选控件，故原 `.staff-card` 分支已废止。 */
   function spCheckHost(el) {
     if (!el || typeof el.closest !== 'function') return null;
-    return el.closest('.staff-opt') || el.closest('.staff-card');
+    return el.closest('.staff-opt');
   }
   /** 播放勾选控件动效：on = 变红 + 画勾；off = 收勾 + 褪红（反序，且宿主卡片红色同步快速淡出） */
   function spPlayCheck(el, on) {
@@ -3572,22 +3650,15 @@
     var btn = root.querySelector('[data-staff-opt="' + key + '"][data-staff-id="' + sid + '"]');
     return btn ? btn.querySelector('.staff-opt__box') : null;
   }
-  function spTickEl(sid) {
-    var root = spEl('comm2StaffSheetRoot');
-    if (!root || !sid) return null;
-    return root.querySelector('[data-staff-tick][data-staff-id="' + sid + '"]');
-  }
-  /** 选中员工（计入已选）。fresh = true 时收缩态员工卡的勾**画出**（仅「点选即勾选」态 4 用：
-      该态没有选项卡可画勾，勾在员工卡上首现）；从选项卡勾选的路径不重画（勾已在选项卡上画过）。
-      **本函数不动 `staffRoles`**：提成侧选择（工位 id / `SP_PICK_AVG`）由调用方先行写入，
-      这样「只勾顾客指定、没有工位/提成」也能原样保留提成侧为空。 */
-  function spSelectStaff(sid, fresh) {
+  /** 选中员工（计入已选）。**本函数不动 `staffRoles`**：提成侧选择（工位 id / `SP_PICK_AVG`）
+      由调用方先行写入，这样「只勾顾客指定、没有工位/提成」也能原样保留提成侧为空。
+      十九次起收缩态员工卡不再有勾选控件，故取消 `fresh` 参数（勾只画在展开态选项卡上）。 */
+  function spSelectStaff(sid) {
     var row = spState.row;
     if (row.staffIds.indexOf(sid) < 0) row.staffIds.push(sid);
     row.staffChosen[sid] = true;
-    /* 选中即标记「一次性回弹」：下一次渲染播 staffDonePop + staffCheckIn（重绘不重播） */
+    /* 选中即标记「一次性回弹」：下一次渲染播 staffDonePop（重绘不重播） */
     spState.freshDone[sid] = true;
-    if (fresh) spState.freshTick = sid;
   }
   /** 取消员工选择：提成侧与顾客指定侧**一并清掉**
       （十七次起不再需要保留「只勾顾客指定」的记忆 —— 那种状态本身就已经计入已选）。 */
@@ -3620,7 +3691,7 @@
       } else {
         /* 勾「顾客指定」：**不要求工位/提成**，只勾它也是一次有效的单独分配 */
         row.staffExtra[sid] = true;
-        spSelectStaff(sid, false);
+        spSelectStaff(sid);
       }
       /* 任一按钮点选后一律收起；收起必须等勾选动效播完（spGateAfter 驱动），Morph 未播完也不收起 */
       spApplyEdit(null);
@@ -3634,7 +3705,7 @@
       if (row.staffExtra[sid] !== true) spDropStaff(sid);
     } else {
       row.staffRoles[sid] = (opt.kind === 'plain') ? SP_PICK_AVG : key;
-      spSelectStaff(sid, false);
+      spSelectStaff(sid);
     }
     spApplyEdit(null);
   }
@@ -3668,25 +3739,16 @@
     spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMsFor(!checked));
   }
 
-  /** 收缩态员工卡右侧「取消选择」：反序播放动效（播完）后再取消 —— 反向时长（85ms）；
-      整卡红色（粉底 / 粉描边 / 头像粉圈）与勾选框同节拍淡出 */
-  function spUntickStaff(sid, tickEl) {
-    if (!sid) return;
-    if (spGateBusy()) spGateFlush();                 /* 抢断 */
-    var el = tickEl || spTickEl(sid);
-    spPlayCheck(el, false);
-    spGateAfter(el, function () { spRemoveStaff(sid); }, spUncheckMs());
-  }
-
-  /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾在员工卡上**画出**）/ 已选再点即取消。
-      该态没有选项卡，提成侧直接记 `SP_PICK_AVG`（= 取规则级「提成」值），也没有顾客指定侧。 */
+  /** 态4（不分工位 + 未开顾客指定）：点卡片即完成选择 / 已选再点即取消。
+      该态没有选项卡，提成侧直接记 `SP_PICK_AVG`（= 取规则级「提成」值），也没有顾客指定侧。
+      十九次起收缩态员工卡不再有勾选控件，故该态选中反馈 = 粉底 + 描边 + 头像粉圈 + 卡片回弹（`is-pop`）。 */
   function spToggleStaff(sid) {
     if (!sid) return;
     spEnsureState();
-    if (spStaffIsChosen(sid)) { spUntickStaff(sid, null); return; }
+    if (spStaffIsChosen(sid)) { spRemoveStaff(sid); return; }
     spState.row.staffExtra[sid] = false;
     spState.row.staffRoles[sid] = SP_PICK_AVG;
-    spSelectStaff(sid, true);
+    spSelectStaff(sid);
     spState.edit = null;
     spHaptic();
     spRedraw();
@@ -3734,7 +3796,6 @@
     var it = spState.row;
     var edit = spState.edit;
     var pool = spStaffPool();
-    var tickSvg = SP_CHECK_SVG;
     var cards = pool.map(function (st, index) {
       var isChosen = it.staffIds.indexOf(st.id) >= 0;    /* 计入已选（有工位/提成 → 有；只勾「顾客指定」→ 也有） */
       var done = isChosen;
@@ -3742,41 +3803,27 @@
       var dim = !!(edit && !isEdit);
       var origin = spCardOrigin(index);
       var originSide = index % 3 === 0 ? 'left' : index % 3 === 2 ? 'right' : 'center';
-      var body = '';
-      if (isEdit) {
-        body = spOptionsPanelHtml(st.id);
-      } else {
-        body = spAvatarHtml(st) +
-          '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
-          spCardPickLineHtml(st, done);
-      }
-      /* 勾选控件（右侧、稍放大）：**仅「计入已选」时显示**；点它取消选择。
-         只勾「顾客指定」也是有效分配（计入已选），因此**同样出勾选控件**（十七次）。
-         freshTick = 刚被选中的员工 → 勾从左到右画出（与选项卡上的动效衔接）
-         freshPop  = 刚被选中的员工 → 播「回弹 + 勾弹入」（一次性，重绘不重播） */
-      var fresh = spState.freshTick === st.id;
-      var freshPop = !!spState.freshDone[st.id];
-      var tickBtn = (isChosen && !isEdit)
-        ? '<button type="button" class="staff-card__tick' + (fresh ? ' is-draw' : '') + (freshPop ? ' is-in' : '') +
-          '" data-staff-tick data-staff-id="' + spEsc(st.id) +
-          '" aria-pressed="true" aria-label="取消选择 ' + spEsc(st.name) + '">' + tickSvg + '</button>'
-        : '';
+      /* 收缩态卡面（头像 / 姓名 / 摘要）：展开卡里也渲染一份，作为收起动画的**下层**（十九次 A2） */
+      var baseBody = spAvatarHtml(st) +
+        '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
+        spCardPickLineHtml(st, done);
       if (isEdit) {
         return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') +
           (edit.opened ? ' is-opened' : '') + '"' +
           ' style="--staff-origin:' + origin + '"' +
           ' data-origin="' + originSide + '"' +
           ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
-          '<div class="staff-card__panel" data-face="opts">' + body + '</div>' +
+          '<div class="staff-card__panel" data-face="opts">' + spOptionsPanelHtml(st.id) + '</div>' +
+          '<div class="staff-card__panel staff-card__panel--base" data-face="base" aria-hidden="true">' + baseBody + '</div>' +
           '</div>';
       }
-      return '<div class="staff-card' + (done ? ' is-done' : '') + (isChosen && freshPop ? ' is-pop' : '') + (dim ? ' is-dim' : '') + '"' +
+      /* 收缩态员工卡：**不再有**右侧红勾（十九次）—— 取消入口 = 展开卡片取消勾选 / 入口摘要行 × */
+      return '<div class="staff-card' + (done ? ' is-done' : '') + (isChosen && spState.freshDone[st.id] ? ' is-pop' : '') + (dim ? ' is-dim' : '') + '"' +
         ' style="--staff-origin:' + origin + '"' +
         ' data-origin="' + originSide + '"' +
         ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
-        tickBtn +
         '<button type="button" class="staff-card__panel" data-staff-card-hit data-staff-id="' + spEsc(st.id) + '" aria-label="' + spEsc(st.name) + '">' +
-        body +
+        baseBody +
         '</button>' +
         '</div>';
     }).join('');
@@ -3874,11 +3921,8 @@
           if (el) el.classList.remove('is-splitting');
         }, spReduceMotion() ? 0 : 520);
       }
-      /* 刚画完勾的标记只用于这一次渲染，动效播完（变红 + 画勾）后清掉，重绘即回到静态已勾选态 */
-      if (spState.freshTick) {
-        setTimeout(function () { spState.freshTick = null; }, spReduceMotion() ? 0 : spCheckMs() + 260);
-      }
-      /* 「回弹 + 勾弹入」是一次性标记：本次渲染已消费，立刻清空，后续重绘不再重播 */
+      /* 「回弹」（is-pop）是一次性标记：本次渲染已消费，立刻清空，后续重绘不再重播。
+         （十九次起收缩态员工卡不再有勾选控件，故原 `freshTick` 标记与 `staffCheckIn` 勾弹入一并废止） */
       spState.freshDone = {};
     });
   }
@@ -3951,7 +3995,6 @@
 
   function spOpenSheet() {
     spState.edit = null;
-    spState.freshTick = null;
     spState.freshDone = {};          /* 开场不播回弹：已选员工的卡直接静态呈现 */
     spRenderSheet();
     var mask = spEl('comm2StaffSheetMask');
@@ -3962,14 +4005,12 @@
     if (mask) mask.classList.remove('open');
     spEditSeq++;                    /* 取消任何待落定的收起 / 展开 */
     spState.edit = null;
-    spState.freshTick = null;
     spState.freshDone = {};
     spRenderScreen();
   }
 
   function spOpen() {
     spState.edit = null;
-    spState.freshTick = null;
     spRenderScreen();
     if (window.showOnlyScreen) window.showOnlyScreen('screen-comm2-staff-pick');
   }
@@ -3998,6 +4039,15 @@
     if (!spNeedsPick()) {
       /* 态4：点卡片即完成选择 / 已选再点即取消 */
       spToggleStaff(sid);
+      return;
+    }
+    /* 展开态点**另一张**员工卡：先播**收起动画**把当前这张收回格子，再展开新的（十九次：全部收起路径统一播）。
+       同一张卡再点 = 收起，由 wire() 的 staffHit 分支走 spApplyEdit(null)。 */
+    if (spState.edit && spState.edit.staffId !== sid && spCollapseTarget()) {
+      spEditChange(function () {
+        spState.edit = { staffId: sid, splitting: true, opened: false };
+        spGateHoldOnly(SP_EXPAND_MS);   /* 新卡的展开 Morph 播完前不接受收起 */
+      }, true);
       return;
     }
     spEditSeq++;                    /* 最新意图：取消任何待落定的收起 / 展开 */
@@ -4082,14 +4132,6 @@
       if (sumDel) {
         e.preventDefault(); e.stopPropagation();
         spRemoveStaff(sumDel.getAttribute('data-staff-id'));
-        return;
-      }
-
-      /* 勾选控件（右侧）：反序播放动效后取消选择 */
-      var tickBtn = t.closest('[data-staff-tick]');
-      if (tickBtn) {
-        e.preventDefault(); e.stopPropagation();
-        spUntickStaff(tickBtn.getAttribute('data-staff-id'), tickBtn);
         return;
       }
 

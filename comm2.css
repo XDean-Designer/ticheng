@@ -2,12 +2,15 @@
 /* 勾选动效时长（JS 与 CSS **同源**：comm2.js 直接读这四个变量算门控时长，改这里即可）：
    正向勾选 = 变红 60ms + 画勾 110ms = 单轮 170ms；
    反向取消 = 反序播放（收勾 55ms + 褪红 30ms = 85ms），**时长与速度都是正向的一半**：收勾比画勾快一倍、
-   褪红比变红快一倍。故 `--sp-uncheck-*` 必须恒为 `--sp-check-*` 的 1/2，改一处要同时改另一处 */
+   褪红比变红快一倍。故 `--sp-uncheck-*` 必须恒为 `--sp-check-*` 的 1/2，改一处要同时改另一处。
+   `--sp-collapse` = 收起 Morph（A2）时长，JS 读同一变量（**同源**）；缓动 = Apple 标准 `--sp-ease-std` */
 :root {
   --sp-check-red: 60ms;
   --sp-check-draw: 110ms;
   --sp-uncheck-draw: 55ms;
   --sp-uncheck-red: 30ms;
+  --sp-collapse: 220ms;
+  --sp-ease-std: cubic-bezier(.22, .82, .24, 1);
 }
 #screen-comm2-list,
 #screen-comm2-edit,
@@ -1243,6 +1246,7 @@
 /* 展开态：被点卡片撑满整行，内部横向平铺选项卡片（3 工位 / 顾客指定） */
 .staff-card.is-editing .staff-card__panel[data-face="opts"] {
   position: relative;
+  z-index: 1;                 /* 压在收起动画的「下层头像卡面」之上（后者 z-index: 0） */
   width: 100%;
   min-height: 96px;
   height: 96px;
@@ -1265,23 +1269,46 @@
 .staff-card:not(.is-expanding) .staff-card__opts {
   opacity: 0; visibility: hidden;
 }
-/* 展开时同行其余卡片淡出，避免与撑满的卡片相互压叠 */
+/* 展开时同行其余卡片淡出，避免与撑满的卡片相互压叠（淡出**瞬时**，与本动画无关） */
 .staff-card.is-row-muted { opacity: 0; pointer-events: none; }
+
+/* —— 收起 Morph（A2 / 十九次）——
+   展开卡「收回去」的两层交叉：
+     · 上层 `.staff-card__panel[data-face="opts"]`（4 张选项卡）**整体淡出**；
+     · 下层 `.staff-card__panel--base`（头像 / 姓名 / 摘要）**淡入** —— 与收缩态卡面完全是同一套 DOM 结构，
+       因此动画终点与重绘后的静态卡面**像素级一致**，落定那一帧不会跳。
+   卡宽 / 位移的过渡由 JS 内联 `transition` 给出（时长读 `--sp-collapse`，同源）。 */
+.staff-card.is-editing .staff-card__panel--base {
+  position: absolute; inset: 0; z-index: 0;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--sp-collapse) var(--sp-ease-std);
+}
+.staff-card.is-editing.is-collapsing .staff-card__panel--base { opacity: 1; }
+/* 选项卡整体淡出。**必须反超** `.staff-card.is-expanding .staff-card__opts`（0,3,0）与
+   `.staff-card.is-opened .staff-card__opts`（0,3,0）—— 实测展开后的卡带的是 `is-expanding`
+   （`edit.opened` 从未置 true，`is-opened` 实际不渲染），故两者都写、用 0,4,0 组合选择器 */
+.staff-card.is-expanding.is-collapsing .staff-card__opts,
+.staff-card.is-opened.is-collapsing .staff-card__opts {
+  opacity: 0; visibility: visible;
+  transition: opacity var(--sp-collapse) var(--sp-ease-std);
+}
 @media (prefers-reduced-motion: reduce) {
   .staff-card.is-editing .staff-card__panel { animation: none !important; }
   .staff-card.is-done.is-pop .staff-card__panel { animation: none !important; }
-  .staff-card__tick.is-in { animation: none !important; }
   .staff-card { transition: none !important; }
   .staff-card__panel { transition: none; }
   .staff-opt { transition: none !important; animation: none !important; }
-  .staff-opt__box, .staff-opt__box svg path,
-  .staff-card__tick, .staff-card__tick svg path {
+  .staff-opt__box, .staff-opt__box svg path {
     animation: none !important; transition: none !important;
   }
-  .staff-opt__box.is-draw svg path, .staff-card__tick.is-draw svg path { stroke-dashoffset: 0; }
-  .staff-opt__box.is-undraw svg path, .staff-card__tick.is-undraw svg path { stroke-dashoffset: 24; }
+  .staff-opt__box.is-draw svg path { stroke-dashoffset: 0; }
+  .staff-opt__box.is-undraw svg path { stroke-dashoffset: 24; }
   .staff-card.is-expanding .staff-card__opts { transition: none !important; opacity: 1; visibility: visible; }
   .staff-card:not(.is-expanding) .staff-card__opts { opacity: 1; visibility: visible; }
+  /* 收起动画直接落定（无过渡、无交叉淡入淡出） */
+  .staff-card.is-editing .staff-card__panel--base { transition: none !important; }
+  .staff-card.is-expanding.is-collapsing .staff-card__opts,
+  .staff-card.is-opened.is-collapsing .staff-card__opts { transition: none !important; }
 }
 .staff-card__opts {
   display: flex; align-items: stretch; width: 100%; height: 100%; gap: 8px;
@@ -1320,24 +1347,21 @@
 }
 /* —— 勾选控件动效：点按 → 快速变红（--sp-check-red 60ms）→ 勾从左到右画出（--sp-check-draw 110ms）；
       取消 = 反序播放（先收勾再褪红），**时长减半、速度加快一倍**（--sp-uncheck-draw 55ms + --sp-uncheck-red 30ms）。
-      时长见文件顶部 :root —— */
-.staff-opt__box,
-.staff-card__tick {
+      时长见文件顶部 :root ——
+      注：十九次起收缩态员工卡不再有勾选控件，故本组只会作用于展开态的 `.staff-opt__box` */
+.staff-opt__box {
   transition: background-color var(--sp-check-red) ease,
     border-color var(--sp-check-red) ease,
     color var(--sp-check-red) ease;
 }
-.staff-opt__box svg path,
-.staff-card__tick svg path {
+.staff-opt__box svg path {
   stroke-dasharray: 24; stroke-dashoffset: 24;
 }
 /* 已勾选（静态渲染）：勾完整呈现 */
-.staff-opt.is-on .staff-opt__box svg path,
-.staff-card__tick svg path { stroke-dashoffset: 0; }
+.staff-opt.is-on .staff-opt__box svg path { stroke-dashoffset: 0; }
 /* 点选：立刻变红，勾随后画出 */
 .staff-opt__box.is-draw { background: var(--brand); border-color: var(--brand); color: #fff; }
-.staff-opt__box.is-draw svg path,
-.staff-card__tick.is-draw svg path {
+.staff-opt__box.is-draw svg path {
   animation: spCheckDraw var(--sp-check-draw) linear var(--sp-check-red) both;
 }
 /* 取消：先收勾再褪红（反序）；时长减半、速度加快一倍（--sp-uncheck-* = --sp-check-* / 2） */
@@ -1347,14 +1371,7 @@
     border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
     color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
 }
-.staff-opt__box.is-undraw svg path,
-.staff-card__tick.is-undraw svg path { animation: spCheckUndraw var(--sp-uncheck-draw) linear both; }
-.staff-card__tick.is-undraw {
-  background: transparent; box-shadow: none; color: transparent;
-  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
-    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
-    color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
-}
+.staff-opt__box.is-undraw svg path { animation: spCheckUndraw var(--sp-uncheck-draw) linear both; }
 @keyframes spCheckDraw {
   from { stroke-dashoffset: 24; }
   to { stroke-dashoffset: 0; }
@@ -1386,17 +1403,8 @@
 .staff-opt--extra.is-on.is-undraw { border-color: rgba(243, 47, 65, .18); }
 /* 员工卡（收缩态）：粉底 + 粉描边 + 头像粉圈 */
 .staff-card.is-done .staff-card__panel { background-color: #FFF5F5; }
-.staff-card.is-done.is-undraw .staff-card__panel {
-  background-image: none; background-color: #fff;
-  border-color: #E8E8E8; box-shadow: none;
-  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
-    border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
-    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
-}
-.staff-card.is-done.is-undraw .staff-card__avatar {
-  box-shadow: 0 0 0 2px #fff;
-  transition: box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
-}
+/* 注：收缩态员工卡的「粉底淡出」随 A13（点右侧勾选控件取消）一并废止 —— 十九次起该卡
+   不再有勾选控件，取消只能走「展开卡片取消勾选」或「入口摘要行 ×」，两者都不在该卡上做褪色 */
 /* 注：工位已改为**可点掉**（再点已勾选工位 = 取消），原「iOS 抖动提醒」动效与其
    `spOptShake` 关键帧、`.is-shake` 规则已随之移除（见 PRD §12.3 A12 / §12.9） */
 .staff-card.is-splitting .staff-opt { animation: staffRoleSplit .38s cubic-bezier(.34,1.3,.64,1) both; }
@@ -1436,27 +1444,9 @@
   0% { opacity: 0; transform: translateY(4px); }
   100% { opacity: 1; transform: translateY(0); }
 }
-/* 员工卡勾选控件：右侧、稍放大；点它即切换「已选 / 未选」 */
-.staff-card__tick {
-  position: absolute; top: 4px; right: 4px; z-index: 2;
-  width: 20px; height: 20px; border-radius: 10px;
-  border: none; padding: 0; margin: 0;
-  background: var(--brand); color: #fff;
-  display: flex; align-items: center; justify-content: center;
-  cursor: pointer; font-family: inherit;
-  box-shadow: 0 2px 8px rgba(243, 47, 65, .28);
-  -webkit-tap-highlight-color: transparent;
-}
-/* 弹入同「回弹」：只在本次交互真的选中时播（is-in 由 JS 一次性标记），重绘不重播 */
-.staff-card__tick.is-in { animation: staffCheckIn .38s cubic-bezier(.22,.82,.24,1); }
-.staff-card__tick:active { transform: scale(.9); }
-@keyframes staffCheckIn {
-  0% { transform: scale(.4); opacity: 0; }
-  70% { transform: scale(1.12); }
-  100% { transform: scale(1); opacity: 1; }
-}
-.staff-card__tick svg { width: 12px; height: 12px; display: block; }
-.staff-card.is-editing .staff-card__tick { display: none; }
+/* 员工卡勾选控件（`.staff-card__tick`）已于十九次**整个删除** —— 收缩态员工卡不再有任何勾选控件，
+   勾只存在于展开态的选项卡（`.staff-opt__box`）；随之废止的还有它的弹入动效 `staffCheckIn` / `.is-in`
+   （PRD §12.3 A10）。取消该员工的入口 = 展开卡片取消勾选 / 入口摘要行 × */
 
 /* —— 关联页面：入口行 / 已选摘要 / 提成模式开关（源：开单页面 · renderDetailStaffSection） —— */
 .detail-staff-entry {
