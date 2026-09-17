@@ -26,6 +26,8 @@
 | 修订（2026-09-17 十七次） | **两组参数各自独立、可单选可叠加；「顾客指定提成」可脱离工位单独分配（只发顾客指定提成）**。口径一句话：**「提成侧」（按工位 = 大工/中工/小工 三选一；不分工位 = 单张「提成」）与「顾客指定侧」两组参数各自独立、可单选可叠加，只要勾了任一组就算已选。** **① 废止「工位必选」**：未点工位的员工**不再**因此不计入已选 —— 只勾「顾客指定」就是一次有效的单独分配。**② 废止「未选待选态」（A13b 语义重写）**：十六次的「不计入已选、无勾选控件、摘要 `未选 · 顾客指定`」改为 **计入已选、出现勾选控件、摘要 `无工位 · 顾客指定`**（`无工位` 灰字 + `顾客指定` 红字）。**③ 不分工位解除二选一**：「普通」改名「**提成**」，与「顾客指定」**可叠加**（`spApplyOptionToggle` 删掉 `staffExtra = false` 的互斥写；`spOptionChecked` 的 `plain` 不再由 `chosen && !extra` 推导）。**④ 数据模型（f1 最小新增）**：`staffRoles[sid]` 统一存**提成侧选择**（按工位 = 工位 id；不分工位 = 哨兵 `SP_PICK_AVG = 'avg'`）；订单行新增 **`basePicked`** 区分「明确没勾提成侧」（`false` → **提成侧折 0、只发顾客指定提成**）与「历史缺字段」（照常计提，工位仍回落 `stationIds[0]`）。**⑤ 计提口径**：`lineBasePicked(line)` → `lineRateMeta` 在 `basePicked=false` 时返回 `{rate:0, none:true}`；`schemeLineAmount` 的费率标签在提成侧折 0 时**只出顾客指定段**（`顾客指定 5%`，**不得**出现 `0%`）。**⑥ 状态收敛**：`spEnsureState` 三者（`staffRoles` / `staffChosen` / `staffExtra`）**一律以 `staffIds` 为准**（在册即保留、不在册即清）；`spDropStaff` 把 `staffRoles` 与 `staffExtra` **一并删除**；`spSelectStaff(sid, fresh)` **不再写 `staffRoles`**（由调用方先行写入），以便「只勾顾客指定」原样保留提成侧为空。**⑦ 文案**：hint 四态文案、分配模式说明 Dialog 补「只勾「顾客指定」也可单独分配（只发顾客指定提成）」；界面不再出现「普通」作为不分工位侧标签、也不再出现「未选」作为摘要文案。同步 §4.5.1（四态矩阵 / 口径要点 / 落库与计提）/ §4.5 / §6.2.3 / §6.7.1（入口摘要、hint、勾选卡表、交互四态、动效摘要）/ §7.2.1（字段表新增 `basePicked`）/ §8 规则 7 · 7a · 8 / §8.1 演示试算 / §9.1 / §10.2.1（53e / 53g / 53s / 53t / 53u / 53v / 53v2 / 53w / 53x 改写 + 新增 53v3 / 53x2）/ §12.3 A12 · A13b / §12.8 / §12.9（N6 / N14 / N15–N17b / N26 改写 + 新增 N14b / N17c）/ §12.10·12.11 |
 | 修订（2026-09-17 十八次） | **选人摘要文案分工：「未选工位」不再写在卡片上**。按工位分配时若**没选工位、只勾了「顾客指定」**，**员工卡第三行**从 `无工位 · 顾客指定` 改为**只画红字 `顾客指定`**（`spSummaryHtml` 的 `miss` 分支直接返回单个 `.staff-card__pick-x` span，与不分工位态同款）；**「未选工位」这条信息只在入口下方「已选员工」摘要行**保留为 `无工位 · 顾客指定`（`spSummaryText` 不变，纯文本无灰/红拆分）。**该状态的其余口径全部不变**：`is-done` 选中态样式、**有勾选控件**、**计入已选**（入口 `已选 1 人`）、订单行落库 `basePicked=false` → 提成侧折 0、**只发顾客指定提成**；再次展开仍是勾选态；点掉工位 / 点掉顾客指定 / 换工位的反向动效与落定口径均不变。**代码清理**：`.staff-card__pick-miss` 规则**从 `comm2.css` 删除**（卡片已不再渲染灰字「无工位」，该 class 无引用）。同步 §4.5.1（四态矩阵 / 口径要点 / 取消勾选）/ §6.7.1（入口摘要 · 勾选卡表 · 交互四态 · 动效摘要）/ §9.1 / §10.2.1（53v / 53x 改写）/ §12.3 A12 · A13b / §12.8 / §12.9（N14 / N15 / N26 改写）/ §12.10 |
 | 修订（2026-09-17 十九次） | **收缩态员工卡的红色勾选控件整个删除 + 收起补动画 + 「提成」改「服务提成」**。**① 删卡上勾**：`.staff-card__tick`（收缩态员工卡右上角 `20×20` 红勾）**连同它的点击分支、`spTickEl()`、`freshTick` 标记、`staffCheckIn` / `.is-in` 弹入动效一并删除** —— 勾**只存在于展开态选项卡**的 `.staff-opt__box`（不变）。取消该员工的入口收为两条：**①展开卡片取消勾选；②入口「已选员工」摘要行右侧 ×**（`data-staff-summary-del`，本就是另一套、不受影响）。连带废止：**A10「勾弹入」整项**、原「收缩态点勾取消 → 粉底淡出」（A13 / 原 N9c / N9d），`spCheckHost()` 的 `.staff-card` 分支与 `.staff-card.is-done.is-undraw` 一组 CSS 一并清理。**② 态4 反馈**（不分工位 + 未开顾客指定，该态没有展开态）：选中反馈只剩 **粉底 + 粉描边 + 头像粉圈 + 卡片回弹（`is-pop`，A9 不变）**；取消 = 再点该卡。**③ 收起动画（A2 重写）**：原「裸 `innerHTML` 重绘、实测 2ms、无过渡」改为**反向 Morph** —— 已展开的那张卡把**宽度 `gridW 332 → cellW 105.33`**、**位移 `dx → 0`** 收回去（`--sp-collapse` **220ms** / `--sp-ease-std` Apple 标准 `.22,.82,.24,1`，**JS 读同一变量、与 CSS 同源**），**同行其余卡片淡入回**（原展开的淡出仍是瞬时，只有淡入挂 220ms 内联过渡），**两层交叉**：上层 `.staff-card__opts`（4 张选项卡）**整体淡出**、下层**新增的 `.staff-card__panel--base`（头像 / 姓名 / 摘要，与收缩态卡面同一套 DOM）淡入** —— 动画终点与重绘后的静态卡面**像素级一致**，落定那一帧不跳。新增类 `is-collapsing`；展开卡里同时渲染 `data-face="opts"`（`z-index:1`）与 `data-face="base"`（`z-index:0`）两个面板。**④ 生效路径 = 全部**：点选项卡后收起 / 点遮罩 `scrim` / 点编辑卡自身空白 / **点另一张员工卡（先收 220ms、再展开 380ms，串行）**。**⑤ 改名**：选人展开态选项卡「提成」→「**服务提成**」（**仅此一处**；「不分工位」的 Sheet 行标签 / 卡内标题、以及摘要文案 `提成 · 顾客指定` **仍为「提成」**）。**实测**（Edge headless，390×880）：收起动画存活 **202–221ms**（H3：勾选动效结束 `90ms` → 落定 `320ms`；I4：`tCollapse 181ms` → `tSettle 413ms`；I5：重绘 `228ms`）；卡宽逐帧采样 **16 个中间值**（`301 → 106`）；选项卡 `opacity` `0.857 → 0.00002` 同时头像卡面 `0.143 → 0.9999`；三条非选项卡路径 span 均 `218/218/221ms`。**点选项卡后的总落定** = 勾选动效 `170ms` + 收起 `220ms` ≈ **390ms**（反向取消：`85 + 220` ≈ `305ms`）。同步 §4.5.1 / §6.7.1（收缩后的员工卡 · 收起 · 速查摘要 · 交互四态）/ §9.1 / §10.2.1（53o / 53q / 53r / 53v / 53y / 53ab2 改写）/ §12.2.1（新增 `--sp-collapse` / `--sp-ease-std`）/ §12.3 **A2 重写** · **A10 整项废止** · A9 · A11 · A13 · A13b / §12.7 / §12.8 / §12.9（N9b / N9c / N10 / N14 / N18 / N19 / N25 改写 + 新增 N19b / N19c）/ §12.10 / §12.11 |
+| 修订（2026-09-17 二十次） | **「选择服务员工」整套动效写入可还原级规范（新增 §12.3.0 实现总览）+ 几何过期值更正**。**① 新增 §12.3.0 实现总览（14 小节，前置在 A1 之前）**，目标是「不读原型源码也能 1:1 还原」，含：**§12.3.0.1 交付物与建议实现顺序**（7 步，点明「门控必须先做」）、**§12.3.0.2 DOM 契约**（完整骨架 + 11 个属性/内联样式的「作用 / 缺失后果」表 + 两个易错点：收缩态面板必须 `<button>`、展开卡两层面板必须并存）、**§12.3.0.3 数据与状态模型**（`spState` 全字段表 + 4 个派生量 + **摘要两处口径对照表**）、**§12.3.0.4 类名总表**（14 个类：谁加 / 何时加 / 何时清 / 是否常驻）、**§12.3.0.5 一次完整交互的类名时间线**（点选全过程逐时刻）、**§12.3.0.6 几何契约**（公式 + 实测 + `col` 取法 + 多视口提醒）、**§12.3.0.7 事件绑定契约**（12 行点击分派表 + 3 条硬约束 + 抢断标注）、**§12.3.0.8 函数契约表与调用关系**（10 个常量 + 30 个函数签名/职责/副作用 + 三条主链调用图）、**§12.3.0.9 组合时间轴**（4 条链路毫秒级 + 6 条并行/串行关系）、**§12.3.0.10 完整 CSS 清单**（16 段、可整块照抄，标注 3 处「必须反超」与顺序敏感点）、**§12.3.0.11 完整 JS 清单**（A–K 共 11 组、动效必需函数全文）、**§12.3.0.12 反例清单**（16 条已踩过的坑 + 实测现象 + 正确做法）、**§12.3.0.13 边界与异常用例**（16 条）、**§12.3.0.14 还原自查清单**（18 项）。**② 几何过期值更正**：`gridW` `332 → 334`、`cellW` `105.33 → 106`、位移步长 `113.33 → 114`、`dx` `0 / −113.33 / −226.67 → 0 / −114 / −228`、展开卡宽 `332 → 334`（**共 8 处**：§12.2.3 · §6.7.1 动效摘要 · A1 几何/结束态 · A2 起始态/几何 · §10.2.1 `53o` · §12.9 `N1`）。**③ A4「变换原点」行更正**：`--staff-origin` / `data-origin` 经核为**渲染了但 CSS 从未消费的死属性**（实测 `.staff-opt` 的 `transform-origin` = `38.75px 48px` = 自身中心），原「按列从卡片所在侧展开」的表述与实现不符 → 改为「实测 = 默认 `center center`，还原时**不要消费**；要改属变更」。**④ 另识别 2 个死属性**：`data-outside-close`（写在 `#comm2StaffSheetMask` 上、全仓无消费方，点遮罩关闭实际由 `t === mask` 实现）、`edit.opened`（十六次后恒为 `false`，`.is-opened` 永不渲染）。**⑤ §12.3 章首补「读法」**：先读 §12.3.0 再逐项对齐 A1–A13b。**本次仅文档与探针，未改任何原型行为**（`comm2.js` / `comm2.css` / `index.html` **零改动**）。同步 §12.3（新增 §12.3.0.1–§12.3.0.14）· §12.2.3 · §6.7.1 · §12.3 A1 · A2 · A4 · §10.2.1（`53o`）· §12.9（`N1`）· §12.10 |
+| 修订（2026-09-17 二十一次） | **清理「选择服务员工」的三类死属性 / 死字段（原型 + §12.3.0 规范 + §12.10 偏差表同步）**。**① `--staff-origin` / `data-origin`（死属性）**：`spRenderPickerHtml()` 按列算出的 `origin` / `originSide` 内联写进两张卡（展开卡 + 收缩态卡）的 `style` 与 `data-origin`，但全仓**无任何 CSS 消费方**（实测 `.staff-opt` 的 `transform-origin` 恒为自身中心 `38.75px 48px`）→ 删除 `spCardOrigin()`、`origin` / `originSide` 两个变量、两处 `style` / `data-origin` 属性，`cards.map` 不再需要 `index` 形参。**② `edit.opened`（死字段）与 `.is-opened`（死类）**：十六次废止「保持展开等工位」后该位**恒为 `false`**，`.is-opened` **永不渲染**（十九次仅把它**复用**进收起动画选择器作兼容）→ 删除 `spState.edit.opened`、`spRenderPickerHtml()` 的 `(edit.opened ? ' is-opened' : '')`、`spAnimateStaffMorphLayout()` 里读 `is-opened` 的 `alreadyOpen` **整条分支**（展开路径不再有「已展开不重播」短路，**每次展开都播 Morph**，与实测行为一致）、`comm2.css` 的**三条** `.is-opened` 规则（死规则本体 + 收起选择器并列项 + `prefers-reduced-motion` 并列项）。**③ `data-outside-close="1"`（死属性）**：写在 `#comm2StaffSheetMask` 上但全仓无消费方（点遮罩关闭实际由 `t === mask` **严格相等**判定）→ 从 `index.html` 删除；§6.7.1 D1「关闭」行改写为「遮罩点击关闭**由各处事件分派自行判定**，全仓**没有**通用 outside-close 机制」。**④ 文档同步**：§12.3.0.2 DOM 骨架与属性契约表去掉这两个内联属性（**11 行 → 10 行**）、§12.3.0.3 `spState.edit` 注解与字段表去掉 `opened`（**11 行 → 10 行**）、**§12.3.0.4 类名总表「14 个」→「13 个」**、§12.3.0.6 变换原点改为「变换原点 = **默认 `center center`**（实测自身中心）」、§12.3.0.7 遮罩关闭改为「只按 `t === mask` 实现，不要另做通用 outside-close」、§12.3.0.9 调用图 `edit = { staffId, splitting }`、§12.3.0.10 CSS 清单删 1 段、改 2 段、§12.3.0.11 JS 清单 **B / D / G / I** 四块同步、**§12.3.0.12 反例 6 改写**为「不要消费已不存在的 `--staff-origin`」、**§12.3.0.14 自查清单末项改写**为「三个死属性 + `is-opened` 死类均不存在」、§12.3 **A1**（已展开卡重绘行 + 实现锚点）/ **A4**（变换原点行）改写、**§12.10 偏差表 2 / 3 / 4 三行标记「二十一次已清理」**。**⑤ 回归**：`_tmp_probe_geom2.mjs`（几何 `334 / 106 / 114` 不变、`transform-origin` 仍为自身中心）、`_tmp_probe_collapse.mjs`（四条路径收起动画）、`_tmp_probe_newspec.mjs`、`_tmp_probe_entry.mjs`、`_tmp_ui_verify.mjs`、`_tmp_smoke.js` **全 PASS**；`_tmp_check.py` 新增 12 条清理断言（`comm2.js` / `comm2.css` / `index.html` 里 `--staff-origin` / `data-origin` / `spCardOrigin` / `is-opened` / `alreadyOpen` / `opened: false` / `data-outside-close` **一律为零**）。**行为零变化**：卡片几何、动效时序、勾选门控、摘要文案、计提口径均未改 |
 
 ---
 
@@ -473,7 +475,7 @@ flowchart LR
   两者都会把该员工的 `staffRoles` + `staffExtra` **一并删除**。
   **态4 例外说明**（不分工位 + 未开顾客指定，该态没有展开态）：点卡片即完成选择、**已选再点即取消**；选中反馈 = **粉底 + 粉描边 + 头像粉圈 + 卡片回弹（`is-pop`，A9）**。
 - **动效与门控**：展开态选项卡的勾 → **快速变红（60ms）→ 勾从左到右画出（110ms）= 170ms**；取消**反序播放**（收勾 → 褪红）且**提速一倍**（收勾 55ms + 褪红 30ms = **85ms**），**且被取消的那张选项卡的红色（勾选框红底 + 卡片红边/红投影）与勾同一个节拍同步淡出**；**切换工位**时**新卡立刻变红画勾、旧卡红色同步快速淡出**（并行「红色交接」，共 ≈ **170ms**）；卡片的**收起 / 展开都必须等动效**（`Animation.finished` + 名义时长取长），**不用固定计时**；**动效期间的新交互抢断当前动效**——**先把勾补画成终点态**再立即落定进行中的结果、随后执行新交互（不排队、不丢失）；**抢断时勾不会停在半路**。
-  **收起动画**（十九次新增，A2）：勾选动效播完 → 卡宽 `gridW 332 → cellW 105.33`、位移 `dx → 0` 收回去（**220ms / Apple 标准**），**同行其余卡片淡入回**，**选项卡整体淡出 + 下层头像卡面淡入**（两层交叉）；展开态下**服务员工卡片区**内点非选项卡区域（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / `scrim`）一律走同一套收起动画；**Sheet 标题 / 提示行 / 底部栏**点了不收起（详见 §6.7.1）。`prefers-reduced-motion` 下全部瞬时切态（收起也直接落定）。
+  **收起动画**（十九次新增，A2）：勾选动效播完 → 卡宽 `gridW 334 → cellW 106`、位移 `dx → 0` 收回去（**220ms / Apple 标准**），**同行其余卡片淡入回**，**选项卡整体淡出 + 下层头像卡面淡入**（两层交叉）；展开态下**服务员工卡片区**内点非选项卡区域（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / `scrim`）一律走同一套收起动画；**Sheet 标题 / 提示行 / 底部栏**点了不收起（详见 §6.7.1）。`prefers-reduced-motion` 下全部瞬时切态（收起也直接落定）。
 - **交互呈现（点击后自适应）**：选人列表**不预打标**；点选某员工时按该员工是否需二次选择决定是否展开「员工变为按钮」动效——需采集（工位或顾客指定**任一**）才展开，两者皆否则直接完成勾选。
 - **内嵌选人一并生效**：若「加入购物车」等 Sheet **内嵌**了选服务员工，同一规则一并生效。
 - **未采集时的落库与计提**：未勾选「顾客指定」时，订单行该员工**不含顾客指定提成**（`staffExtra=false`），按命中块「提成」侧取值——`pickMode=avg` 取 rule 级 `nonDesignated`，`pickMode=station` 取该工位 `stations[station].nonDesignated`；**订单行「提成侧」明确没勾时**（`basePicked=false`）**提成侧折 0，只发顾客指定提成**；**未声明 `basePicked` 的旧订单行**按 §8 规则 7 缺省回落（`stationIds[0]`）。计提仍按 §8 规则 3 取高、规则 7 取值。
@@ -1654,7 +1656,7 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 > **动效专项验收见 §12.9（N1–N25）**：本节覆盖业务结果，§12.9 覆盖动效过程（时序 / 门控 / 抢断 / 降级）。两者**都要过**。
 
 53n. **Given** 按工位 + 开顾客指定，**When** 点击某员工卡，**Then** 该卡 Morph 展开为**整行 4 张**勾选卡「大工 / 中工 / 小工 / 顾客指定」（工位名按 `stationLabels` 映射），每张**右上角**有**未勾选**控件。
-53o. **Given** 4 张勾选卡已展开且**未点任何工位**，**When** 查看，**Then** 4 张全为**未勾选**态（工位**不预选默认工位**）；**When** 点「大工」，**Then** 勾选控件**变红并画出对勾**（170ms），随后走**收起动画**（A2：卡宽 `334 → 105.33`、220ms，选项卡淡出 + 头像卡面淡入），播完才落定；员工卡显示红色摘要 `大工`，**卡上没有任何勾选控件**（十九次：`.staff-card__tick` 已删除），**无**右上角 ×。
+53o. **Given** 4 张勾选卡已展开且**未点任何工位**，**When** 查看，**Then** 4 张全为**未勾选**态（工位**不预选默认工位**）；**When** 点「大工」，**Then** 勾选控件**变红并画出对勾**（170ms），随后走**收起动画**（A2：卡宽 `334 → 106`、220ms，选项卡淡出 + 头像卡面淡入），播完才落定；员工卡显示红色摘要 `大工`，**卡上没有任何勾选控件**（十九次：`.staff-card__tick` 已删除），**无**右上角 ×。
 53p. **Given** 员工已选「大工」，**When** 再次点击该员工卡，**Then** 重新展开 4 张卡且「大工」为已勾选态；此时再点「顾客指定」，**Then** 「顾客指定」也被勾选，收缩后摘要为 `大工 · 顾客指定`（工位单选 + 顾客指定叠加）。
 53q. **Given** 员工已选「大工 + 顾客指定」，**When** 展开后点「中工」，**Then** **并行「红色交接」**：**新卡（中工）立刻变红 + 画勾（170ms）**，**同时旧卡（大工）整卡红色快速淡出 + 勾反序收回（85ms）**——即「新卡勾选之后，被取消的那张卡的红**快速消失**」；落定取较长者（≈`170ms`，实测 182ms）后收缩，摘要变为 `中工 · 顾客指定`（工位之间**单选**）。
 53r. **Given** 员工已勾选（收缩态），**When** 再次点击该员工卡展开、把两侧勾选都点掉，**Then** 走反向动画（收勾 55ms + 褪红 30ms = 85ms）后走**收起动画**（A2 `220ms`），随后该员工**取消选择**（入口摘要回到「服务员工 未选择」）；**And** 若直接点**入口「已选员工」摘要行右侧的 ×**，**Then** 同样立即取消该员工。**And Given** 收缩态员工卡，**Then** 卡上**不得**存在任何勾选控件（无 `.staff-card__tick` / `[data-staff-tick]`，十九次删除）。
@@ -1850,7 +1852,7 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 | 遮罩 | `rgba(0,0,0,.45)` |
 | Toast | `rgba(51,51,51,.9)`、白字 `14px`、圆角 `4px`、`max-width: min(310px, calc(100% - 80px))` |
 
-> 390×844 画布实测：选人网格内容宽 `gridW = 332px` → 单格 `cellW = (332 − 8×2) / 3 = 105.33px`；展开位移步长 `cellW + 8 = 113.33px`。
+> 390×844 画布实测：选人网格内容宽 `gridW = 334px` → 单格 `cellW = (334 − 8×2) / 3 = 106px`；展开位移步长 `cellW + 8 = 114px`（**二十次更正**：旧稿写的 `332 / 105.33 / 113.33` 是过期值）。
 
 ### 12.2.4 触觉反馈（`navigator.vibrate`）
 
@@ -1891,8 +1893,7 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
   .staff-card:not(.is-expanding) .staff-card__opts { opacity: 1; visibility: visible; }
   /* 收起动画（A2）直接落定：不做两层交叉淡入淡出 */
   .staff-card.is-editing .staff-card__panel--base { transition: none !important; }
-  .staff-card.is-expanding.is-collapsing .staff-card__opts,
-  .staff-card.is-opened.is-collapsing .staff-card__opts { transition: none !important; }
+  .staff-card.is-expanding.is-collapsing .staff-card__opts { transition: none !important; }
 }
 ```
 
@@ -1924,6 +1925,1452 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 ## 12.3 A 组 · 选择服务员工（`staff-pick` / 选人 Sheet）
 
 > 共 14 项（A1–A13 + **A13b**）。**A13 是门控状态机、A13b 是「只勾顾客指定（未选工位/提成）」卡片，是其余各项的调度与状态收口，必须一并实现。**
+>
+> **读法（二十次新增）**：**先读 §12.3.0 实现总览**（DOM / 状态 / 类名 / 几何 / 事件 / 函数 / 时间轴 / 可照抄代码 / 反例），再逐项对齐 A1–A13b。A1–A13b 讲「什么观感、为什么」，§12.3.0 讲「建什么、抄什么、坑在哪」——**只读 A1–A13b 不足以还原**。
+
+### 12.3.0 实现总览（可照抄 · 前端还原入口）
+
+> 本节是 A 组的**总纲与代码来源**，目标：**不读原型源码也能 1:1 还原**。
+> 所有数字与代码均取自原型实测（390×844 画布，Edge headless）。
+
+#### 12.3.0.1 交付物与建议实现顺序
+
+| 步 | 做什么 | 依据 | 为什么这个顺序 |
+|:--:|------|------|----------------|
+| 0 | 抄 `:root` 变量（`--sp-check-red/draw`、`--sp-uncheck-draw/red`、`--sp-collapse`、`--sp-ease-std`） | §12.2.1 | 不先落变量，JS 门控与 CSS 必然不同源 |
+| 1 | 建 DOM 骨架（`.staff-grid` + 卡「双面」结构） | §12.3.0.2 | 收起动画依赖 `data-face="opts"` / `"base"` 两个面板并存 |
+| 2 | 抄整块 CSS，**顺序别改** | §12.3.0.10 | 文中有 3 处「必须反超 `.is-on`」的组合选择器，顺序/特异性错一处就整块失效 |
+| 3 | 建状态 + 渲染（`spRenderPickerHtml` / `spOptionsPanelHtml` / `spCardPickLineHtml`） | §12.3.0.3 / §12.3.0.11 | 状态先于交互 |
+| 4 | 挂点击分派，**`closest` 判断顺序照抄** | §12.3.0.7 | 顺序一错，点选项会被「兜底收起」抢走 |
+| 5 | **实现门控状态机**（`spGateAfter` / `spGateFlush` / `spEditChange`） | §12.3.0.11 / A13 | **最易出错、必须早做**——晚做必然复现「没播完就收起」「勾停半路」 |
+| 6 | 实现两段 Morph（`spAnimateStaffMorphLayout` 展开 / `spCollapseMorph` 收起） | §12.3.0.11 / A1 / A2 | 两者几何量**严格互逆**，一起做才不会跳 |
+| 7 | 逐项对齐 A1–A13b 的 10 字段 + 跑 §12.3.0.14 自查 | — | 收口 |
+
+#### 12.3.0.2 DOM 契约（完整骨架）
+
+**展开态与收缩态是同一张 `.staff-card` 的两种渲染**（`innerHTML` 级重绘切换），**不是**两个元素：
+
+```html
+<!-- ① 入口（在页面上，不在 Sheet 里） -->
+<div class="detail-item__staff-block" id="comm2SpBlock">        <!-- JS 只重绘这个容器 -->
+  <button type="button" class="detail-staff-entry" data-open-comm2-sp-staff>
+    <span class="detail-staff-entry__lbl">服务员工</span>
+    <span class="detail-staff-entry__val has-staff">已选 2 人</span>   <!-- 无选中时：无 .has-staff，文案「未选择」 -->
+    <span class="chev ui-icon" aria-hidden="true">{SP_CHEV}</span>
+  </button>
+  <!-- ② 已选员工摘要行（有人才渲染） -->
+  <div class="detail-staff-summary">
+    <div class="detail-staff-summary__row">
+      <div class="detail-staff-summary__main">
+        <span class="detail-staff-summary__name">顾清扬</span>
+        <span class="detail-staff-summary__role">店长</span>          <!-- 无头衔则不渲染 -->
+        <span class="detail-staff-summary__meta">大工 · 顾客指定</span> <!-- 见 §12.3.0.3 摘要口径 -->
+      </div>
+      <button type="button" class="detail-staff-summary__del"
+              data-staff-summary-del data-staff-id="st0" aria-label="移除 顾清扬">{× SVG}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ③ Sheet 外壳（写在 index.html 里，static；JS 只重绘 #comm2StaffSheetRoot） -->
+<div class="picker-mask picker-mask--bottom" id="comm2StaffSheetMask">
+  <div class="picker-sheet tall" role="dialog" aria-label="选择服务员工">
+    <div class="picker-head">选择服务员工</div>
+    <p class="add-card-staff-sheet__hint" id="comm2StaffSheetHint">…四态提示，见 §6.7.1…</p>
+    <div class="comm2-staff-sheet__body" id="comm2StaffSheetRoot"><!-- ④ 卡片区，JS 重绘 --></div>
+    <div class="picker-foot"><button type="button" class="btn-main" id="comm2StaffSheetDone">完成</button></div>
+  </div>
+</div>
+```
+
+**④ 卡片区（`#comm2StaffSheetRoot` 的内容，`spRenderPickerHtml()` 产出）—— 还原难点就在这 3 层**：
+
+```html
+<div class="detail-item__staff-block detail-item__staff-block--cards [is-picking]">
+  <!-- 展开态才有：承接「点空白收起」（z-index 1，在 grid 之下，靠 grid 的 pointer-events:none 透传，见 §12.3.0.6） -->
+  <button type="button" class="staff-card-scrim" data-staff-scrim aria-label="取消选择"></button>
+
+  <div class="staff-grid [is-morphing]"><!-- 展开态才有 is-morphing -->
+    <!-- ========== A. 展开态的那一张卡 ========== -->
+    <div class="staff-card is-editing [is-done] [is-splitting] [is-expanding] [is-collapsing]"
+         data-staff-card data-staff-id="st0">
+
+      <!-- 上层：选项卡面（淡出层，z-index 1）。注意是 <div>——里面要放 <button>，不能嵌套 -->
+      <div class="staff-card__panel" data-face="opts">
+        <div class="staff-card__opts" role="group" aria-label="选择工位或顾客指定">
+          <!-- 每个选项：右上角勾选控件 + 居中文字 -->
+          <button type="button" class="staff-opt [is-on] [staff-opt--extra]"
+                  data-staff-opt="senior" data-staff-id="st0" aria-pressed="false">
+            <span class="staff-opt__box" aria-hidden="true">{SP_CHECK_SVG}</span>
+            <span class="staff-opt__txt">大工</span>
+          </button>
+          <!-- …(工位 3 张 / 不分工位 2 张，见 §6.2.3 四态)… -->
+        </div>
+      </div>
+
+      <!-- 下层：收缩态卡面（淡入层，z-index 0）。**与下面 B 收缩态卡面是同一份 baseBody** -->
+      <div class="staff-card__panel staff-card__panel--base" data-face="base" aria-hidden="true">
+        <!-- baseBody ↓ -->
+      </div>
+    </div>
+
+    <!-- ========== B. 其余收缩态卡（每张一个 <button> 热区） ========== -->
+    <div class="staff-card [is-done] [is-pop] [is-dim] [is-row-muted]"
+         data-staff-card data-staff-id="st1">
+      <button type="button" class="staff-card__panel" data-staff-card-hit data-staff-id="st1" aria-label="李四">
+        <!-- baseBody ↓（与 A 的下层面**逐字节相同**，这是收起动画不跳帧的前提） -->
+        <img class="staff-card__avatar" src="…" alt="" loading="lazy" referrerpolicy="no-referrer">
+        <!-- 无头像时：<span class="staff-card__avatar staff-card__avatar--ph" aria-hidden="true">顾清</span> -->
+        <div class="staff-card__name">顾清扬</div>
+        <!-- 第三行二选一：未选 / 态4 → 灰字头衔；已选 → 红色摘要 -->
+        <div class="staff-card__title">店长</div>
+        <!-- 或 -->
+        <div class="staff-card__title staff-card__title--pick">大工 · 顾客指定</div>
+      </button>
+    </div>
+  </div>
+</div>
+```
+
+**`baseBody` 三件套（顺序不可换，CSS 用 `gap: 6px` 纵向排列）**：`头像` + `.staff-card__name` + 第三行（灰字头衔 `.staff-card__title` **或** 红色摘要 `.staff-card__title--pick`）。
+
+**属性契约（缺一个就会出问题）**：
+
+| 属性 / 内联样式 | 挂在哪 | 必需 | 作用 | 缺失后果 |
+|------|------|:--:|------|------|
+| `data-staff-card` | `.staff-card` | ✔ | 卡容器语义锚点 | JS 靠 `:scope > .staff-card` 取整行，属性本身供事件/抓取脚本识别 |
+| `data-staff-id` | `.staff-card`、`.staff-opt`、收缩态 `.staff-card__panel`、摘要删除钮 | ✔ | 员工 id | 点选项找不到人 |
+| `data-staff-card-hit` | 收缩态 `.staff-card__panel`（**`<button>`**） | ✔ | 点击热区 → 展开 / 态4 选中 | 点卡片无反应 |
+| `data-staff-opt` | `.staff-opt` | ✔ | 选项 key：工位 id / `avg` / `extra` | 勾选无目标 |
+| `data-staff-scrim` | `.staff-card-scrim` | ✔（展开态） | 点空白收起 | 卡在展开态出不来 |
+| `data-face="opts"` / `"base"` | 展开卡的两个面板 | ✔ | 区分淡出层 / 淡入层 | **收起动画完全没有交叉淡入**（A2 失效） |
+| `aria-pressed` | `.staff-opt` | ✔ | `true`/`false` 与勾选态同步 | 可访问性不合格（§12.8） |
+| `aria-label` | 收缩态面板 / `scrim` / 摘要删除钮 | ✔ | 含员工名或动作名 | 同上 |
+| `aria-hidden="true"` | `.staff-opt__box`、`panel--base`、所有 SVG | ✔ | 纯装饰不收语义 | 读屏重复播报 |
+
+> **两个易错点**：**①** 收缩态面板必须是 `<button>`，而展开态的 `data-face="opts"` 必须是 `<div>` —— 它内部要放 `<button class="staff-opt">`，**不可以**嵌套按钮。**②** 展开卡的两个面板**必须同时存在**（一个 `opacity: 0` 隐藏），收起动画靠它们交叉；只渲染 opts 层会导致收起时「选项卡淡完 → 空卡 → 重绘后啪地跳出头像」。
+
+#### 12.3.0.3 数据与状态模型
+
+```js
+var spState = {
+  mode: 'station',          // 'station' 按工位 | 'avg' 不分工位   （外部开关，非本组动效）
+  extraSplit: true,         // 顾客指定提成开关 true/false        （外部开关）
+  edit: null,               // 展开态：null = 全收起；否则 { staffId, splitting }
+  freshDone: {},            // 一次性「回弹」标记：本次真的选中了谁 → 下次渲染加 .is-pop
+  row: {                    // 订单行的员工选择（本组唯一数据出口）
+    id: '__comm2sp__',
+    staffIds: [],           // 已选员工 id（有序，**唯一真源**）
+    staffRoles: {},         // 提成侧：{ [sid]: 工位 id | 'avg' }
+    staffExtra: {},         // 顾客指定侧：{ [sid]: true / false }
+    staffChosen: {}         // 计入已选：{ [sid]: true / false }（与 staffIds 同步）
+  }
+};
+var SP_PICK_AVG = 'avg';    // 不分工位「服务提成」卡的哨兵值，存在 staffRoles[sid]
+```
+
+| 字段 | 含义 | 关键约束 |
+|------|------|----------|
+| `row.staffIds` | 已选员工列表 | **唯一真源**；`staffRoles` / `staffExtra` / `staffChosen` 三者一律「以 `staffIds` 为准」收敛（不在册即 `delete`） |
+| `row.staffRoles[sid]` | **提成侧**选择 | 按工位 = 工位 id；不分工位 = `'avg'`；**缺席 = 提成侧未选**（≠ 未选工位时的 0 提成，见 §7.2.1 `basePicked`） |
+| `row.staffExtra[sid]` | 顾客指定侧 | 与提成侧**互不推导、互不排斥**；规则未开 `extraSplit` 时 `spEnsureState()` 统一置 `false` |
+| `row.staffChosen[sid]` | 计入已选 | 与 `staffIds` 同进同出（`spSelectStaff` / `spDropStaff` 成对维护） |
+| `edit.staffId` | 当前展开的员工 | **非空 ⇔ 有 `.is-editing` 卡**；`spState.edit = null` = 全收起 |
+| `edit.splitting` | 是否播入场分裂 | 仅「首次展开」为 `true`；渲染时加 `.is-splitting`，**`520ms` 后**转 `false` 并摘类 |
+| `freshDone[sid]` | 一次性回弹标记 | 渲染读取 → 加 `.is-pop` → **`spAfterStaffPickerPaint()` 内立即清空**（否则每次重绘都重播「噗噗」） |
+
+**派生量（渲染时现算，不落状态）**：
+
+| 变量 | 表达式 | 用途 |
+|------|--------|------|
+| `isEdit` | `edit && edit.staffId === st.id` | `.is-editing`（展开那一张） |
+| `done` | `row.staffIds.indexOf(st.id) >= 0` | `.is-done`（选中态样式）＋ 决定第三行画摘要还是灰字头衔 |
+| `dim` | `edit && !isEdit` | `.is-dim`（`opacity: .36`，不参与交互） |
+| `isChosen` | `staffChosen[sid] && staffIds 含 sid` | `.is-pop`（回弹）的唯一开关 |
+
+**摘要口径（`spSummaryParts()` → 卡片第三行 / 入口摘要行，两处规则不同，别写成一个函数）**：
+
+| 模式 | 提成侧 | 顾客指定 | 卡片第三行（`spSummaryHtml`） | 入口摘要行（`spSummaryText`） | `basePicked` |
+|------|:--:|:--:|------|------|:--:|
+| 按工位 | 大工 | — | `大工` | `大工` | `true` |
+| 按工位 | 大工 | ✔ | `大工 · 顾客指定` | `大工 · 顾客指定` | `true` |
+| 按工位 | —（未选） | ✔ | **`顾客指定`（红字，无灰前缀）** | **`无工位 · 顾客指定`** | **`false`** |
+| 按工位 | —（未选） | — | 灰字头衔（未选态） | 不出现该员工 | — |
+| 不分工位 | `avg` | — | `提成` | `提成` | `true` |
+| 不分工位 | `avg` | ✔ | `提成 · 顾客指定` | `提成 · 顾客指定` | `true` |
+| 不分工位 | —（未选） | ✔ | `顾客指定` | `顾客指定` | **`false`** |
+| 都不开 | `avg` | — | 灰字头衔（态4） | 不出现该员工 | `true` |
+
+> **两处差异是刻意的（十八次定稿）**：卡片上不写「无工位」（与红字「顾客指定」并列会读成两个状态），缺工位信息只在**入口摘要行**以纯文本保留。**「顾客指定」在卡片上是红字**（`.staff-card__pick-x`），在入口摘要行是普通灰字。
+
+#### 12.3.0.4 类名总表（13 个）
+
+| 类 | 挂在哪 | 谁加 | 何时加 | 何时清 | 常驻 | 作用 |
+|----|--------|:--:|--------|--------|:--:|------|
+| `.is-editing` | `.staff-card` | 渲染 | `edit.staffId === 本卡` | 重绘收起 | 否 | 展开卡：`z-index: 6`、`pointer-events: auto`、两面板结构 |
+| `.is-expanding` | `.staff-card` | **JS** `spAnimateStaffMorphLayout` | 展开 Morph 的 rAF 那一帧 | 每次展开前清 | 否 | 选项卡面由 `opacity: 0` → `1`（A5） |
+| `.is-collapsing` | `.staff-card` | **JS** `spCollapseMorph` | 收起动画开始 | `transitionend(width)` 或 `ms + 40` 兜底 | 否 | 下层 `panel--base` 淡入 + 选项卡整体淡出（A2） |
+| `.is-splitting` | `.staff-card` | 渲染 | `edit.splitting` | JS 定时 **`520ms`** 摘 | 否 | 选项卡逐张 `staffRoleSplit` 入场（A4） |
+| `.is-row-muted` | 同行**其余** `.staff-card` | **JS** `muteRow()` | 展开时 | 收起动画里摘（**带 `220ms` 内联过渡**） | 否 | `opacity: 0`（**淡出瞬时、淡入 220ms**，不对称是刻意的） |
+| `.is-done` | `.staff-card` | 渲染 | `staffIds` 含本卡 | 取消选择重绘 | 否 | 粉底 + 粉描边 + 头像粉圈（选中态） |
+| `.is-pop` | `.staff-card` | 渲染 | `freshDone[sid]` 为真 | **渲染后立即清空** `freshDone` | 否 | 播 `staffDonePop` 回弹（A9） |
+| `.is-dim` | `.staff-card` | 渲染 | `edit && !isEdit` | 重绘 | 否 | `opacity: .36`、`pointer-events: none` |
+| `.is-morphing` | `.staff-grid` | **JS** | 有展开卡时 `toggle(true)` | 无展开卡时 `toggle(false)` | 否 | `> .staff-card { justify-self/align-self: start }`，防 Morph 期间被网格拉伸 |
+| `.is-picking` | 卡片区根容器 | 渲染 | 有展开卡 | 重绘 | 否 | `overflow: visible` + **`.staff-grid { pointer-events: none }`**（让点击透传到 `scrim`） |
+| `.is-on` | `.staff-opt` | 渲染 | 该选项已勾选 | 重绘 | 否 | 红边 + 红投影 + 勾选框实心 |
+| `.is-draw` | `.staff-opt__box` | **JS** `spPlayCheck(el, true)` | 点选瞬间 | 抢断 / 重绘 | 否 | 变红 + 画勾（A6） |
+| `.is-undraw` | `.staff-opt__box` + **宿主 `.staff-opt`** | **JS** `spPlayCheck(el, false)` | 取消瞬间 | 抢断 / 重绘 | 否 | 收勾 + 褪红 + 宿主红边同步淡出（A7） |
+
+> **常驻类只有渲染产出的 6 个**（`is-editing` / `is-splitting` / `is-done` / `is-pop` / `is-dim` / `is-on`），其余全是**临时态**，**重绘前必须清干净**（§12.3.0.12 反例 3）。
+
+#### 12.3.0.5 一次完整交互的类名时间线（状态矩阵）
+
+以「按工位 + 开顾客指定，点员工卡 → 点『大工』」为例（`t = 0` 为点击时刻）：
+
+| 时刻 | `.staff-grid` | 展开卡 | 同行其余卡 | 选项卡 | 勾选框 | 说明 |
+|:--:|----|----|----|----|----|------|
+| 点前 | — | 无展开卡 | — | — | — | 全部收缩态 |
+| `t=0` 渲染 | `is-morphing` + 根 `is-picking` | `is-editing` `is-splitting` `is-done`? | `is-dim` | 逐张播放 `staffRoleSplit`（`0/35/70/105ms`） | — | 起始态：卡宽 `cellW`、`transition: none`、强制 reflow |
+| `t=0` rAF | 同上 | `+ is-expanding` | `+ is-row-muted`（**瞬时 opacity 0**） | 同上 | — | 次帧才加过渡与终态：卡宽 `cellW → gridW`、`translateX(0) → dx`、`z-index: 6` |
+| `t=380ms` | 同上 | 同上 | 同上 | 入场播完 | — | Morph 结束；**`morphUntil` 门到期前不接受收起** |
+| `t=520ms` | 同上 | `− is-splitting` | 同上 | — | — | 第 4 张卡（延迟 `105ms` + `380ms`）播完才摘类 |
+| 点「大工」 | 同上 | 同上 | 同上 | **`.staff-opt.is-on` 由渲染给（旧值），此刻不改** | `.is-draw`（新卡） | `spPlayCheck(box, true)`：`60ms` 变红 → `110ms` 画勾 |
+| `t+170ms` | — | — | — | — | `− is-draw`（重绘） | 门控 `spGateAfter` 结束 |
+| `t+170ms` 起 | 同上 | `+ is-collapsing` | `− is-row-muted`（**`220ms` 淡入回**） | 整块 `opacity → 0` | — | `spCollapseMorph()`：卡宽 `gridW → cellW`、`translateX(dx) → 0`、下层 `panel--base` `opacity 0 → 1` |
+| `t+390ms` | `− is-morphing`、根 `− is-picking` | **重绘为收缩态**：只剩 `is-done`（`+ is-pop`） | 恢复 | — | — | `transitionend(width)` → `done()` → `mutator()` + `spRedraw()`；**内联 `transition`/`width`/`transform`/`zIndex` 全部清空** |
+
+> **一句话记法**：**「展开：两帧 + 380ms；勾选：0 / 170ms；收起：等勾选完 + 220ms；重绘清干净」**。
+
+#### 12.3.0.6 几何契约
+
+| 量 | 怎么来 | 390×880 实测 | 备注 |
+|----|--------|:--:|------|
+| `gridW` | `grid.clientWidth`（**运行时读，禁止写死**） | **334** | 网格左右 padding 为 0，故 = 内容宽 |
+| 列间距 | `gap` 的 column 分量（JS 常量 `SP_GRID_GAP`） | **8** | `gap: 10px 8px` = 行 10 / 列 8 —— **别混用** |
+| `cellW` | `(gridW − 2 × colGap) / 3` | **106** | 收缩态卡宽 = 一个格子 |
+| `dx` | `−(col × (cellW + colGap))`，`col = 索引 % 3` | 列 0/1/2 → **0 / −114 / −228** | 展开卡的横向位移 |
+| 展开卡宽 | `gridW` | **334** | |
+| `.staff-opt` 宽 | `(gridW − (N−1) × colGap) / N` | 4 张 → **77.5**；2 张 → **163** | N = 该态选项数 |
+| 面板高 | `.staff-card__panel` 定高 | **96** | 两层面板同为 96，收起**无纵向跳动** |
+| 员工卡 `min-height` | — | **96** | |
+| `.staff-opt__box` | — | **18 × 18**（圆角 `9px`） | 勾 SVG `viewBox 24`、`stroke-width 3`、`d="M5 12l5 5L20 7"`、`stroke-dasharray: 24` |
+
+> **`col` 的取法**：`col = 卡在 `grid.querySelectorAll(':scope > .staff-card')` 列表里的**索引** % 3` —— **按索引取，不要按 `getBoundingClientRect().left` 反推**。员工数 5 / 7 时末行不足 3 张，索引法仍正确（实测第 3 张 → `col 0`、`dx 0`）。
+> **`gridW` 会随画布变**：窄机（375）与宽机（414）必须靠 `clientWidth` 现算；写死 `334` 会在大屏上留缝、窄屏上溢出。
+> **变换原点 = 默认 `center center`** —— 入场分裂 `staffRoleSplit` 作用于 `.staff-opt`，实测其 `transform-origin` = `38.75px 48px`（= 自身中心，4 张时）/ `81.5px 48px`（= 自身中心，2 张时）。卡片上曾渲染 `--staff-origin` / `data-origin`，但**从未被任何 CSS 消费**（死属性），已于**二十一次删除**（见 §12.3.0.12 反例 6）。
+
+#### 12.3.0.7 事件绑定契约（点击分派）
+
+**全部走 `document` 上的**单个** `click` 委托**（不是逐元素绑定）。**判断顺序必须照抄** —— 顺序一错，点选项就会被末尾的「兜底收起」抢走：
+
+| # | 判断（`t.closest(...)`） | 命中后做什么 | 抢断 | 备注 |
+|:--:|------|------|:--:|------|
+| 1 | `#comm2StaffPickBack` | `openHub()` | — | 返回 |
+| 2 | `[data-comm2-sp-mode]` | 切 `mode` → 清 `edit` → `spSyncModeButtons()` → `spRedraw()` | — | 模式变了要清展开态 |
+| 3 | `[data-comm2-sp-extra]` | 切 `extraSplit` → 清 `edit` → 重绘 | — | 同上 |
+| 4 | `[data-open-comm2-sp-staff]` | `spOpenSheet()` | — | 入口行 |
+| 5 | `#comm2StaffSheetDone` | `spIntend(spCloseSheet)` | ✔ | 抢断后**关闭整个 Sheet**（不是收起卡片） |
+| 6 | `t === #comm2StaffSheetMask`（**严格相等，不是 `closest`**） | `spIntend(spCloseSheet)` | ✔ | 严格相等才不会「点 Sheet 内容也关掉」 |
+| 7 | **范围闸门**：`!t.closest('#comm2StaffSheetRoot')` **且** `!t.closest('#comm2SpBlock')` | **直接 `return`** | — | 这条实现「Sheet 标题 / 提示行 / 底部栏点击**不收起**」 |
+| 8 | `[data-staff-scrim]` | `spIntend(() => spApplyEdit(null))` | ✔ | 点卡片区空白 |
+| 9 | `[data-staff-summary-del]` | `spRemoveStaff(id)`（`preventDefault` + **`stopPropagation`**） | — | 入口摘要行 × |
+| 10 | `[data-staff-opt]` | `spTapOption(sid, key)`（**`stopPropagation`**） | — | 展开态选项 |
+| 11 | `[data-staff-card-hit]` | 同卡（`edit.staffId === id`）→ `spIntend(() => spApplyEdit(null))`；异卡 → `spIntend(() => spEnterEdit(id))` | ✔ | 收缩态卡片热区 |
+| 12 | **兜底**（`if (spState.edit)`） | `spIntend(() => spApplyEdit(null))` | ✔ | 编辑卡自身空白 / 选项行间隙 / 卡片区空白 |
+
+> **三条硬约束**：**①** 第 6 条必须是 `t === mask`，用 `closest` 会把「点 Sheet 内部」也算命中。**②** 第 12 条兜底**必须在最后**，且第 8/10/11 条都要能 `return` 拦住它。**③** 第 7 条的范围闸门**必须在第 8 条之前** —— 否则 Sheet 标题也会被当成「卡片区空白」收起。
+> **「抢断」列**：打 ✔ 的分支都要经 `spIntend()` —— 它先 `spGateFlush()`（把进行中的勾**补画到终点**）再执行，保证「点击不丢失、勾不停半路」（A13）。
+> **点遮罩关闭只由上表第 6 条实现**（`t === mask` **严格相等**，所以点 Sheet 内容不会误关）。`#comm2StaffSheetMask` 上曾挂一个 `data-outside-close="1"` 属性，但**全仓无消费方**（死属性），已于**二十一次删除** —— 不要据此另做一套通用 outside-close 机制。
+
+#### 12.3.0.8 函数契约表与调用关系
+
+**常量（`comm2.js` 顶部，必须与 CSS 同源）**：
+
+| 常量 | 值 | 对应 CSS 变量 |
+|------|----|--------------|
+| `SP_GRID_GAP` | `8` | 网格 `column-gap` |
+| `SP_SPRING` | `cubic-bezier(.34,1.3,.64,1)` | 展开 Morph 的 iOS spring |
+| `SP_EASE_STD` | `cubic-bezier(.22,.82,.24,1)` | `--sp-ease-std`（收起 Morph） |
+| `SP_EXPAND_MS` | `380` | 展开 Morph 时长（无对应变量，**只此一处**） |
+| `SP_COLLAPSE_FALLBACK_MS` | `220` | `--sp-collapse` 的兜底值（正常路径**读变量**） |
+| `SP_CHECK_RED_FALLBACK` / `SP_CHECK_DRAW_FALLBACK` | `60` / `110` | `--sp-check-red` / `--sp-check-draw` |
+| `SP_UNCHECK_DRAW_FALLBACK` / `SP_UNCHECK_RED_FALLBACK` | `55` / `30` | `--sp-uncheck-draw` / `--sp-uncheck-red` |
+| `SP_PICK_AVG` | `'avg'` | —（`staffRoles` 的哨兵值） |
+| `spVibrate` | `8`（ms） | —（`spHaptic()` 用） |
+
+| 函数 | 签名 | 职责 | 副作用 |
+|------|------|------|--------|
+| **门控（6）** ||||
+| `spCssMs` | `(name, fallback)` | 读 `:root` 变量 → 毫秒数（支持 `ms`/`s`） | 纯 |
+| `spCheckMs` / `spUncheckMs` / `spCheckMsFor` | `()` / `()` / `(on)` | 正向 `170` / 反向 `85` / 按方向取 | 纯 |
+| `spGateAfter` | `(roots, apply, minMs)` | 等「`animation.finished` 全 resolve」**且**「过 `minMs`」，取长；兜底 `spCheckMs() + 300` | 写 `spGate.checkUntil` / `timer` / `token` |
+| `spGateHoldOnly` | `(ms)` | 展开 Morph 占位门：抬 `morphUntil` | 写 `spGate.morphUntil`（**抢断不清除**） |
+| `spGateFlush` | `()` | 抢断：先补画勾（`spSnapChecks`）再立即 `tok.fire()` | 清 timer / `checkUntil` |
+| `spSnapChecks` | `()` | 对所有 `.is-draw, .is-undraw` 调 `getAnimations().finish()` | 强制动画到终点 |
+| `spGateBusy` | `()` | `now < max(checkUntil, morphUntil)` | 纯 |
+| **动画（4）** ||||
+| `spPlayCheck` | `(el, on)` | 加 `is-draw` / `is-undraw`；反向时**宿主 `.staff-opt` 同步 `is-undraw`** | 先双向清类 + `void offsetWidth` |
+| `spCheckHost` | `(el)` | 反向时的宿主卡片（**恒为 `.staff-opt`**） | 纯 |
+| `spAnimateStaffMorphLayout` | `(grid)` | 展开 Morph：归零起始态 → `rAF` → 终态 | 内联 `transition/width/transform/zIndex` + `is-expanding` / `is-row-muted` / `is-morphing` |
+| `spCollapseMorph` | `(done)` | 收起 Morph；`done` **只被调一次**（`transitionend(width)` ∨ `ms + 40` 兜底） | 内联样式 + `is-collapsing` |
+| **状态变更（8）** ||||
+| `spEnsureState` | `()` | 三者**以 `staffIds` 收敛**；未开顾客指定则清 `staffExtra` | 改 `row` |
+| `spSelectStaff` | `(sid)` | 入 `staffIds`、`staffChosen = true`、`freshDone[sid] = true`。**不动 `staffRoles`** | 改 `row` |
+| `spDropStaff` | `(sid)` | 出 `staffIds` + 清 `staffChosen` / `staffRoles` / `staffExtra` | 改 `row` |
+| `spApplyOptionToggle` | `(sid, key)` | 应用勾选结果（**提成侧 / 顾客指定侧各自独立**）→ `spApplyEdit(null)` | 改 `row` + 发起收起 |
+| `spTapOption` | `(sid, key)` | 播勾选动效 + `spGateAfter` 门控 → `spApplyOptionToggle` | — |
+| `spToggleStaff` | `(sid)` | 态4：已选 → `spRemoveStaff`；未选 → 记 `staffRoles = 'avg'` + `spSelectStaff` | — |
+| `spRemoveStaff` | `(sid)` | 摘要行 × / 态4 取消：移除 + 清 `edit` + `spHaptic` + `spRedraw` | — |
+| `spEditChange` | `(mutator, collapse)` | **待落定意图**（后到覆盖先到）：等门 →（`collapse` 且有展开卡）播收起 Morph → `mutator()` + `spHaptic()` + `spRedraw()` | 递增 `spEditSeq` |
+| `spApplyEdit` | `(next)` | `spEditChange(() => edit = next, next === null)` | — |
+| `spEnterEdit` | `(sid)` | 展开入口：态4 转 `spToggleStaff`；**异卡**先收再展；同卡收起由事件层负责 | 写 `edit` |
+| `spIntend` | `(fn)` | 动效期间点击：`spGateBusy()` → `spGateFlush()` 后 `fn()` | — |
+| **渲染（9）** ||||
+| `spOptionList` | `()` | 四态选项表（工位 ×3 [+extra] / `服务提成` + `顾客指定`） | 纯 |
+| `spOptionChecked` | `(sid, opt)` | 选项勾选态（**两侧各自独立、不互相推导**） | 纯 |
+| `spSummaryParts` | `(sid)` | 摘要拆件 `{miss, main, extra}` | 纯 |
+| `spSummaryText` | `(sid)` | 入口摘要行**纯文本** | 纯 |
+| `spSummaryHtml` | `(sid)` | 卡片第三行**带样式**（`miss` 分支 → 单个红字 span） | 纯 |
+| `spCardPickLineHtml` | `(st, done)` | 第三行：灰字头衔 or 红字摘要 | 纯 |
+| `spOptionsPanelHtml` | `(sid)` | `.staff-card__opts` 内 N 个 `.staff-opt` | 纯 |
+| `spRenderPickerHtml` | `()` | 卡片区 HTML（**含双面结构**、`is-picking`、`scrim`、`is-morphing`） | 纯 |
+| `spAfterStaffPickerPaint` | `(root)` | `rAF` → Morph；`520ms` 摘 `is-splitting`；**清 `freshDone`** | 计时器 |
+| `spRenderSheet` / `spRedraw` / `spRenderScreen` | `()` | 重绘 Sheet / 按 Sheet 是否打开分流 / 重绘入口区 | `innerHTML` |
+| `spOpenSheet` / `spCloseSheet` | `()` | 打开（清 `edit`、清 `freshDone`）/ 关闭（**`spEditSeq++` 取消所有待落定**、清 `edit`、重绘入口） | `innerHTML` + 类 |
+
+**调用关系（三条主链）**：
+
+```
+① 展开（点收缩态卡片热区）
+   点击 [data-staff-card-hit]
+     └─ spIntend → spEnterEdit(sid)
+          ├─ spNeedsPick() === false → spToggleStaff(sid) → spSelectStaff / spRemoveStaff → spRedraw()   ← 态4
+          └─ 否则：spEditSeq++ ; edit = { sid, splitting: true } ; spHaptic()
+                    ; spGateHoldOnly(380) ; spRedraw()
+               └─ spRenderSheet() → spRenderPickerHtml() → spAfterStaffPickerPaint(root)
+                    ├─ rAF → spAnimateStaffMorphLayout(grid)      ← A1 展开 Morph（380ms spring）
+                    └─ setTimeout 520 → 摘 is-splitting           ← A4 入场（第 4 张 105+380≈485 → 留 35ms 余量）
+
+② 勾选 / 取消（点展开态选项卡）
+   点击 [data-staff-opt]
+     └─ spTapOption(sid, key)
+          ├─ spGateBusy() → spGateFlush()                          ← 抢断：先补画勾
+          ├─ 切工位：spPlayCheck(prevBox,false) + spPlayCheck(nextBox,true)
+          │           → spGateAfter([prevBox,nextBox], …, max(170,85) = 170)   ← A8 并行「红色交接」
+          └─ 单轮：  spPlayCheck(box, on?)
+                      → spGateAfter(box, …, spCheckMsFor(on))      ← A6 正向 170 / A7 反向 85
+               └─ 门控结束 → spApplyOptionToggle(sid, key)
+                    → spSelectStaff / spDropStaff → spApplyEdit(null)
+                         └─ spEditChange(fn, collapse = true)
+                              ├─ 轮询等 spGate.checkUntil / morphUntil 空（每 busy+20ms 一次）
+                              ├─ spGateHoldOnly(220) → spCollapseMorph(done)   ← A2 收起 Morph
+                              │     └─ transitionend(width) → done()（或 ms+40 兜底）
+                              └─ fn() + spHaptic() + spRedraw()                ← 重绘落定
+
+③ 只收起（点 scrim / 编辑卡空白 / Sheet 正文空白）
+   点击 → spIntend → spApplyEdit(null) → spEditChange(fn, true) → 同 ② 的下半段（**跳过勾选动效**，直接 220ms）
+```
+
+#### 12.3.0.9 组合时间轴（毫秒级）
+
+| 链路 | 0 | 60 | 85 | 110 | 170 | 220 | 390 | 落定 |
+|------|:--:|:--:|:--:|:--:|:--:|:--:|:--:|:--:|
+| **① 点选**（未勾 → 勾） | 变红起 | 变红完、画勾起 | — | — | **画勾完** → 收起起 | — | — | **≈390ms**（实测 `tCheckEnd 181` / `tSettle 413`） |
+| **② 取消**（勾 → 未勾） | 收勾起 | — | **收勾完** → 褪红起 | — | — | 褪红完 → 收起起 | — | **≈305ms**（实测 `tCheckEnd 90` / `tSettle 320`） |
+| **③ 换工位**（并行两路） | 新卡变红 + 旧卡收勾**同时起** | — | 旧卡收勾完 → 旧卡褪红起 | — | 新卡画勾完 **且** 旧卡褪红完（115 < 170）→ 收起起 | — | — | **≈390ms**（实测 `tCollapse 183` / `tSettle 413`） |
+| **④ 纯收起**（点空白） | 收起起 | — | — | — | — | — | — | **≈220ms**（实测 `is-collapsing` 存活 `202` / `218` / `218` / `221`） |
+
+**并行 / 串行关系（最容易做错的地方）**：
+
+| 段 | 关系 | 说明 |
+|----|------|------|
+| 变红 ↔ 画勾 | **串行（靠 delay 对齐）** | 画勾 `animation` 的 `delay = --sp-check-red`；不是嵌套，改一个必须改另一个 |
+| 新卡正向 ↔ 旧卡反向（换工位） | **并行** | 一起起跑，落定取 `max(170, 85) = 170`。**串行成 `85 + 170 = 255` 即为 BUG**（实测串行版落定 267ms） |
+| 勾选动效 → 收起 Morph | **串行** | 勾选动效播完**才**开始 220ms 收起。**并行会让卡在勾还没画完时就开始缩** |
+| 收起 Morph 内部：卡宽 ↔ 位移 ↔ 两层交叉 ↔ 同行淡入 | **并行（同一帧同一组过渡）** | 四条一起跑，总时长都 = `--sp-collapse` |
+| 展开 Morph 内的「同行卡淡出」 | **瞬时（`0ms`）** | 展开时 `opacity → 0` 无过渡 |
+| 收起 Morph 内的「同行卡淡入」 | **`220ms`** | 摘 `is-row-muted` 时挂内联 `opacity` 过渡 —— **刻意与展开不对称**（退场要「还回来」的过程感） |
+
+> **总时长速查**：点选 `170 + 220 = 390ms`；取消 `85 + 220 = 305ms`；换工位 `170 + 220 = 390ms`；纯收起 `220ms`；展开 `380ms`（+ 第 4 张入场延迟 `105ms` ≈ `485ms`）。
+
+#### 12.3.0.10 完整 CSS 清单（可照抄）
+
+> **照抄即可，但顺序不要改** —— 文中有 3 处「必须反超」的组合选择器（`.staff-opt.is-on .staff-opt__box.is-undraw` / `.staff-opt.is-on.is-undraw` / `.staff-opt--extra.is-on.is-undraw`），以及 `.staff-card.is-done .staff-card__panel` 的 `background-color` 垫底（必须排在 `linear-gradient` 之后）。合并同类项、调换顺序、或被格式化工具重排，都会让动效失效。
+
+```css
+/* ══════════ ① 变量（与 JS 门控**同源**：comm2.js 直接读这几个变量算时长） ══════════ */
+:root {
+  --sp-check-red: 60ms;      /* 正向：变红 */
+  --sp-check-draw: 110ms;    /* 正向：画勾 */
+  --sp-uncheck-draw: 55ms;   /* 反向：收勾（恒为 --sp-check-draw 的 1/2） */
+  --sp-uncheck-red: 30ms;    /* 反向：褪红（恒为 --sp-check-red 的 1/2） */
+  --sp-collapse: 220ms;      /* 收起 Morph（A2） */
+  --sp-ease-std: cubic-bezier(.22, .82, .24, 1);  /* Apple 标准 = 收起 Morph 缓动 */
+}
+
+/* ══════════ ② Sheet 外壳 / 卡片区 ══════════ */
+#comm2StaffSheetMask .picker-sheet.tall {
+  height: 560px; max-height: 85%; flex: 0 0 auto; box-sizing: border-box;
+}
+#comm2StaffSheetMask .comm2-staff-sheet__body {
+  margin: 0 16px 16px; padding: 12px; background: #FAFAFA; border-radius: 12px;
+  box-sizing: border-box; flex: 1 1 auto; min-height: 0;
+  overflow-x: hidden; overflow-y: auto; -webkit-overflow-scrolling: touch;
+}
+.comm2-staff-sheet__body .detail-item__staff-block { margin: 0; }
+.comm2-staff-sheet__body .detail-item__panel-row--staff-head { display: none; }
+.add-card-staff-sheet__hint { margin: 0 16px 10px; font-size: 12px; line-height: 1.45; color: var(--text-sec); }
+/* 预留两行卡片高度，重绘时空档不塌陷 */
+#comm2StaffSheetMask .staff-grid { min-height: calc(96px * 2 + 10px + 14px); }
+
+/* ══════════ ③ 点空白收起的 scrim（在 grid 之下，靠 grid 透传点击） ══════════ */
+.detail-item__staff-block { border-bottom: none; position: relative; }
+.staff-card-scrim {
+  position: absolute; inset: -8px -4px -12px; z-index: 1;
+  border: none; padding: 0; margin: 0; cursor: pointer;
+  background: rgba(247, 247, 247, .42); border-radius: 12px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ══════════ ④ 网格与卡片 ══════════ */
+.staff-grid {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 8px;                     /* 行 10 / 列 8 —— JS 常量 SP_GRID_GAP 只取列的 8 */
+  padding: 2px 0 12px; position: relative; z-index: 2; overflow: visible;
+}
+.staff-grid.is-morphing > .staff-card { justify-self: start; align-self: start; }
+.staff-card {
+  position: relative; min-height: 96px; width: 100%; box-sizing: border-box; z-index: 1;
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform, width;     /* 只给真正在动的属性 */
+}
+.staff-card.is-dim { opacity: .36; pointer-events: none; filter: saturate(.85); }
+.detail-item__staff-block--cards.is-picking { overflow: visible; }
+/* 关键：展开时 grid 不吃点击 → 透传给它下面的 scrim */
+.detail-item__staff-block--cards.is-picking .staff-grid { overflow: visible; pointer-events: none; }
+.staff-card.is-editing { z-index: 6; pointer-events: auto; opacity: 1; filter: none; }
+
+/* ══════════ ⑤ 收缩态卡面 + 选中态 + 回弹 ══════════ */
+.staff-card__panel {
+  position: relative; box-sizing: border-box; width: 100%; min-height: 96px;
+  padding: 10px 8px 8px; border-radius: 12px; background: #fff; border: 1px solid #E8E8E8;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; font-family: inherit; color: #1a1a1a;
+  transition: border-color .22s ease, background .22s ease, box-shadow .28s cubic-bezier(.22,.82,.24,1);
+  -webkit-tap-highlight-color: transparent;
+}
+.staff-card__panel:active { transform: scale(.96); transition: transform .08s ease-out; }
+.staff-card.is-done .staff-card__panel {
+  background: linear-gradient(180deg, #FFF8F8 0%, #FFF2F2 100%);
+  border-color: #FFD5D9;
+  box-shadow: inset 0 0 0 1px rgba(243, 47, 65, .04);
+}
+/* 回弹只在「本次交互真的选中了该员工」时播（is-pop 由 JS 一次性标记，渲染后即清） */
+.staff-card.is-done.is-pop .staff-card__panel { animation: staffDonePop .42s cubic-bezier(.34,1.3,.64,1); }
+@keyframes staffDonePop {
+  0%   { transform: scale(.94); }
+  55%  { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+/* ══════════ ⑥ 展开态面板（opts 层）与面板淡入 ══════════ */
+.staff-card.is-editing .staff-card__panel[data-face="opts"] {
+  position: relative; z-index: 1;    /* 压在收起动画的「下层卡面」之上（后者 z-index: 0） */
+  width: 100%; min-height: 96px; height: 96px; padding: 0; gap: 0;
+  border: none; border-radius: 0; overflow: visible; background: transparent;
+  cursor: default; box-shadow: none;
+}
+.staff-card.is-editing .staff-card__panel[data-face="opts"]:active { transform: none; }
+.staff-card.is-expanding .staff-card__opts {
+  opacity: 1; visibility: visible;
+  transition: opacity .2s cubic-bezier(.34,1.3,.64,1);
+}
+/* 已展开卡片的重绘（勾选态更新）：不重播入场，直接可见 —— 见 §12.3.0.12 反例 3 的「不要重播」原则
+   注（二十一次）：原 `.staff-card.is-opened .staff-card__opts` 规则已随 `edit.opened` 死字段一并删除 */
+.staff-card:not(.is-expanding) .staff-card__opts { opacity: 0; visibility: hidden; }
+/* 展开时同行其余卡片淡出（**瞬时**，无过渡） */
+.staff-card.is-row-muted { opacity: 0; pointer-events: none; }
+
+/* ══════════ ⑦ 收起 Morph（A2）：两层交叉 ══════════ */
+/* 下层 = 收缩态卡面，与静态收缩卡面**同一套 DOM**，故动画终点像素级一致、落定不跳 */
+.staff-card.is-editing .staff-card__panel--base {
+  position: absolute; inset: 0; z-index: 0;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--sp-collapse) var(--sp-ease-std);
+}
+.staff-card.is-editing.is-collapsing .staff-card__panel--base { opacity: 1; }
+/* 选项卡整体淡出。**必须反超** `.staff-card.is-expanding .staff-card__opts`（0,3,0）→ 用 (0,4,0) 组合选择器。
+   注（二十一次）：原并列的 `.staff-card.is-opened.is-collapsing` 选择器已随 `edit.opened` 死字段一并删除
+   —— 展开后的卡带的恒为 `is-expanding`，`is-opened` 从不渲染。 */
+.staff-card.is-expanding.is-collapsing .staff-card__opts {
+  opacity: 0; visibility: visible;
+  transition: opacity var(--sp-collapse) var(--sp-ease-std);
+}
+
+/* ══════════ ⑧ 减弱动态（终态必须与常规完全一致） ══════════ */
+@media (prefers-reduced-motion: reduce) {
+  .staff-card.is-editing .staff-card__panel { animation: none !important; }
+  .staff-card.is-done.is-pop .staff-card__panel { animation: none !important; }
+  .staff-card { transition: none !important; }
+  .staff-card__panel { transition: none; }
+  .staff-opt { transition: none !important; animation: none !important; }
+  .staff-opt__box, .staff-opt__box svg path { animation: none !important; transition: none !important; }
+  .staff-opt__box.is-draw svg path { stroke-dashoffset: 0; }      /* 勾必须落终点，不能停在半画 */
+  .staff-opt__box.is-undraw svg path { stroke-dashoffset: 24; }
+  /* 关键：降级下选项区恒可见（不能只靠 is-expanding 才显示，否则整块隐形） */
+  .staff-card.is-expanding .staff-card__opts { transition: none !important; opacity: 1; visibility: visible; }
+  .staff-card:not(.is-expanding) .staff-card__opts { opacity: 1; visibility: visible; }
+  /* 收起动画整条跳过 */
+  .staff-card.is-editing .staff-card__panel--base { transition: none !important; }
+  .staff-card.is-expanding.is-collapsing .staff-card__opts { transition: none !important; }
+}
+
+/* ══════════ ⑨ 选项卡 .staff-opt 与勾选控件 ══════════ */
+.staff-card__opts {
+  display: flex; align-items: stretch; width: 100%; height: 100%; gap: 8px;
+  box-sizing: border-box; background: transparent;
+}
+.staff-opt {
+  position: relative; flex: 1 1 0; min-width: 0;
+  margin: 0; padding: 22px 6px 8px;       /* 上留 22px 给右上角勾选控件，避免与文字相撞 */
+  border: 1px solid #E8E8E8; border-radius: 12px; background: #fff; color: #1a1a1a;
+  font-size: 14px; font-weight: 600; letter-spacing: .02em; line-height: 1.15;
+  font-family: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(26, 26, 26, .06);
+  transition: background .18s ease, color .18s ease, border-color .18s ease,
+    transform .08s ease-out, box-shadow .2s cubic-bezier(.34,1.3,.64,1);
+}
+.staff-opt:active { transform: scale(.96); box-shadow: 0 1px 4px rgba(26, 26, 26, .08); }
+.staff-opt--extra {
+  color: #C62828; border-color: rgba(243, 47, 65, .18);
+  background: linear-gradient(180deg, #FFF9F9 0%, #FFF2F2 100%);
+}
+.staff-opt__box {
+  position: absolute; top: 6px; right: 6px;
+  width: 18px; height: 18px; border-radius: 9px;
+  border: 1.5px solid #D6D6D6; background: #fff; color: transparent;
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;
+  /* 变红是 transition（60ms）—— 与画勾靠 delay 对齐 */
+  transition: background-color var(--sp-check-red) ease,
+    border-color var(--sp-check-red) ease,
+    color var(--sp-check-red) ease;
+}
+.staff-opt__box svg { width: 11px; height: 11px; display: block; }
+.staff-opt.is-on { border-color: var(--brand); box-shadow: 0 2px 10px rgba(243, 47, 65, .16); }
+.staff-opt.is-on .staff-opt__box { border-color: var(--brand); background: var(--brand); color: #fff; }
+/* 勾路径：d="M5 12l5 5L20 7"、stroke-width 3、stroke-linecap/linejoin round、总长 24 */
+.staff-opt__box svg path { stroke-dasharray: 24; stroke-dashoffset: 24; }
+.staff-opt.is-on .staff-opt__box svg path { stroke-dashoffset: 0; }
+
+/* ⑩ 正向：点选（A6）—— 立刻变红，勾随后画出（animation delay = 变红时长） */
+.staff-opt__box.is-draw { background: var(--brand); border-color: var(--brand); color: #fff; }
+.staff-opt__box.is-draw svg path {
+  animation: spCheckDraw var(--sp-check-draw) linear var(--sp-check-red) both;
+}
+/* ⑪ 反向：取消（A7）—— 先收勾再褪红（反序），时长减半 */
+.staff-opt__box.is-undraw {
+  background: #fff; border-color: #D6D6D6; color: transparent;
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+.staff-opt__box.is-undraw svg path { animation: spCheckUndraw var(--sp-uncheck-draw) linear both; }
+@keyframes spCheckDraw   { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+@keyframes spCheckUndraw { from { stroke-dashoffset: 0; }  to { stroke-dashoffset: 24; } }
+
+/* ⑫ 反向「整卡红色快速淡出」—— **三处必须反超 .is-on**（不反超 = 红底纹丝不动、只在落定那一帧硬切） */
+/* 12a. 勾选框：.staff-opt.is-on .staff-opt__box (0,3,0) 压过 .staff-opt__box.is-undraw (0,2,0) */
+.staff-opt.is-on .staff-opt__box.is-undraw { background: #fff; border-color: #D6D6D6; color: transparent; }
+/* 12b. 选项卡红边 / 红投影：来自 .staff-opt.is-on (0,2,0) → 用 (0,3,0) 反超 */
+.staff-opt.is-on.is-undraw {
+  border-color: #E8E8E8;
+  box-shadow: 0 2px 8px rgba(26, 26, 26, .06);
+  transition: border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+/* 12c. 「顾客指定」卡未勾选时本身就带淡红边，取消后回它自己的基线色（不要统一变灰） */
+.staff-opt--extra.is-on.is-undraw { border-color: rgba(243, 47, 65, .18); }
+
+/* ⑬ 员工卡粉底：渐变**不可插值**，故垫一层同色 background-color（必须排在 gradient 之后） */
+.staff-card.is-done .staff-card__panel { background-color: #FFF5F5; }
+
+/* ══════════ ⑭ 选项卡入场（A4，逐张延迟 0/35/70/105ms） ══════════ */
+.staff-card.is-splitting .staff-opt { animation: staffRoleSplit .38s cubic-bezier(.34,1.3,.64,1) both; }
+.staff-card.is-splitting .staff-opt:nth-child(1) { animation-delay: 0ms; }
+.staff-card.is-splitting .staff-opt:nth-child(2) { animation-delay: 35ms; }
+.staff-card.is-splitting .staff-opt:nth-child(3) { animation-delay: 70ms; }
+.staff-card.is-splitting .staff-opt:nth-child(4) { animation-delay: 105ms; }
+@keyframes staffRoleSplit {
+  from { opacity: 0; transform: scaleX(.42) scaleY(.92); }
+  to   { opacity: 1; transform: scaleX(1) scaleY(1); }
+}
+
+/* ══════════ ⑮ 收缩态卡面三件套 + 摘要（A11） ══════════ */
+.staff-card__avatar {
+  width: 40px; height: 40px; border-radius: 20px; object-fit: cover;
+  background: var(--brand-soft); flex-shrink: 0; box-shadow: 0 0 0 2px #fff;
+}
+.staff-card.is-done .staff-card__avatar { box-shadow: 0 0 0 2px #FFE0E3; }
+.staff-card__avatar--ph {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 600; color: var(--brand);
+}
+.staff-card__name {
+  font-size: 12px; font-weight: 500; line-height: 1.25; text-align: center;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.staff-card__title {
+  font-size: 10px; font-weight: 400; line-height: 1.2; color: var(--text-sec);
+  text-align: center; max-width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.staff-card__title--pick {
+  font-size: 11px; font-weight: 600; color: var(--brand); letter-spacing: .01em;
+  animation: staffMetaIn .36s cubic-bezier(.22,.82,.24,1);
+}
+/* 「只勾顾客指定」态卡片第三行的红字 */
+.staff-card__pick-x { color: var(--brand); }
+@keyframes staffMetaIn {
+  0%   { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ══════════ ⑯ 入口行 / 已选摘要行（在页面上，不在 Sheet 里） ══════════ */
+.detail-staff-entry {
+  width: 100%; display: flex; align-items: center; gap: 8px;
+  padding: 12px 0; border: none; background: transparent;
+  font-family: inherit; color: inherit; cursor: pointer; text-align: left; box-sizing: border-box;
+}
+.detail-staff-entry__lbl { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; color: #1A1A1A; }
+.detail-staff-entry__val { flex-shrink: 0; font-size: 13px; color: var(--text-sec); }
+.detail-staff-entry__val.has-staff { color: var(--brand); font-weight: 500; }
+.detail-staff-entry .chev.ui-icon {
+  color: var(--text-sec); flex-shrink: 0; width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.detail-staff-summary { display: flex; flex-direction: column; gap: 8px; padding: 0 0 4px; }
+.detail-staff-summary__row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: #FFFFFF; border: 1px solid #EDEDED;
+  border-radius: 10px; box-sizing: border-box;
+}
+.detail-staff-summary__main { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: nowrap; gap: 8px; }
+.detail-staff-summary__name { flex-shrink: 0; font-size: 14px; font-weight: 600; color: #1A1A1A; line-height: 20px; }
+.detail-staff-summary__role { flex-shrink: 0; font-size: 13px; color: var(--text-sec); line-height: 20px; }
+.detail-staff-summary__meta {
+  flex: 1; min-width: 0; font-size: 13px; color: var(--text-sec); line-height: 20px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.detail-staff-summary__del {
+  flex-shrink: 0; width: 28px; height: 28px; border: none; border-radius: 50%;
+  background: transparent; color: #B2B2B2; cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.detail-staff-summary__del:active { background: #EBEBEB; color: #666; }
+.detail-staff-summary__del svg { width: 16px; height: 16px; display: block; }
+```
+
+> **`--brand` / `--text-sec` / `--brand-soft` 是全站变量**（`#F32F41` / `#929292` / `#FFF2F2`，见 §12.2.3），本模块直接复用，**不要在这里重新定义**。
+> **`will-change` 只给 `.staff-card` 的 `transform, width`** —— 别给 `opacity` 或整行都加（会额外开层、反而掉帧）。
+
+#### 12.3.0.11 完整 JS 清单（动效必需函数全文，可照抄）
+
+> 以下按「常量 → 状态 → 门控 → Morph → 状态变更 → 摘要 → 渲染 → 事件分派」排序。**注释保留原文**（含 BUG 根因），因为它们就是「为什么必须这么写」。
+> 变量作用域：模块 IIFE 内（`comm2.js` 是 `(function(){ … })()` 的独立模块，全部 `var` / 函数声明，**不污染全局**），只通过 `window.Comm2StaffPick` 暴露 5 个外部入口。
+
+**A. 常量**
+
+```js
+var SP_CHECK_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" ' +
+  'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"/></svg>';
+var SP_CHEV = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+  'stroke-width="2" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+
+var SP_GRID_GAP = 8;                               /* = 网格 column-gap */
+var SP_SPRING = 'cubic-bezier(.34,1.3,.64,1)';     /* 展开 Morph（iOS spring） */
+var SP_EASE_STD = 'cubic-bezier(.22,.82,.24,1)';   /* 收起 Morph（Apple 标准，= --sp-ease-std） */
+var SP_EXPAND_MS = 380;
+var SP_COLLAPSE_FALLBACK_MS = 220;                 /* --sp-collapse 的兜底（正常路径读变量） */
+var SP_CHECK_RED_FALLBACK = 60;
+var SP_CHECK_DRAW_FALLBACK = 110;
+var SP_UNCHECK_DRAW_FALLBACK = 55;                 /* 恒为 --sp-check-draw 的 1/2 */
+var SP_UNCHECK_RED_FALLBACK = 30;                  /* 恒为 --sp-check-red 的 1/2 */
+var SP_PICK_AVG = 'avg';                           /* 不分工位「服务提成」卡的哨兵值 */
+var spVibrate = 8;                                 /* spHaptic 的震动毫秒 */
+```
+
+**B. 状态模型**
+
+```js
+var spSchemeId = 'c2_flagship';
+var spState = {
+  mode: 'station',          /* 'station' 按工位 | 'avg' 不分工位 */
+  extraSplit: true,         /* 顾客指定提成开关 */
+  edit: null,               /* null | { staffId, splitting } —— 二十一次：原 `opened` 死字段已删 */
+  freshDone: {},            /* 一次性「回弹」标记：本次真的选中了谁 */
+  row: { id: '__comm2sp__', staffIds: [], staffRoles: {}, staffExtra: {}, staffChosen: {} }
+};
+
+/** 以 staffIds 为准收敛；未开顾客指定则清勾选记忆 */
+function spEnsureState() {
+  var row = spState.row;
+  if (!Array.isArray(row.staffIds)) row.staffIds = [];
+  if (!row.staffRoles || typeof row.staffRoles !== 'object') row.staffRoles = {};
+  if (!row.staffExtra || typeof row.staffExtra !== 'object') row.staffExtra = {};
+  if (!row.staffChosen || typeof row.staffChosen !== 'object') row.staffChosen = {};
+  ['staffRoles', 'staffChosen', 'staffExtra'].forEach(function (k) {
+    Object.keys(row[k]).forEach(function (sid) {
+      if (row.staffIds.indexOf(sid) < 0) delete row[k][sid];
+    });
+  });
+  row.staffIds.forEach(function (sid) {
+    if (typeof row.staffExtra[sid] !== 'boolean') row.staffExtra[sid] = false;
+    if (typeof row.staffChosen[sid] !== 'boolean') row.staffChosen[sid] = false;
+  });
+  if (!spNeedExtra()) {
+    Object.keys(row.staffExtra).forEach(function (sid) { row.staffExtra[sid] = false; });
+  }
+}
+
+function spNeedStation() { return spState.mode === 'station'; }
+function spNeedExtra() { return !!spState.extraSplit; }
+function spNeedsPick() { return spNeedStation() || spNeedExtra(); }   /* false = 态4：点卡即选 */
+function spIsAvg() { return !spNeedStation(); }
+function spStaffIsChosen(sid) {
+  var row = spState.row;
+  return !!row.staffChosen[sid] && row.staffIds.indexOf(sid) >= 0;
+}
+function spBasePicked(sid) { return !!spState.row.staffRoles[sid]; }
+function spExtraOnly(sid) {
+  var row = spState.row;
+  if (!spNeedExtra() || row.staffExtra[sid] !== true) return false;
+  return !spBasePicked(sid) && row.staffIds.indexOf(sid) >= 0;
+}
+function spReduceMotion() {
+  return typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+function spHaptic() {
+  try { if (navigator.vibrate) navigator.vibrate(spVibrate); } catch (e) { /* ignore */ }
+}
+```
+
+**C. 门控状态机（A13 的核心实现）**
+
+```js
+/** 读 :root 变量 → 毫秒数（支持 ms / s）。**与 CSS 同源，不要写死** */
+function spCssMs(name, fallback) {
+  try {
+    var raw = String(getComputedStyle(document.documentElement).getPropertyValue(name) || '').trim();
+    var m = /^([\d.]+)(ms|s)$/.exec(raw);
+    if (!m) return fallback;
+    return m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
+  } catch (e) { return fallback; }
+}
+function spCheckMs()   { return spCssMs('--sp-check-red', SP_CHECK_RED_FALLBACK)
+                              + spCssMs('--sp-check-draw', SP_CHECK_DRAW_FALLBACK); }        /* 170 */
+function spUncheckMs() { return spCssMs('--sp-uncheck-draw', SP_UNCHECK_DRAW_FALLBACK)
+                              + spCssMs('--sp-uncheck-red', SP_UNCHECK_RED_FALLBACK); }      /*  85 */
+function spCheckMsFor(on) { return on ? spCheckMs() : spUncheckMs(); }
+
+var spGate = { checkUntil: 0, morphUntil: 0, timer: 0, floorTimer: 0, token: null };
+function spGateBusy() { return Date.now() < Math.max(spGate.checkUntil, spGate.morphUntil); }
+
+/** 勾选控件（+ 其 svg path）上正在跑的动画 */
+function spCheckAnims(root) {
+  var out = [];
+  var push = function (el) {
+    if (!el || typeof el.getAnimations !== 'function') return;
+    el.getAnimations().forEach(function (a) { out.push(a); });
+  };
+  if (!root) return out;
+  push(root);
+  if (root.querySelector) push(root.querySelector('svg path'));
+  return out;
+}
+
+/** 抢断用：把进行中的勾**立即补画到终点**（勾不会停在半路） */
+function spSnapChecks() {
+  var root = spEl('comm2StaffSheetRoot');
+  if (!root || !root.querySelectorAll) return;
+  Array.prototype.slice.call(root.querySelectorAll('.is-draw, .is-undraw')).forEach(function (el) {
+    spCheckAnims(el).forEach(function (a) { try { a.finish(); } catch (e) { /* ignore */ } });
+  });
+}
+
+/** 等动效**真正播完**再执行一次状态变更（收起 / 展开）。
+    判定 = 「所有相关 animation.finished 全 resolve」**且**「已过 minMs 名义时长」，取长者。 */
+function spGateAfter(roots, apply, minMs) {
+  if (spReduceMotion()) { apply(); return null; }
+  var list = Array.isArray(roots) ? roots : [roots];
+  var floor = minMs || 0;
+  var tok = { done: false };
+  tok.fire = function () {
+    if (tok.done) return;
+    tok.done = true;
+    if (spGate.token === tok) spGate.token = null;
+    if (spGate.timer) { clearTimeout(spGate.timer); spGate.timer = 0; }
+    if (spGate.floorTimer) { clearTimeout(spGate.floorTimer); spGate.floorTimer = 0; }
+    spGate.checkUntil = 0;
+    apply();
+  };
+  var anims = [];
+  list.forEach(function (r) { spCheckAnims(r).forEach(function (a) { anims.push(a); }); });
+  var animsDone = !anims.length;
+  var floorDone = !floor;
+  if (animsDone && floorDone) { tok.fire(); return tok; }
+  var maybe = function () { if (animsDone && floorDone) tok.fire(); };
+  spGate.token = tok;
+  /* 兜底上限取**较长**的正向单轮（170ms）—— 反向更短，故 spCheckMs() 恒为上界 */
+  var guard = Math.max(spCheckMs() + 300, floor + 300);
+  spGate.checkUntil = Date.now() + guard;
+  spGate.timer = setTimeout(tok.fire, guard);        /* 动画被取消 / 不触发也能落定 */
+  if (!animsDone) {
+    var left = anims.length;
+    anims.forEach(function (a) {
+      var one = function () { if (--left === 0) { animsDone = true; maybe(); } };
+      try { a.finished.then(one, one); } catch (e) { one(); }
+    });
+  }
+  if (!floorDone) {
+    spGate.floorTimer = setTimeout(function () { spGate.floorTimer = 0; floorDone = true; maybe(); }, floor);
+  }
+  return tok;
+}
+
+/** 展开 Morph 占用门：Morph 播完前不接受收起。**独立于勾选门控，抢断不清除** */
+function spGateHoldOnly(ms) {
+  var wait = spReduceMotion() ? 0 : ms;
+  if (!wait) return;
+  spGate.morphUntil = Math.max(spGate.morphUntil, Date.now() + wait);
+}
+
+/** 抢断：先补画勾，再立即落定本次状态变更 */
+function spGateFlush() {
+  var tok = spGate.token;
+  if (spGate.timer) { clearTimeout(spGate.timer); spGate.timer = 0; }
+  if (spGate.floorTimer) { clearTimeout(spGate.floorTimer); spGate.floorTimer = 0; }
+  spGate.checkUntil = 0;
+  spGate.token = null;
+  spSnapChecks();
+  if (tok) tok.fire();
+}
+
+/** 动效期间的交互：抢断后立即执行（点击不丢失） */
+function spIntend(fn) {
+  if (spGateBusy()) spGateFlush();
+  fn();
+  return true;
+}
+```
+
+**D. 两段 Morph（A1 展开 / A2 收起）**
+
+```js
+/** 展开：被点卡片横向撑满整行（3 列宽），行内其余卡片**瞬时**淡出 */
+function spAnimateStaffMorphLayout(grid) {
+  if (!grid) return;
+  var token = (grid._staffMorphToken = (grid._staffMorphToken || 0) + 1);
+  var cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > .staff-card'));
+  var editing = cards.filter(function (c) { return c.classList.contains('is-editing'); })[0];
+  var reduce = spReduceMotion();
+
+  cards.forEach(function (c) {                       /* 全部归零到起始态 */
+    c.classList.remove('is-expanding', 'is-row-muted');
+    c.style.transition = 'none';
+    c.style.transform = '';
+    c.style.width = '';
+    c.style.zIndex = '';
+  });
+  grid.classList.toggle('is-morphing', !!editing);
+
+  if (!editing) {                                    /* 无展开卡：只清干净 */
+    requestAnimationFrame(function () {
+      if (grid._staffMorphToken !== token) return;
+      cards.forEach(function (c) { c.style.transition = ''; });
+    });
+    return;
+  }
+
+  var gap = SP_GRID_GAP;
+  var gridW = grid.clientWidth;
+  if (gridW <= 0) return;
+  var cellW = (gridW - gap * 2) / 3;
+  var idx = cards.indexOf(editing);
+  if (idx < 0) return;
+  var col = idx % 3;
+  var rowStart = idx - col;
+  var dx = -(col * (cellW + gap));
+  var springTrans = 'transform ' + (SP_EXPAND_MS / 1000) + 's ' + SP_SPRING +
+    ', width ' + (SP_EXPAND_MS / 1000) + 's ' + SP_SPRING;
+
+  var muteRow = function (on) {                      /* 同行其余卡：去重，排除自己 */
+    for (var i = 0; i < 3; i++) {
+      var card = cards[rowStart + i];
+      if (!card || card === editing) continue;
+      card.classList.toggle('is-row-muted', on);
+    }
+  };
+  var applyFinalLayout = function (withTransition) {
+    editing.style.transition = withTransition === false ? 'none' : springTrans;
+    editing.style.width = gridW + 'px';
+    editing.style.transform = 'translateX(' + dx + 'px)';
+    editing.style.zIndex = '6';
+    muteRow(true);
+  };
+
+  /* 已展开卡片的重绘（勾选态更新）：不重播入场动画，直接落位
+     注（二十一次）：原 `alreadyOpen`（读 `is-opened`）分支已随 `edit.opened` 死字段删除 —— 该位恒为 false，分支永不进入 */
+  editing.style.zIndex = '6';
+  if (reduce) {
+    editing.classList.add('is-expanding');
+    applyFinalLayout(false);
+    return;
+  }
+  /* 真正的展开：先落起始态 → 强制 reflow → 次帧再改目标值（否则过渡不触发） */
+  editing.style.width = cellW + 'px';
+  editing.style.transform = 'translateX(0)';
+  void grid.offsetWidth;
+
+  requestAnimationFrame(function () {
+    if (grid._staffMorphToken !== token) return;
+    editing.classList.add('is-expanding');
+    applyFinalLayout();
+  });
+}
+
+function spCollapseMs() {
+  var root = document.documentElement;
+  if (!root) return SP_COLLAPSE_FALLBACK_MS;
+  var v = getComputedStyle(root).getPropertyValue('--sp-collapse');
+  var n = parseFloat(v);
+  return isNaN(n) ? SP_COLLAPSE_FALLBACK_MS : (v.indexOf('ms') > 0 ? n : n * 1000);
+}
+function spCollapseTarget() {
+  var root = spEl('comm2StaffSheetRoot');
+  if (!root) return null;
+  var grid = root.querySelector('.staff-grid');
+  if (!grid) return null;
+  var card = grid.querySelector(':scope > .staff-card.is-editing');
+  if (!card) return null;
+  var cards = Array.prototype.slice.call(grid.querySelectorAll(':scope > .staff-card'));
+  return { grid: grid, card: card, cards: cards };
+}
+/** 收起 Morph（A2 展开 Morph 的镜像，更快更干脆）。done **只被调用一次**。 */
+function spCollapseMorph(done) {
+  var t = spReduceMotion() ? null : spCollapseTarget();
+  if (!t) { done(); return; }                        /* 降级 / 无展开卡：直接落定 */
+  var gridW = t.grid.clientWidth;
+  var idx = t.cards.indexOf(t.card);
+  if (gridW <= 0 || idx < 0) { done(); return; }
+  var cellW = (gridW - SP_GRID_GAP * 2) / 3;
+  var col = idx % 3;
+  var ms = spCollapseMs();
+  var sec = (ms / 1000) + 's';
+  var trans = 'transform ' + sec + ' ' + SP_EASE_STD + ', width ' + sec + ' ' + SP_EASE_STD;
+
+  /* 同行其余卡淡入回（淡出是瞬时的，淡入给 220ms —— 刻意不对称） */
+  for (var i = 0; i < 3; i++) {
+    var c = t.cards[idx - col + i];
+    if (!c || c === t.card) continue;
+    c.style.transition = 'opacity ' + sec + ' ' + SP_EASE_STD;
+    c.classList.remove('is-row-muted');
+  }
+  t.card.classList.add('is-collapsing');             /* → 下层卡面淡入 + 选项卡整体淡出 */
+  t.card.style.zIndex = '6';
+  t.card.style.transition = trans;
+  void t.card.offsetWidth;                           /* 先落起始态（gridW / dx），再改目标值 */
+  t.card.style.width = cellW + 'px';
+  t.card.style.transform = 'translateX(0)';
+
+  var fired = false;
+  var finish = function () {
+    if (fired) return;
+    fired = true;
+    t.card.style.transition = 'none';
+    done();
+  };
+  t.card.addEventListener('transitionend', function (e) {
+    if (e && e.propertyName === 'width') finish();   /* 认 width，不认 transform（同时跑） */
+  });
+  setTimeout(finish, ms + 40);                       /* 兜底：transition 被取消也能落定 */
+}
+```
+
+**E. 待落定意图（收起 / 展开的唯一出口）**
+
+```js
+var spEditSeq = 0;
+/** 同一时刻只认最后一次意图（后到覆盖先到），避免「先收起、随后又被旧意图展开」 */
+function spEditChange(mutator, collapse) {
+  var seq = ++spEditSeq;
+  var commit = function () { mutator(); spHaptic(); spRedraw(); };
+  var attempt = function () {
+    if (seq !== spEditSeq) return;                   /* 已被更新的意图取代 */
+    var until = Math.max(spGate.checkUntil, spGate.morphUntil);
+    var busy = spReduceMotion() ? 0 : Math.max(0, until - Date.now());
+    if (busy > 0) { setTimeout(attempt, busy + 20); return; }   /* 轮询等门空 */
+    if (collapse && spCollapseTarget()) {            /* 收起且有展开卡 → 先播反向 Morph */
+      spGateHoldOnly(spCollapseMs());
+      spCollapseMorph(function () {
+        if (seq !== spEditSeq) return;
+        commit();
+      });
+      return;
+    }
+    commit();
+  };
+  var wait = spReduceMotion() ? 0 : Math.max(0, spGate.morphUntil - Date.now());
+  if (wait > 0) setTimeout(attempt, wait); else attempt();
+}
+function spApplyEdit(next) {
+  spEditChange(function () { spState.edit = next; }, next === null);
+}
+```
+
+**F. 勾选动效播放（A6 / A7 / A8）**
+
+```js
+/** 反向时的「宿主卡片」：十九次起恒为展开态选项卡 */
+function spCheckHost(el) {
+  if (!el || typeof el.closest !== 'function') return null;
+  return el.closest('.staff-opt');
+}
+/** on = 变红 + 画勾；off = 收勾 + 褪红（反序），且宿主卡片红色**同步快速淡出** */
+function spPlayCheck(el, on) {
+  if (!el || spReduceMotion()) return;
+  var host = spCheckHost(el);
+  el.classList.remove('is-draw', 'is-undraw');       /* 同一张卡上不并存两个方向 */
+  if (host) host.classList.remove('is-undraw');
+  void el.offsetWidth;                               /* 同帧重启动画 */
+  el.classList.add(on ? 'is-draw' : 'is-undraw');
+  if (!on && host) host.classList.add('is-undraw');
+}
+function spOptBoxEl(sid, key) {
+  var root = spEl('comm2StaffSheetRoot');
+  if (!root || !sid || !key) return null;
+  var btn = root.querySelector('[data-staff-opt="' + key + '"][data-staff-id="' + sid + '"]');
+  return btn ? btn.querySelector('.staff-opt__box') : null;
+}
+/** 点展开态选项卡。**切换工位 = 并行「红色交接」**：新卡立刻 170ms 正向，旧卡同时 85ms 反向 */
+function spTapOption(sid, key) {
+  if (!sid || !key) return;
+  if (!spState.edit || spState.edit.staffId !== sid) return;
+  if (spGateBusy()) spGateFlush();                   /* 抢断：先把勾补画成完整态 */
+  var opt = spOptionByKey(key);
+  if (!opt) return;
+  var checked = spOptionChecked(sid, opt);
+  var prevKey = opt.kind === 'role' ? spState.row.staffRoles[sid] : null;
+  var prevBox = (prevKey && prevKey !== key) ? spOptBoxEl(sid, prevKey) : null;
+  if (prevBox) {                                     /* 换工位：两路并行 */
+    var nextBox = spOptBoxEl(sid, key);
+    spPlayCheck(prevBox, false);
+    spPlayCheck(nextBox, true);
+    spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
+      Math.max(spCheckMs(), spUncheckMs()));
+    return;
+  }
+  /* 单轮：勾按正向 170ms、取消按反向 85ms */
+  spPlayCheck(spOptBoxEl(sid, key), !checked);
+  spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMsFor(!checked));
+}
+```
+
+**G. 状态变更（选中 / 取消 / 应用勾选）**
+
+```js
+/** 选中员工。**本函数不动 staffRoles**：提成侧由调用方先行写入 */
+function spSelectStaff(sid) {
+  var row = spState.row;
+  if (row.staffIds.indexOf(sid) < 0) row.staffIds.push(sid);
+  row.staffChosen[sid] = true;
+  spState.freshDone[sid] = true;                     /* → 下次渲染播 staffDonePop */
+}
+/** 取消员工选择：提成侧与顾客指定侧**一并清掉** */
+function spDropStaff(sid) {
+  var row = spState.row;
+  row.staffIds = row.staffIds.filter(function (x) { return x !== sid; });
+  row.staffChosen[sid] = false;
+  delete row.staffRoles[sid];
+  delete row.staffExtra[sid];
+}
+/** 应用一次勾选结果。**点任一按钮后一律收起**（`spApplyEdit(null)`），收起由门控驱动。 */
+function spApplyOptionToggle(sid, key) {
+  if (!sid || !key) return;
+  spEnsureState();
+  var row = spState.row;
+  var opt = spOptionByKey(key);
+  if (!opt) return;
+  var checked = spOptionChecked(sid, opt);
+
+  if (opt.kind === 'extra') {
+    if (checked) {                                   /* 取消「顾客指定」 */
+      row.staffExtra[sid] = false;
+      if (!spBasePicked(sid)) spDropStaff(sid);      /* 两侧皆空 → 取消该员工 */
+    } else {                                         /* 勾「顾客指定」：不要求工位/提成 */
+      row.staffExtra[sid] = true;
+      spSelectStaff(sid);
+    }
+    spApplyEdit(null);
+    return;
+  }
+  /* 提成侧（工位 / 不分工位的「提成」卡）：单选且可点掉 */
+  if (checked) {
+    delete row.staffRoles[sid];
+    if (row.staffExtra[sid] !== true) spDropStaff(sid);   /* 还有顾客指定 → 员工仍已选 */
+  } else {
+    row.staffRoles[sid] = (opt.kind === 'plain') ? SP_PICK_AVG : key;
+    spSelectStaff(sid);
+  }
+  spApplyEdit(null);
+}
+/** 态4（不分工位 + 未开顾客指定）：点卡即完成选择 / 已选再点即取消。**无选项卡、无门控** */
+function spToggleStaff(sid) {
+  if (!sid) return;
+  spEnsureState();
+  if (spStaffIsChosen(sid)) { spRemoveStaff(sid); return; }
+  spState.row.staffExtra[sid] = false;
+  spState.row.staffRoles[sid] = SP_PICK_AVG;
+  spSelectStaff(sid);
+  spState.edit = null;
+  spHaptic();
+  spRedraw();
+}
+/** 入口摘要行 × / 态4 取消 */
+function spRemoveStaff(sid) {
+  if (!sid) return;
+  spEnsureState();
+  spState.row.staffIds = spState.row.staffIds.filter(function (x) { return x !== sid; });
+  delete spState.row.staffRoles[sid];
+  delete spState.row.staffExtra[sid];
+  delete spState.row.staffChosen[sid];
+  if (spState.edit && spState.edit.staffId === sid) spState.edit = null;
+  spHaptic();
+  spRedraw();
+}
+/** 展开入口：态4 转点选；**异卡先收再展**（十九次：全部收起路径统一播 A2）；同卡收起由事件层负责 */
+function spEnterEdit(sid) {
+  spEnsureState();
+  if (!spNeedsPick()) { spToggleStaff(sid); return; }
+  if (spState.edit && spState.edit.staffId !== sid && spCollapseTarget()) {
+    spEditChange(function () {
+      spState.edit = { staffId: sid, splitting: true };
+      spGateHoldOnly(SP_EXPAND_MS);
+    }, true);
+    return;
+  }
+  spEditSeq++;                                       /* 最新意图：取消任何待落定的收起 / 展开 */
+  spState.edit = { staffId: sid, splitting: true };
+  spHaptic();
+  spGateHoldOnly(SP_EXPAND_MS);                      /* 展开 Morph 播完前不接受收起 */
+  spRedraw();
+}
+```
+
+**H. 摘要（两处口径不同）**
+
+```js
+/** 选项列表：四种组合（见 §6.2.3） */
+function spOptionList() {
+  var out = [];
+  if (spNeedStation()) {
+    spStationIds().forEach(function (rid) {
+      out.push({ key: rid, kind: 'role', label: spStationLabel(rid) });
+    });
+    if (spNeedExtra()) out.push({ key: 'extra', kind: 'extra', label: '顾客指定' });
+    return out;
+  }
+  if (spNeedExtra()) {
+    out.push({ key: SP_PICK_AVG, kind: 'plain', label: '服务提成' });   /* 仅选项卡用「服务提成」 */
+    out.push({ key: 'extra', kind: 'extra', label: '顾客指定' });
+  }
+  return out;
+}
+/** 勾选态：**提成侧与顾客指定侧各自独立**，互不推导、互不排斥 */
+function spOptionChecked(sid, opt) {
+  if (!opt) return false;
+  var row = spState.row;
+  if (opt.kind === 'extra') return row.staffExtra[sid] === true;
+  if (opt.kind === 'plain') return row.staffRoles[sid] === SP_PICK_AVG;
+  return row.staffRoles[sid] === opt.key;            /* 工位：不预选默认值 */
+}
+function spOptionByKey(key) {
+  var list = spOptionList();
+  for (var i = 0; i < list.length; i++) {
+    if (list[i].key === key) return list[i];
+  }
+  return null;
+}
+/** 摘要拆件，供纯文本 / 带样式两处共用 */
+function spSummaryParts(sid) {
+  var row = spState.row;
+  if (row.staffIds.indexOf(sid) < 0) return null;
+  var extra = row.staffExtra[sid] === true && spNeedExtra();
+  if (spNeedStation()) {
+    var rid = row.staffRoles[sid];
+    if (rid) return { miss: '', main: spStationLabel(rid), extra: extra };
+    return extra ? { miss: '无工位', main: '', extra: true } : null;
+  }
+  if (spNeedExtra()) {
+    if (row.staffRoles[sid] === SP_PICK_AVG) return { miss: '', main: '提成', extra: extra };
+    return extra ? { miss: '', main: '', extra: true } : null;
+  }
+  return null;
+}
+/** 入口摘要行（纯文本）：工位 / 工位 · 顾客指定 / 无工位 · 顾客指定 / 提成 / 提成 · 顾客指定 / 顾客指定 */
+function spSummaryText(sid) {
+  var p = spSummaryParts(sid);
+  if (!p) return '';
+  if (p.miss) return p.miss + ' · 顾客指定';
+  var out = [];
+  if (p.main) out.push(p.main);
+  if (p.extra) out.push('顾客指定');
+  return out.join(' · ');
+}
+/** 卡片第三行（带样式）：缺工位时**只画红字「顾客指定」**，不带灰前缀 */
+function spSummaryHtml(sid) {
+  var p = spSummaryParts(sid);
+  if (!p) return '';
+  if (p.miss) return '<span class="staff-card__pick-x">顾客指定</span>';
+  var out = [];
+  if (p.main) out.push(p.main);
+  if (p.extra) out.push('顾客指定');
+  return spEsc(out.join(' · '));
+}
+function spCardPickLineHtml(st, done) {
+  var jobTitle = spJobTitleHtml(st);
+  if (!done) return jobTitle;
+  if (!spNeedsPick()) return jobTitle;               /* 态4：选中后仍灰字头衔 */
+  var sum = spSummaryHtml(st.id);
+  if (!sum) return jobTitle;
+  return '<div class="staff-card__title staff-card__title--pick">' + sum + '</div>';
+}
+```
+
+**I. 渲染（含「双面」结构）**
+
+```js
+function spOptionsPanelHtml(sid) {
+  var opts = spOptionList();
+  var box = '<span class="staff-opt__box" aria-hidden="true">' + SP_CHECK_SVG + '</span>';
+  return '<div class="staff-card__opts" role="group" aria-label="选择工位或顾客指定">' +
+    opts.map(function (o) {
+      var on = spOptionChecked(sid, o);
+      return '<button type="button" class="staff-opt' + (on ? ' is-on' : '') +
+        (o.kind === 'extra' ? ' staff-opt--extra' : '') + '"' +
+        ' data-staff-opt="' + spEsc(o.key) + '" data-staff-id="' + spEsc(sid) + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        box + '<span class="staff-opt__txt">' + spEsc(o.label) + '</span>' +
+        '</button>';
+    }).join('') +
+    '</div>';
+}
+
+function spRenderPickerHtml() {
+  spEnsureState();
+  var it = spState.row;
+  var edit = spState.edit;
+  var pool = spStaffPool();
+  var cards = pool.map(function (st) {
+    var isChosen = it.staffIds.indexOf(st.id) >= 0;  /* 「只勾顾客指定」也**已计入** */
+    var done = isChosen;
+    var isEdit = !!(edit && edit.staffId === st.id);
+    var dim = !!(edit && !isEdit);
+    /* 收缩态卡面：展开卡里也渲染一份，作为收起动画的**下层**（A2）。
+       与静态收缩卡面**同一份 HTML** → 动画终点像素级一致、落定不跳 */
+    var baseBody = spAvatarHtml(st) +
+      '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
+      spCardPickLineHtml(st, done);
+    if (isEdit) {
+      return '<div class="staff-card is-editing' + (done ? ' is-done' : '') +
+        (edit.splitting ? ' is-splitting' : '') + '"' +
+        ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
+        '<div class="staff-card__panel" data-face="opts">' + spOptionsPanelHtml(st.id) + '</div>' +
+        '<div class="staff-card__panel staff-card__panel--base" data-face="base" aria-hidden="true">' +
+          baseBody + '</div>' +
+        '</div>';
+    }
+    /* 收缩态：**不再有**右侧红勾（十九次）—— 取消入口 = 展开取消勾选 / 入口摘要行 × */
+    return '<div class="staff-card' + (done ? ' is-done' : '') +
+      (isChosen && spState.freshDone[st.id] ? ' is-pop' : '') + (dim ? ' is-dim' : '') + '"' +
+      ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
+      '<button type="button" class="staff-card__panel" data-staff-card-hit data-staff-id="' + spEsc(st.id) + '"' +
+      ' aria-label="' + spEsc(st.name) + '">' + baseBody + '</button>' +
+      '</div>';
+  }).join('');
+  return '<div class="detail-item__staff-block detail-item__staff-block--cards' +
+    (edit ? ' is-picking' : '') + '">' +
+    (edit ? '<button type="button" class="staff-card-scrim" data-staff-scrim aria-label="取消选择"></button>' : '') +
+    '<div class="staff-grid' + (edit ? ' is-morphing' : '') + '">' + cards + '</div>' +
+    '</div>';
+}
+
+/** 渲染后：rAF 里跑展开 Morph；520ms 后摘 is-splitting；清 freshDone（一次性标记） */
+function spAfterStaffPickerPaint(root) {
+  requestAnimationFrame(function () {
+    var grid = root && root.querySelector ? root.querySelector('.staff-grid') : null;
+    if (grid) spAnimateStaffMorphLayout(grid);
+    if (spState.edit && spState.edit.splitting) {
+      setTimeout(function () {
+        if (spState.edit) spState.edit.splitting = false;
+        /* 第 4 张卡：延迟 105ms + 380ms ≈ 485ms 才播完，故等 520ms 再摘类 */
+        var el = root && root.querySelector ? root.querySelector('.staff-card.is-splitting') : null;
+        if (el) el.classList.remove('is-splitting');
+      }, spReduceMotion() ? 0 : 520);
+    }
+    spState.freshDone = {};                          /* 回弹已消费，后续重绘不再重播 */
+  });
+}
+```
+
+**J. 事件分派（`wire()` 中选人相关段，照抄顺序）**
+
+```js
+document.addEventListener('click', function (e) {
+  var t = e.target;
+  if (!t || typeof t.closest !== 'function') return;
+
+  if (t.closest('#comm2StaffPickBack')) { e.preventDefault(); if (window.openHub) window.openHub(); return; }
+
+  var modeBtn = t.closest('[data-comm2-sp-mode]');
+  if (modeBtn) {
+    e.preventDefault();
+    var mode = modeBtn.getAttribute('data-comm2-sp-mode') === 'station' ? 'station' : 'avg';
+    if (mode !== spState.mode) {
+      spState.mode = mode; spState.edit = null; spSyncModeButtons(); spRedraw();
+    }
+    return;
+  }
+  var extraBtn = t.closest('[data-comm2-sp-extra]');
+  if (extraBtn) {
+    e.preventDefault();
+    var gs = extraBtn.getAttribute('data-comm2-sp-extra') === '1';
+    if (gs !== spState.extraSplit) {
+      spState.extraSplit = gs; spState.edit = null; spSyncModeButtons(); spRedraw();
+    }
+    return;
+  }
+  if (t.closest('[data-open-comm2-sp-staff]')) { e.preventDefault(); spOpenSheet(); return; }
+  if (t.closest('#comm2StaffSheetDone')) { e.preventDefault(); spIntend(spCloseSheet); return; }
+
+  var mask = t.closest('#comm2StaffSheetMask');
+  if (mask && t === mask) { spIntend(spCloseSheet); return; }      /* 严格相等 */
+
+  var inSheet = t.closest('#comm2StaffSheetRoot');
+  var inScreen = t.closest('#comm2SpBlock');
+  if (!inSheet && !inScreen) return;                               /* 范围闸门：标题/提示/底栏不收起 */
+
+  if (t.closest('[data-staff-scrim]')) { spIntend(function () { spApplyEdit(null); }); return; }
+
+  var sumDel = t.closest('[data-staff-summary-del]');
+  if (sumDel) {
+    e.preventDefault(); e.stopPropagation();
+    spRemoveStaff(sumDel.getAttribute('data-staff-id'));
+    return;
+  }
+  var optBtn = t.closest('[data-staff-opt]');
+  if (optBtn) {
+    e.preventDefault(); e.stopPropagation();
+    spTapOption(optBtn.getAttribute('data-staff-id'), optBtn.getAttribute('data-staff-opt'));
+    return;
+  }
+  var staffHit = t.closest('[data-staff-card-hit]');
+  if (staffHit) {
+    e.preventDefault();
+    var hSid = staffHit.getAttribute('data-staff-id');
+    if (spState.edit && spState.edit.staffId === hSid) {
+      spIntend(function () { spApplyEdit(null); });                /* 同卡 → 收起 */
+      return;
+    }
+    spIntend(function () { spEnterEdit(hSid); });                  /* 异卡 → 先收再展 */
+    return;
+  }
+  /* 兜底：编辑卡自身空白 / 选项行间隙 / 卡片区空白 */
+  if (spState.edit) { e.preventDefault(); spIntend(function () { spApplyEdit(null); }); }
+});
+```
+
+**K. 外部入口（只暴露这些）**
+
+```js
+window.Comm2StaffPick = {
+  open: spOpen,                 /* 跳到「选择服务员工」页 */
+  closeSheet: spCloseSheet,     /* 关闭 Sheet（spEditSeq++ 取消待落定） */
+  dismiss: function () { var m = spEl('comm2StaffSheetMask'); if (m) m.classList.remove('open'); spState.edit = null; },
+  setMode: function (mode) { spState.mode = mode === 'station' ? 'station' : 'avg'; spState.edit = null; spSyncModeButtons(); spRenderScreen(); },
+  setExtraSplit: function (on) { spState.extraSplit = !!on; spState.edit = null; spSyncModeButtons(); spRenderScreen(); },
+  setGuestSplit: function (on) { this.setExtraSplit(on); },   /* 兼容旧抓取脚本命名 */
+  getStaffCount: function () { return (spState.row.staffIds || []).length; },
+  getSchemeName: spCurrentSchemeName
+};
+```
+
+> **`spOpenSheet()` / `spCloseSheet()` 的清理是还原的关键**：打开时 `spState.edit = null` + `freshDone = {}`（**开场不播回弹**，已选卡静态呈现）；关闭时先 **`spEditSeq++`**（作废所有待落定的收起 / 展开）再清 `edit`，否则「刚点完选项立即关 Sheet」会让收起动画在关掉的 Sheet 上空跑。
+
+#### 12.3.0.12 反例清单（真实踩过的坑，全部有实测）
+
+| # | 反例（如果你这么做） | 现象（实测） | 正确做法 |
+|:--:|------|------|------|
+| 1 | 用 `.staff-opt__box.is-undraw`(0,2,0) 去盖 `.staff-opt.is-on .staff-opt__box`(0,3,0) | 取消时红底**纹丝不动**，26→276ms 恒为纯红 `rgb(243,47,65)`，只在落定那一帧硬切 | 用 (0,3,0) 组合选择器反超（§12.3.0.10 ⑫） |
+| 2 | 直接对 `linear-gradient` 做 `background` 过渡 | 粉底**硬切**（渐变不可插值） | 垫一层同色 `background-color`，先摘渐变（同色 → 肉眼无感）再过渡底色 |
+| 3 | 把 `animation` 写在基础类 `.staff-card.is-done` 上 | 选完 A 再选 B，A 的卡**又弹一遍**「噗噗」 | 一次性标记 `.is-pop`，渲染后立即清 `freshDone` |
+| 4 | 用固定 `setTimeout(170)` 当门控 | 主线程卡顿 → **没播完就收起**、勾停在半路 | `animation.finished` **且** 名义时长取长 + 兜底（`spGateAfter`） |
+| 5 | 换工位串行：`spUncheckMs()` 后再 `spCheckMs()` | 旧卡红先淡、新卡才画勾，观感**断成两截**（落定 267ms） | 两路**并行**，落定取 `max(170, 85) = 170` |
+| 6 | 照 PRD 早期说法去消费 `--staff-origin` 做「从卡片所在侧展开」 | 与原型**不一致**：该变量**从未被消费过**（已删除，见 §12.10 偏差 3），实测 `.staff-opt` 的 `transform-origin` = 自身中心（`38.75px 48px`） | **不消费**；要改属**变更**，须双处同步并标注 |
+| 7 | 收起时只渲染 `.staff-card__opts`，重绘再出收缩卡面 | 「选项卡淡完 → **空卡** → 啪地跳出头像 / 姓名」 | 展开卡**双层并存** + 交叉淡入淡出；下层与静态收缩卡面**同一份 HTML** |
+| 8 | 展开 Morph 忘「先落起始态 + `void offsetWidth`」 | 过渡**不触发**（直接硬切到终态） | 先写 `cellW` / `translateX(0)` → 强制 reflow → 次帧再写终态 |
+| 9 | `is-row-muted` 的淡出也给过渡 | 展开时同行卡慢悠悠淡出，拖沓 | 展开淡出**瞬时**，收起淡入 `220ms`（**刻意不对称**） |
+| 10 | `transitionend` 不判 `propertyName` | 收起时 `transform` 先结束 → **提前落定**，宽度还在缩 | 只认 `propertyName === 'width'`，并用 `fired` 去重 |
+| 11 | 降级只写 `transition: none`，不管可见性 | `prefers-reduced-motion` 下**选项区整体隐形**（`opacity: 0` 基线没被覆盖） | 显式 `opacity: 1; visibility: visible`（§12.3.0.10 ⑧） |
+| 12 | 事件分派里把 `[data-staff-opt]` 排在兜底之后 | 点选项被兜底收起抢走，**勾不画** | 顺序照抄 §12.3.0.7；兜底必须最后 |
+| 13 | `.is-picking` 下没给 `.staff-grid` 加 `pointer-events: none` | scrim 在 grid **之下**，点空白**收不起来** | `is-picking .staff-grid { pointer-events: none }` + `.is-editing { pointer-events: auto }` |
+| 14 | 关闭 Sheet 判定写 `closest('#comm2StaffSheetMask')` | 点 Sheet **内部**也把整个 Sheet 关掉 | 严格相等 `t === mask` |
+| 15 | 在 `spSelectStaff()` 里顺手写 `staffRoles` | 「只勾顾客指定」被塞进一个工位 → 落到**错误的计提口径**（多算提成） | `spSelectStaff` **只动 `staffIds` / `staffChosen` / `freshDone`** |
+| 16 | 重绘前不清临时类与内联样式 | `is-draw` / `is-collapsing` / 内联 `width` 残留 → 下次展开宽度直接是错的 | 每次 Morph 开头把 `transition` / `width` / `transform` / `zIndex` 全归零并摘类 |
+
+#### 12.3.0.13 边界与异常用例（还原时逐条验）
+
+| # | 场景 | 期望行为 |
+|:--:|------|------|
+| 1 | 展开中快速连点**两张不同**员工卡 | 只认最后意图（`spEditSeq`）；**不会出现两张展开卡**；首次收起播完即作废 |
+| 2 | 展开中连点**两个不同**选项 | 抢断：第一次的勾**补画到终点**，第二次立即播；最终状态 = 第二次 |
+| 3 | 勾选中途点 `scrim` | 抢断 + 立即收起；勾**不停在半画** |
+| 4 | 勾选中途点「完成」/ Sheet 遮罩 | Sheet 关闭；收起动画因 `spEditSeq++` 作废（空跑一次 `commit` 被拦）；不报错、不残留 |
+| 5 | 展开中切换分配模式 / 顾客指定开关 | `edit = null` 立即重绘；**无残留内联样式** |
+| 6 | 员工数 5 / 7（末行不足 3 张） | `col = idx % 3` 仍正确；展开卡始终从**第一列**起、宽 `gridW` |
+| 7 | 展开末行某张卡 | `dx` 按**列号**算，**不依赖 `getBoundingClientRect()`** |
+| 8 | `prefers-reduced-motion: reduce` | 全部瞬时落终态；**选项区可见**；勾落终点（`is-draw → 0` / `is-undraw → 24`） |
+| 9 | 动效中途改系统「减少动态」 | `matchMedia` **每次现读**（不缓存）→ 下一次交互即降级 |
+| 10 | `gridW <= 0`（Sheet 关着 / `display:none` / 未布局完） | `spCollapseMorph` / Morph 直接 `done()`；退化为硬切，**不抛错** |
+| 11 | 员工池为空 | `cards` 为空串，卡片区容器仍在；无报错 |
+| 12 | 规则未开顾客指定但 `staffExtra` 有残留 | `spEnsureState()` 统一置 `false` |
+| 13 | 已选员工不在当前员工池（已删员工） | 入口摘要行仍渲染（`st` 为 `null` → 退化为显示 id） |
+| 14 | 同一张卡连点 3 次（展开 → 收起 → 展开） | 每次都是新 `seq`，最终为展开；`is-collapsing` **不残留** |
+| 15 | 收起动画期间点另一张卡 | 收起 `seq` 作废；旧卡内联样式由下次 `spAnimateStaffMorphLayout` 归零 |
+| 16 | 动效中切到别的页面 / 关掉整个预览 | 无 JS 报错（所有定时器与 token 都有 `seq` 守卫） |
+
+#### 12.3.0.14 还原自查清单（交付前逐项打勾）
+
+- [ ] `:root` 六个变量齐备；把 `--sp-collapse` 改成 `500ms`，**收起时长跟着变**（证明 JS 读变量，非写死）
+- [ ] `--sp-uncheck-draw` / `--sp-uncheck-red` **恰为** `--sp-check-draw` / `--sp-check-red` 的 `1/2`
+- [ ] 收缩态员工卡**无任何勾选控件**（无 `.staff-card__tick` / `[data-staff-tick]` / 右上角 ×）
+- [ ] 展开卡**两层面板都存在**，`data-face="opts"` 与 `data-face="base"` 齐全
+- [ ] 下层 `panel--base` 的 HTML 与静态收缩卡面**逐字节一致**
+- [ ] 展开：卡宽 `cellW → gridW`、`translateX(0) → dx`、同行卡 `is-row-muted` **瞬时**淡出、`380ms` spring
+- [ ] 收起：`is-collapsing` 存活 **≈220ms**；卡宽回 `cellW`、`translateX → 0`；两层交叉；同行卡 `220ms` 淡入回
+- [ ] 收起**四条路径都播动画**：点选项卡 / 点 `scrim` / 点编辑卡空白 / 点另一张卡
+- [ ] 勾选 `0 → 170ms`；取消 `0 → 85ms`；换工位**并行**、落定 `170ms`
+- [ ] **点任一选项后一律收起**（含「按工位」下只点「顾客指定」）
+- [ ] 只勾「顾客指定」：**计入已选**、卡片第三行**红字「顾客指定」**（无灰前缀）
+- [ ] 同一状态下**入口摘要行**为「无工位 · 顾客指定」（与卡片不同 —— **刻意**，别「修」成一致）
+- [ ] 回弹 `is-pop` **只播一次**；重绘（如再选别人）不重播
+- [ ] `prefers-reduced-motion` 下：选项区可见、勾落终点、无过渡、无 Morph
+- [ ] 重绘后**无残留**：`is-draw` / `is-undraw` / `is-collapsing` / `is-expanding` / `is-row-muted` / 内联 `transition`·`width`·`transform`·`zIndex`
+- [ ] 事件 `closest` 顺序与 §12.3.0.7 表**逐行一致**；兜底在最后
+- [ ] `.is-picking` 下 `.staff-grid` 有 `pointer-events: none`，`.is-editing` 有 `pointer-events: auto`
+- [ ] 不存在 `--staff-origin` / `data-origin` / `data-outside-close` 三个**死属性**，也不存在 `.is-opened` 这个**死类**（`spState.edit` 里没有 `opened` 字段）—— 二十一次已从原型删除（见 §12.10 偏差 2 / 3 / 4），还原时不要写回去
 
 ### A1 · 网格 Morph 展开（收起态员工卡 → 整行勾选卡）
 
@@ -1932,9 +3379,9 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 | 触发 | 点击收缩态员工卡；且该员工需二次选择（`按工位` 或 `开顾客指定`，即 `pickMode=station` 或 `extraSplit=true`） |
 | 起始态（同帧，过渡关闭） | 被点卡 `width = cellW`、`transform: translateX(0)`、`transition: none`；网格内**所有**卡 `transition: none`，并清掉 `is-expanding` / `is-row-muted` / 内联 `transform`/`width`/`z-index` |
 | 过程（次帧 rAF） | ① 加 `is-expanding`；② 过渡改 `transform 380ms cubic-bezier(.34,1.3,.64,1), width 380ms cubic-bezier(.34,1.3,.64,1)`；③ `width → gridW`、`transform → translateX(dx)`、`z-index: 6` |
-| 几何 | `cellW = (gridW − 列间距×2) / 3`；`dx = −(列号 × (cellW + 列间距))`；列号 = 卡序号 `% 3`。390 画布实测：`gridW 332` / `cellW 105.33` / `dx = 0 / −113.33 / −226.67` |
+| 几何 | `cellW = (gridW − 列间距×2) / 3`；`dx = −(列号 × (cellW + 列间距))`；列号 = 卡序号 `% 3`。390 画布实测（**二十次更正**）：`gridW 334` / `cellW 106` / `dx = 0 / −114 / −228` |
 | 并行 | 同行其余卡加 `is-row-muted`（**瞬时**，见 A3）；`.staff-opt` 分裂入场（A4）；`.staff-card__opts` 淡入（A5） |
-| 结束态 | 卡宽 = `gridW`（332），`translateX = dx`，`is-expanding` 常驻；网格保留 `is-morphing` |
+| 结束态 | 卡宽 = `gridW`（334），`translateX = dx`，`is-expanding` 常驻；网格保留 `is-morphing` |
 | 时长 / 缓动 | `380ms` / iOS spring |
 | **可中断** | **否**。Morph 期间点卡片外 / 完成 / 另一张卡 → **只记录意图**，等 380ms 播完再收起（实测收起发生在 402ms）。**不得**在 Morph 中途收起 |
 | 降级 | 立即落位（无 Morph） |
@@ -1973,9 +3420,9 @@ requestAnimationFrame(function () {
 | 字段 | 内容 |
 |------|------|
 | 触发 | **四条路径共用同一套实现**：①勾选完成落定；②点 `scrim`；③点编辑卡自身空白 / 选项行间隙；④点**另一张员工卡**（先收当前、再展开新的）。另：点掉工位 / 点掉「服务提成」而员工不再已选时，也在勾选动效播完后走本动画 |
-| 起始态 | 卡宽 = `gridW`（332）、`transform: translateX(dx)`、`z-index: 6`；**两层并存**：上层 `.staff-card__panel[data-face="opts"]`（`z-index: 1`，`opacity: 1`）、下层 `.staff-card__panel--base`（`position: absolute; inset: 0; z-index: 0`，`opacity: 0`）—— 下层就是**收缩态卡面**（头像 + 姓名 + 头衔/摘要），故收起过程中层级关系与展开时一致，只是「换了一层」 |
+| 起始态 | 卡宽 = `gridW`（334）、`transform: translateX(dx)`、`z-index: 6`；**两层并存**：上层 `.staff-card__panel[data-face="opts"]`（`z-index: 1`，`opacity: 1`）、下层 `.staff-card__panel--base`（`position: absolute; inset: 0; z-index: 0`，`opacity: 0`）—— 下层就是**收缩态卡面**（头像 + 姓名 + 头衔/摘要），故收起过程中层级关系与展开时一致，只是「换了一层」 |
 | 过程（同一帧加同一组过渡） | 加 `is-collapsing`；过渡 = `transform 220ms var(--sp-ease-std), width 220ms var(--sp-ease-std), opacity 220ms var(--sp-ease-std)`；①`width → cellW`、`transform → translateX(0)`；②上层 `opacity → 0`（淡出）、下层 `opacity → 1`（淡入）**交叉进行**（两条 `220ms` 同起同落，不是「先淡出再淡入」）；③**摘掉同行其余卡的 `is-row-muted`** 并给它们挂 `opacity 220ms` 过渡（`0 → 1` **淡入回**） |
-| 几何 | 与 A1 反向对称：`cellW = (gridW − 8×2) / 3 = 105.33`；`dx → 0`。390 画布实测宽度采样共 **16 个中间值**：`334 → 301 → … → 106` |
+| 几何 | 与 A1 反向对称：`cellW = (gridW − 8×2) / 3 = 106`；`dx → 0`。390 画布实测宽度采样共 **16 个中间值**：`334 → 301 → … → 106` |
 | 结束态 | **一层卡面**：只有 `.staff-card__panel`（无 `[data-face]`、无 `.staff-opt`）、无 `is-collapsing` / `is-expanding` / `is-row-muted` / 内联 `transition`；已选则保留 `is-done`（粉底 + 粉描边 + 头像粉圈，**无勾选控件**）。终点必须与静态收缩卡面**像素级一致**（落定那一帧不跳） |
 | 时长 / 缓动 | `--sp-collapse: 220ms` / Apple 标准 `--sp-ease-std: cubic-bezier(.22,.82,.24,1)`（**比展开的 380ms 快**） |
 | 与勾选动效的串行 | 若本次收起由某张勾选卡的**点选**触发，则**先等勾选动效播完**（A13 门控：正向 170ms / 反向 85ms / 并行切换 170ms），**再**播 `220ms` 收起。实测：勾选动效结束 `181ms` → 落定 `413ms`（≈181 + 220 + 余量） |
@@ -1994,8 +3441,7 @@ requestAnimationFrame(function () {
 .staff-card.is-editing.is-collapsing .staff-card__panel--base { opacity: 1; }
 .staff-card.is-editing .staff-card__panel[data-face="opts"] { z-index: 1; }
 /* 收起时空整块选项卡淡出（4 张一起，不逐张延迟） */
-.staff-card.is-expanding.is-collapsing .staff-card__opts,
-.staff-card.is-opened.is-collapsing    .staff-card__opts { opacity: 0; }
+.staff-card.is-expanding.is-collapsing .staff-card__opts { opacity: 0; }
 ```
 
 ```js
@@ -2044,7 +3490,7 @@ function spCollapseMorph(done) {
 | 逐张延迟 | 第 1/2/3/4 张 = `0 / 35 / 70 / 105ms`（第 4 张仅「工位 + 顾客指定」态出现） |
 | 结束态 | 全不透明、无缩放；`splitting` 状态位与 **DOM 类**在 `520ms` 后一并清除（= 第 4 张卡延迟 `105ms` + 时长 `380ms` ≈ `485ms`，留 35ms 余量；**不能在 `420ms` 就摘**，否则第 4 张卡的入场会被截断） |
 | 时长 / 缓动 | `380ms` / iOS spring，`fill: both` |
-| 变换原点 | 按列：列 0 `left center`、列 1 `center center`、列 2 `right center`（记录在 `--staff-origin`，保证从卡片所在侧展开） |
+| 变换原点 | **实测 = 默认 `center center`**（`.staff-opt` 的 `transform-origin` 实测为 `38.75px 48px` = 自身中心）。卡片上曾渲染 `style="--staff-origin:…"` / `data-origin="left\|center\|right"`，但 **CSS 从未消费它**（全仓仅 `comm2.js` 写入、无读取方）→ **已于二十一次删除**，**还原时不要写入、也不要消费**，否则与原型不一致。若确要从卡片所在侧展开，须给 `.staff-opt` 或 `.staff-card.is-splitting` 加 `transform-origin: var(--staff-origin)` —— 属**变更**，须双处同步并标注（见 §12.3.0.12 反例 6） |
 | 可中断 | 否（纯入场，不承载状态） |
 | 降级 | `animation: none`，直接呈现终态 |
 | 实现锚点 | `comm2.css` → `staffRoleSplit`；`comm2.js` → `spAfterStaffPickerPaint()` 的 `520ms` 摘类计时 |
@@ -2069,10 +3515,10 @@ function spCollapseMorph(done) {
 | 起始态 | `.staff-card:not(.is-expanding) .staff-card__opts { opacity: 0; visibility: hidden; }` |
 | 过程 | 升至 `opacity: 1`、`visibility: visible`。实测采样：25ms→`0.15`、41ms→`0.41`、75ms→`0.78`、≈200ms→`1` |
 | 时长 / 缓动 | `200ms` / iOS spring |
-| 已展开卡重绘 | 「保持展开」分支已于**十六次废止**，`is-opened` 恒不出现（死代码）；每次展开都正常播淡入 |
+| 已展开卡重绘 | 「保持展开」分支已于**十六次废止**，`is-opened` 恒不出现（死代码），**二十一次已彻底删除**；每次展开都正常播淡入 |
 | 可中断 | 无 |
 | 降级 | 恒 `opacity: 1; visibility: visible`（**关键**，见 §12.2.6） |
-| 实现锚点 | `comm2.css` → `.staff-card.is-expanding .staff-card__opts`（`.is-opened` 分支为死代码，见 §12.10 已知偏差 2） |
+| 实现锚点 | `comm2.css` → `.staff-card.is-expanding .staff-card__opts`（`.is-opened` 死类已于二十一次删除，见 §12.10 已知偏差 2） |
 
 ### A6 · 勾选控件：变红 + 画勾
 
@@ -2456,7 +3902,7 @@ function spGateFlush() {
 | Dialog | `.dialog-mask { display: none }` → `.show { display: flex }`；居中；`.dialog` 圆角 `16px`、`padding: 20px` |
 | 遮罩 | `rgba(0,0,0,.45)` |
 | 时长 | `0ms` |
-| 关闭 | 点遮罩 / 取消 / 完成；`data-outside-close="1"` 的遮罩可点外关闭 |
+| 关闭 | 点遮罩 / 取消 / 完成（**遮罩点击关闭由各处事件分派自行判定**，如选人 Sheet 的 `t === mask` 严格相等；全仓**没有**通用的 `data-outside-close` 机制 —— 二十一次已删除该死属性，见 §12.10 偏差 4） |
 | 实现锚点 | `base.css` → `.picker-mask` / `.dialog-mask`；`employee.js` → `openMask()` / `openEmpDialog()` |
 
 ### D3 · Toast
@@ -2541,7 +3987,7 @@ function spGateFlush() {
 
 | # | Given | When | Then |
 |---|-------|------|------|
-| N1 | 选人 Sheet 展开态（按工位 + 开顾客指定） | 打开 DevTools 逐帧观察展开瞬间 | 被点卡由 `cellW 105.33px` 在 `380ms` spring 内长到 `gridW 332px`；列为 1/2 时 `translateX` 分别落 `−113.33 / −226.67px`；**同帧无过渡、次帧才有**（无「瞬间跳到位」） |
+| N1 | 选人 Sheet 展开态（按工位 + 开顾客指定） | 打开 DevTools 逐帧观察展开瞬间 | 被点卡由 `cellW 106px` 在 `380ms` spring 内长到 `gridW 334px`；列为 1/2 时 `translateX` 分别落 `−114 / −228px`；**同帧无过渡、次帧才有**（无「瞬间跳到位」） |
 | N2 | 同上 | 展开瞬间观察同行其余卡 | 同行其余卡**瞬时**变 `opacity: 0`（无过渡），`pointer-events: none`；下一行卡片不受影响 |
 | N3 | 同上 | 展开瞬间观察选项卡 | 4 张卡依 `0/35/70/105ms` 逐张由 `scaleX(.42)` 弹到 `1`，总时长 `380 + 105 ≈ 485ms`；**卡片重绘后不重播** |
 | N4 | 同上 | 展开瞬间观察选项区 | 选项区 `opacity` 由 `0` 约 `200ms` 升到 `1`；`visibility` 由 `hidden` 变 `visible` |
@@ -2612,7 +4058,12 @@ function spGateFlush() {
 | # | 现状 | 影响 | 建议 |
 |---|------|------|------|
 | 1 | A2 收起 `220ms`（Apple 标准、无过冲）与 A1 展开 `380ms`（iOS spring、带过冲）**不对称** | 展开有弹性、收起干脆 | **十九次已把「收起为瞬时」的偏差修掉**；余下差异是**刻意的**（退场不要过冲、要利落）。若仍要求完全对称，把 `--sp-collapse` 提到 `380ms` 并换成 iOS spring 即可（改一处变量） |
-| 2 | 「已展开不重播 Morph」依赖状态位 `opened` + `.is-opened`；十六次**废止「保持展开等工位」后该位恒为 `false`**，`.is-opened` 成为**死代码**（十九次仅**复用**它作收起选择器，仍未置位） | 每次展开都会重播 Morph（**当前符合预期**：「只勾顾客指定」卡片再展开本就该有入场）；死代码留着易误读 | 清理 `spState.edit.opened` / `.is-opened` 渲染分支与 CSS 规则（A1 判据改为「该卡本次是否由**收起**转为**展开**」），或反过来给它**真正置位** |
+| 2 | 「已展开不重播 Morph」依赖状态位 `opened` + `.is-opened`；十六次**废止「保持展开等工位」后该位恒为 `false`**，`.is-opened` 成为**死代码**（十九次仅**复用**它作收起选择器，仍未置位） | 每次展开都会重播 Morph（**当前符合预期**：「只勾顾客指定」卡片再展开本就该有入场）；死代码留着易误读 | **二十一次已清理**：删 `spState.edit.opened`、`spRenderPickerHtml()` 的 `is-opened` 渲染分支、`spAnimateStaffMorphLayout()` 的 `alreadyOpen` 分支、`comm2.css` 的 `.is-opened` 三条规则（含 reduced-motion）。A1 判据现为「每次展开都播」 |
+| 3 | **`--staff-origin` / `data-origin` 是死属性**：`spRenderPickerHtml()` 按列写入 `left\|center\|right`，但 `comm2.css` **无任何消费方**（实测 `.staff-opt` 的 `transform-origin` = `38.75px 48px` = 自身中心） | 早期 A4 写的「保证从卡片所在侧展开」**与实现不符** —— 照 PRD 实现会与原型不一致 | **二十一次已删除**：删 `spCardOrigin()`、`origin` / `originSide` 变量与两处 `style` / `data-origin` 属性；A4 已按实测更正。还原时**不要写入、也不要消费**；若要真正实现侧向展开，须加 `transform-origin: var(--staff-origin)`（属**变更**） |
+| 4 | **`data-outside-close="1"` 是死属性**：写在 `#comm2StaffSheetMask` 上，全仓无消费方；「点遮罩关闭」实际由事件分派里的 `t === mask` 严格相等判定实现 | 易被误读成「有个通用 outside-close 机制」 | **二十一次已删除**该属性；实现时**不要**另做一套通用 outside-close，只按 §12.3.0.7 第 6 条写 `t === mask` |
+| 5 | **几何实测值曾过期**：`gridW 332 / cellW 105.33 / dx −113.33` | 照旧值实现会在 390 画布上少 2px、位移差 0.67px | **二十次已更正为 `334 / 106 / 114`（共 8 处）**；并强调 `gridW` 必须 `clientWidth` 现读，不得写死 |
+
+> **反例清单另见 §12.3.0.12**（16 条「已踩过的坑 + 实测现象 + 正确做法」），**边界用例见 §12.3.0.13**（16 条），**还原自查清单见 §12.3.0.14**（18 项）—— 三者与本节互补：本节查「规格对不对」，那三节查「实现会不会歪」。
 
 > **已修（原待确认项 1）**：`staffDonePop` 曾挂在 `.is-done` **基础类**上，导致**每次重绘都重播**（选完 A 再选 B 时 A 也再弹一次）。已改为一次性标记 `is-pop`：`spSelectStaff()` 置位 → 渲染读取 → 渲染后清空。（同批的 `staffCheckIn` / `.staff-card__tick` 已于**十九次整体删除**。）回归项见 §12.9 **N18 / N25**。
 

@@ -1264,8 +1264,6 @@
   opacity: 1; visibility: visible;
   transition: opacity .2s cubic-bezier(.34,1.3,.64,1);
 }
-/* 已展开卡片的重绘（勾选态更新）：不重播入场，直接可见 */
-.staff-card.is-opened .staff-card__opts { opacity: 1; visibility: visible; transition: none; }
 .staff-card:not(.is-expanding) .staff-card__opts {
   opacity: 0; visibility: hidden;
 }
@@ -1284,11 +1282,10 @@
   transition: opacity var(--sp-collapse) var(--sp-ease-std);
 }
 .staff-card.is-editing.is-collapsing .staff-card__panel--base { opacity: 1; }
-/* 选项卡整体淡出。**必须反超** `.staff-card.is-expanding .staff-card__opts`（0,3,0）与
-   `.staff-card.is-opened .staff-card__opts`（0,3,0）—— 实测展开后的卡带的是 `is-expanding`
-   （`edit.opened` 从未置 true，`is-opened` 实际不渲染），故两者都写、用 0,4,0 组合选择器 */
-.staff-card.is-expanding.is-collapsing .staff-card__opts,
-.staff-card.is-opened.is-collapsing .staff-card__opts {
+/* 选项卡整体淡出。**必须反超** `.staff-card.is-expanding .staff-card__opts`（0,3,0）→ 用 (0,4,0) 组合选择器。
+   注（二十一次）：原并列的 `.staff-card.is-opened.is-collapsing` 选择器已随 `edit.opened` 死字段一并删除
+   —— 展开后的卡带的恒为 `is-expanding`，`is-opened` 从不渲染。 */
+.staff-card.is-expanding.is-collapsing .staff-card__opts {
   opacity: 0; visibility: visible;
   transition: opacity var(--sp-collapse) var(--sp-ease-std);
 }
@@ -1307,8 +1304,7 @@
   .staff-card:not(.is-expanding) .staff-card__opts { opacity: 1; visibility: visible; }
   /* 收起动画直接落定（无过渡、无交叉淡入淡出） */
   .staff-card.is-editing .staff-card__panel--base { transition: none !important; }
-  .staff-card.is-expanding.is-collapsing .staff-card__opts,
-  .staff-card.is-opened.is-collapsing .staff-card__opts { transition: none !important; }
+  .staff-card.is-expanding.is-collapsing .staff-card__opts { transition: none !important; }
 }
 .staff-card__opts {
   display: flex; align-items: stretch; width: 100%; height: 100%; gap: 8px;

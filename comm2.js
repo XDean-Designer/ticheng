@@ -3766,14 +3766,9 @@
     var letter = (st.short || st.name || '?').toString().slice(0, 2);
     return '<span class="staff-card__avatar staff-card__avatar--ph" aria-hidden="true">' + spEsc(letter) + '</span>';
   }
-  function spCardOrigin(index) {
-    var col = index % 3;
-    if (col === 0) return 'left center';
-    if (col === 2) return 'right center';
-    return 'center center';
-  }
-
-  /** 展开态：整行横向平铺 N 个卡片按钮；每张右上角一个勾选控件（未勾选 → 空心） */
+  /** 展开态：整行横向平铺 N 个卡片按钮；每张右上角一个勾选控件（未勾选 → 空心）
+      注（二十一次）：卡片上的 `--staff-origin` / `data-origin` 已删除 —— 它们是「渲染了但 CSS 从未消费」
+      的死属性（实测 `.staff-opt` 的 `transform-origin` 恒为自身中心，入场分裂走默认 `center center`）。 */
   function spOptionsPanelHtml(sid) {
     var opts = spOptionList();
     var box = '<span class="staff-opt__box" aria-hidden="true">' + SP_CHECK_SVG + '</span>';
@@ -3796,22 +3791,17 @@
     var it = spState.row;
     var edit = spState.edit;
     var pool = spStaffPool();
-    var cards = pool.map(function (st, index) {
+    var cards = pool.map(function (st) {
       var isChosen = it.staffIds.indexOf(st.id) >= 0;    /* 计入已选（有工位/提成 → 有；只勾「顾客指定」→ 也有） */
       var done = isChosen;
       var isEdit = !!(edit && edit.staffId === st.id);
       var dim = !!(edit && !isEdit);
-      var origin = spCardOrigin(index);
-      var originSide = index % 3 === 0 ? 'left' : index % 3 === 2 ? 'right' : 'center';
       /* 收缩态卡面（头像 / 姓名 / 摘要）：展开卡里也渲染一份，作为收起动画的**下层**（十九次 A2） */
       var baseBody = spAvatarHtml(st) +
         '<div class="staff-card__name">' + spEsc(st.name) + '</div>' +
         spCardPickLineHtml(st, done);
       if (isEdit) {
-        return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') +
-          (edit.opened ? ' is-opened' : '') + '"' +
-          ' style="--staff-origin:' + origin + '"' +
-          ' data-origin="' + originSide + '"' +
+        return '<div class="staff-card is-editing' + (done ? ' is-done' : '') + (edit.splitting ? ' is-splitting' : '') + '"' +
           ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
           '<div class="staff-card__panel" data-face="opts">' + spOptionsPanelHtml(st.id) + '</div>' +
           '<div class="staff-card__panel staff-card__panel--base" data-face="base" aria-hidden="true">' + baseBody + '</div>' +
@@ -3819,8 +3809,6 @@
       }
       /* 收缩态员工卡：**不再有**右侧红勾（十九次）—— 取消入口 = 展开卡片取消勾选 / 入口摘要行 × */
       return '<div class="staff-card' + (done ? ' is-done' : '') + (isChosen && spState.freshDone[st.id] ? ' is-pop' : '') + (dim ? ' is-dim' : '') + '"' +
-        ' style="--staff-origin:' + origin + '"' +
-        ' data-origin="' + originSide + '"' +
         ' data-staff-card data-staff-id="' + spEsc(st.id) + '">' +
         '<button type="button" class="staff-card__panel" data-staff-card-hit data-staff-id="' + spEsc(st.id) + '" aria-label="' + spEsc(st.name) + '">' +
         baseBody +
@@ -3884,18 +3872,11 @@
       muteRow(true);
     };
 
-    /* 已展开卡片的重绘（勾选态更新）：不重播入场动画，直接落位 */
-    var alreadyOpen = editing.classList.contains('is-opened');
+    /* 降级（`prefers-reduced-motion`）：不加过渡，直接落位 */
     editing.style.zIndex = '6';
-    if (reduce || alreadyOpen) {
+    if (reduce) {
       editing.classList.add('is-expanding');
       applyFinalLayout(false);
-      if (alreadyOpen && !reduce) {
-        requestAnimationFrame(function () {
-          if (grid._staffMorphToken !== token) return;
-          editing.style.transition = springTrans;
-        });
-      }
       return;
     }
     editing.style.width = cellW + 'px';
@@ -4045,13 +4026,13 @@
        同一张卡再点 = 收起，由 wire() 的 staffHit 分支走 spApplyEdit(null)。 */
     if (spState.edit && spState.edit.staffId !== sid && spCollapseTarget()) {
       spEditChange(function () {
-        spState.edit = { staffId: sid, splitting: true, opened: false };
+        spState.edit = { staffId: sid, splitting: true };
         spGateHoldOnly(SP_EXPAND_MS);   /* 新卡的展开 Morph 播完前不接受收起 */
       }, true);
       return;
     }
     spEditSeq++;                    /* 最新意图：取消任何待落定的收起 / 展开 */
-    spState.edit = { staffId: sid, splitting: true, opened: false };
+    spState.edit = { staffId: sid, splitting: true };
     spHaptic();
     spGateHoldOnly(SP_EXPAND_MS);   /* 展开 Morph 动效播完前不接受收起 */
     spRedraw();
