@@ -1512,7 +1512,18 @@
   /* 费率取值口径（「顾客指定」= 在提成之上叠加该值，不再替换）：
      先取基础费率 → 按工位取该工位提成值（stations[sid].valueMode）/ 不分工位取 rule 级提成值（nonDesignatedValueMode）；
      若该开单为顾客指定且已开启顾客指定提成，再叠加 rule 级顾客指定值（见 lineExtraAmount / lineExtraLabel）。 */
+  /** 订单行「提成侧」是否被**明确勾选**（十七次新增口径）：
+      `basePicked === false` → 开单侧**明确没有勾提成侧**（按工位 = 未点工位；不分工位 = 未勾「提成」）
+        → **提成侧金额为 0，只发顾客指定提成**；
+      `true` / **缺字段（历史订单行）** → 照常计提（此时未点工位仍按规则 7 回落 `stationIds[0]`，
+        不会把旧数据误判成「提成 0」）。 */
+  function lineBasePicked(line) {
+    if (!line) return true;
+    return line.basePicked !== false;
+  }
   function lineRateMeta(sch, block, rule, line) {
+    /* 明确没勾提成侧 → 提成侧折 0（金额与标签都不出提成侧），顾客指定侧照旧叠加 */
+    if (!lineBasePicked(line)) return { rate: 0, isAmt: false, none: true };
     if (block.pickMode === 'station') {
       var stId = line.station || getStationIds(sch)[0];
       var st = rule.stations[stId] || defaultStationPair();
@@ -1556,7 +1567,9 @@
       var baseS = block.baseMode === 'paid' ? 0 : (Number(line.list) || 0);
       var extraS = lineExtraAmount(ruleS, line, baseS, 1);
       var extraLblS = lineExtraLabel(ruleS, line);
-      var sepS = extraLblS ? ' + ' : '';
+      /* 明确没勾提成侧 → 标签只出「顾客指定 x」，不出「0%」 */
+      var baseLblS = lineBasePicked(line) ? (isAmtS ? ('¥' + fmtMoney(rateS)) : (rateS + '%')) : '';
+      var sepS = (baseLblS && extraLblS) ? ' + ' : '';
       var amountS = isAmtS ? rateS : Math.round(baseS * rateS) / 100;
       amountS = Math.round((amountS + extraS) * 100) / 100;
       if (!isAmtS && baseS <= 0 && extraS <= 0) {
@@ -1565,7 +1578,7 @@
       return {
         amount: amountS,
         skipped: '',
-        rateLabel: (isAmtS ? ('¥' + fmtMoney(rateS)) : (rateS + '%')) + sepS + extraLblS,
+        rateLabel: baseLblS + sepS + extraLblS,
         base: baseS
       };
     }
@@ -1581,14 +1594,16 @@
     var isAmt = meta.isAmt;
     var ratio = totalPaid > 0 ? (inScope / totalPaid) : 0;
     var extraLbl = lineExtraLabel(rule, line);
-    var sep = extraLbl ? ' + ' : '';
+    /* 明确没勾提成侧 → 标签只出「顾客指定 x」 */
+    var baseLbl = lineBasePicked(line) ? (isAmt ? ('¥' + fmtMoney(rate)) : (rate + '%')) : '';
+    var sep = (baseLbl && extraLbl) ? ' + ' : '';
     if (isAmt) {
       var amtFixed = Math.round(rate * ratio * 100) / 100;
       var amtTotal = Math.round((amtFixed + lineExtraAmount(rule, line, inScope, ratio)) * 100) / 100;
       return {
         amount: amtTotal,
         skipped: '',
-        rateLabel: '¥' + fmtMoney(rate) + sep + extraLbl,
+        rateLabel: baseLbl + sep + extraLbl,
         base: inScope
       };
     }
@@ -1598,7 +1613,7 @@
     return {
       amount: amount,
       skipped: '',
-      rateLabel: rate + '%' + sep + extraLbl,
+      rateLabel: baseLbl + sep + extraLbl,
       base: base
     };
   }
@@ -3146,11 +3161,14 @@
 /* ==========================================================================
  * 关联页面 · 选择服务员工（提成设置 → 开单侧选人 UI/UX）
  *
- * 四态采集（对照 §4.5.1 / §6.7.1，整行勾选卡）：
- *   按工位+开顾客指定 → 整行 4 张：大工/中工/小工 +「顾客指定」（工位单选，顾客指定可叠加）
+ * 四态采集（对照 §4.5.1 / §6.7.1，整行勾选卡 · 十七次口径）：
+ *   按工位+开顾客指定 → 整行 4 张：大工/中工/小工 +「顾客指定」
+ *                        （工位之间**单选、可点掉、可全不选**；「顾客指定」**独立**可勾选，
+ *                          不要求先选工位 —— 只勾它 = 只发顾客指定提成）
  *   按工位+未开       → 整行 3 张工位卡（单选）
- *   不分工位+开       → 整行 2 张：「普通」/「顾客指定」（二选一）
+ *   不分工位+开       → 整行 2 张：「提成」/「顾客指定」（**可叠加**，也可只勾「顾客指定」）
  *   不分工位+未开     → 点选即勾选（无展开、无勾选卡）
+ * 「提成侧」与「顾客指定侧」两组参数**各自独立、可单选可叠加**；两侧都不勾 = 未选（唯一取消路径）。
  * 勾选后收缩为员工卡：显示摘要 + 右侧放大勾选控件（点它取消选择）；右上角 × 已删除
  * 动效：iOS 向 spring（cubic-bezier(.34,1.3,.64,1)）+ 按下 scale(.96) + vibrate(8)
  * ======================================================================== */
@@ -3245,25 +3263,29 @@
     return SP_FALLBACK_STAFFS.slice();
   }
 
+  /* 提成侧在选人状态里的编码：`staffRoles[sid]` 统一存「**提成侧选择**」——
+     按工位 = 工位 id；不分工位 = `SP_PICK_AVG`（哨兵，「提成」卡）。 */
+  var SP_PICK_AVG = 'avg';
+
   function spEnsureState() {
     var row = spState.row;
     if (!Array.isArray(row.staffIds)) row.staffIds = [];
     if (!row.staffRoles || typeof row.staffRoles !== 'object') row.staffRoles = {};
     if (!row.staffExtra || typeof row.staffExtra !== 'object') row.staffExtra = {};
     if (!row.staffChosen || typeof row.staffChosen !== 'object') row.staffChosen = {};
-    Object.keys(row.staffRoles).forEach(function (sid) {
-      if (row.staffIds.indexOf(sid) < 0) delete row.staffRoles[sid];
+    /* 三者一律「以 staffIds 为准」：不在已选名单里的残留全清掉。
+       十七次起「只勾顾客指定、没选工位」**也是有效的单独分配、计入已选**，
+       不再有「未选待选」需要跨收起保留的记忆，因此 staffExtra 一并按 staffIds 收敛。 */
+    ['staffRoles', 'staffChosen', 'staffExtra'].forEach(function (k) {
+      Object.keys(row[k]).forEach(function (sid) {
+        if (row.staffIds.indexOf(sid) < 0) delete row[k][sid];
+      });
     });
-    Object.keys(row.staffChosen).forEach(function (sid) {
-      if (row.staffIds.indexOf(sid) < 0) delete row.staffChosen[sid];
-    });
-    /* staffExtra **不随「未选」清空**：按工位模式下「只勾顾客指定、未点工位」的未选待选态，
-       收起后要保留（下次展开仍是勾选态）；工位则一律由用户手点，不自动带默认工位。 */
     row.staffIds.forEach(function (sid) {
       if (typeof row.staffExtra[sid] !== 'boolean') row.staffExtra[sid] = false;
       if (typeof row.staffChosen[sid] !== 'boolean') row.staffChosen[sid] = false;
     });
-    /* 规则未开「顾客指定」：丢弃勾选记忆，避免把待选态的残留带成脏数据 */
+    /* 规则未开「顾客指定」：丢弃勾选记忆，避免把残留带成脏数据 */
     if (!spNeedExtra()) {
       Object.keys(row.staffExtra).forEach(function (sid) { row.staffExtra[sid] = false; });
     }
@@ -3277,10 +3299,12 @@
     var mask = spEl('comm2StaffSheetMask');
     return !!(mask && mask.classList.contains('open'));
   }
-  /** 展开后的选项（交互四态 · q13-A）：
-     按工位 + 顾客指定 → 3 工位 + 「顾客指定」（工位**单选且可点掉**，「顾客指定」可与任一工位同时被选）
+  /** 展开后的选项（交互四态 · 十七次）：
+     按工位 + 顾客指定 → 3 工位 + 「顾客指定」；**工位之间单选（可点掉、可全不选）**，
+                          「顾客指定」独立可勾选，两者**互不排斥** —— 都不勾 = 未选。
      按工位（未开）  → 3 工位
-     不分工位 + 顾客指定 → 「普通」/「顾客指定」
+     不分工位 + 顾客指定 → 「提成」/「顾客指定」；**两者可叠加**（先勾「提成」再勾「顾客指定」），
+                          也可只勾「顾客指定」单独分配（只发顾客指定提成）。
      不分工位（未开）  → 无选项（点卡片即完成） */
   function spOptionList() {
     var out = [];
@@ -3292,21 +3316,19 @@
       return out;
     }
     if (spNeedExtra()) {
-      out.push({ key: 'plain', kind: 'plain', label: '普通' });
+      out.push({ key: SP_PICK_AVG, kind: 'plain', label: '提成' });
       out.push({ key: 'extra', kind: 'extra', label: '顾客指定' });
     }
     return out;
   }
+  /** 选项勾选态：**提成侧（工位 / 提成）与顾客指定侧各自独立**，互不推导、互不排斥 */
   function spOptionChecked(sid, opt) {
     if (!opt) return false;
     var row = spState.row;
-    if (opt.kind === 'extra') {
-      /* 「顾客指定」：勾选态独立于员工是否已选（按工位时只勾它、还没点工位 → 未选待选态） */
-      return row.staffExtra[sid] === true;
-    }
-    if (opt.kind === 'plain') return !!row.staffChosen[sid] && row.staffExtra[sid] !== true;
-    /* 工位：必须由用户点击才会勾选（不再自动带默认工位） */
-    return !!row.staffChosen[sid] && row.staffRoles[sid] === opt.key;
+    if (opt.kind === 'extra') return row.staffExtra[sid] === true;
+    if (opt.kind === 'plain') return row.staffRoles[sid] === SP_PICK_AVG;
+    /* 工位：必须由用户点击才会勾选（不预选默认工位） */
+    return row.staffRoles[sid] === opt.key;
   }
   function spOptionByKey(key) {
     var list = spOptionList();
@@ -3319,53 +3341,59 @@
     var row = spState.row;
     return !!row.staffChosen[sid] && row.staffIds.indexOf(sid) >= 0;
   }
-  /** 「未选」待选态（按工位 + 开顾客指定）：勾了「顾客指定」但**还没点工位** ——
-      不计入已选（`staffIds` 不含它），卡片仍呈**选中态样式**、但**不出现勾选控件**；
-      摘要的工位位置显示灰字「未选」、「顾客指定」仍为红字。 */
-  function spPartial(sid) {
-    if (!spNeedStation() || !spNeedExtra()) return false;
-    return spState.row.staffExtra[sid] === true && !spStaffIsChosen(sid);
+  /** 「提成侧」是否已选（按工位 = 选了工位；不分工位 = 勾了「提成」） */
+  function spBasePicked(sid) { return !!spState.row.staffRoles[sid]; }
+  /** 只勾了「顾客指定」、**没有**任何提成侧选择 —— 合法状态：
+      员工计入已选（发顾客指定提成），但提成侧金额为 0、摘要的提成位置显示「无工位」（按工位态）。 */
+  function spExtraOnly(sid) {
+    var row = spState.row;
+    if (!spNeedExtra() || row.staffExtra[sid] !== true) return false;
+    return !spBasePicked(sid) && row.staffIds.indexOf(sid) >= 0;
+  }
+  /** 摘要拆件（供纯文本 / 带样式两处共用）：
+      按工位：工位名（+「· 顾客指定」）/ 只有顾客指定 → 缺工位（`miss`）
+      不分工位：`提成`（+「· 顾客指定」）/ 只有顾客指定 → 只有「顾客指定」 */
+  function spSummaryParts(sid) {
+    var row = spState.row;
+    if (row.staffIds.indexOf(sid) < 0) return null;
+    var extra = row.staffExtra[sid] === true && spNeedExtra();
+    if (spNeedStation()) {
+      var rid = row.staffRoles[sid];
+      if (rid) return { miss: '', main: spStationLabel(rid), extra: extra };
+      return extra ? { miss: '无工位', main: '', extra: true } : null;
+    }
+    if (spNeedExtra()) {
+      if (row.staffRoles[sid] === SP_PICK_AVG) return { miss: '', main: '提成', extra: extra };
+      return extra ? { miss: '', main: '', extra: true } : null;
+    }
+    return null;
   }
   /** 摘要纯文本（入口下方「已选员工」行用；仅已计入已选的员工会出现）：
-      工位名（顾客指定时叠加「· 顾客指定」）/ 未选待选态「未选 · 顾客指定」/「顾客指定」/「普通」 */
+      工位名 / 工位名 · 顾客指定 / 无工位 · 顾客指定 / 提成 / 提成 · 顾客指定 / 顾客指定 */
   function spSummaryText(sid) {
-    var row = spState.row;
-    var chosen = !!row.staffChosen[sid] && row.staffIds.indexOf(sid) >= 0;
-    var extra = row.staffExtra[sid] === true && spNeedExtra();
-    if (spNeedStation()) {
-      var role = (chosen && row.staffRoles[sid]) ? spStationLabel(row.staffRoles[sid]) : '';
-      if (role) return extra ? (role + ' · 顾客指定') : role;
-      if (spPartial(sid)) return '未选 · 顾客指定';
-      return '';
-    }
-    if (spNeedExtra()) {
-      if (!chosen) return '';
-      return extra ? '顾客指定' : '普通';
-    }
-    return '';
+    var p = spSummaryParts(sid);
+    if (!p) return '';
+    if (p.miss) return p.miss + ' · 顾客指定';
+    var out = [];
+    if (p.main) out.push(p.main);
+    if (p.extra) out.push('顾客指定');
+    return out.join(' · ');
   }
-  /** 卡片摘要（**带样式**）：未选待选态把工位位置画成**灰字「未选」**、「顾客指定」仍是红字 */
+  /** 卡片摘要（**带样式**）：缺工位时把提成位置画成**灰字「无工位」**、「顾客指定」仍是红字 */
   function spSummaryHtml(sid) {
-    var row = spState.row;
-    var chosen = !!row.staffChosen[sid] && row.staffIds.indexOf(sid) >= 0;
-    var extra = row.staffExtra[sid] === true && spNeedExtra();
-    if (spNeedStation()) {
-      var role = (chosen && row.staffRoles[sid]) ? spStationLabel(row.staffRoles[sid]) : '';
-      if (role) return spEsc(extra ? (role + ' · 顾客指定') : role);
-      if (spPartial(sid)) {
-        return '<span class="staff-card__pick-miss">未选</span>' +
-          '<span class="staff-card__pick-miss"> · </span>' +
-          '<span class="staff-card__pick-x">顾客指定</span>';
-      }
-      return '';
+    var p = spSummaryParts(sid);
+    if (!p) return '';
+    if (p.miss) {
+      return '<span class="staff-card__pick-miss">' + spEsc(p.miss) + '</span>' +
+        '<span class="staff-card__pick-miss"> · </span>' +
+        '<span class="staff-card__pick-x">顾客指定</span>';
     }
-    if (spNeedExtra()) {
-      if (!chosen) return '';
-      return extra ? '顾客指定' : '普通';
-    }
-    return '';
+    var out = [];
+    if (p.main) out.push(p.main);
+    if (p.extra) out.push('顾客指定');
+    return spEsc(out.join(' · '));
   }
-  /** 卡片第三行：态4（不分工位+未开顾客指定）选中后仍灰字头衔；其余「选中 / 未选待选」显示红色摘要 */
+  /** 卡片第三行：态4（不分工位+未开顾客指定）选中后仍灰字头衔；其余「已选」显示红色摘要 */
   function spCardPickLineHtml(st, done) {
     var jobTitle = spJobTitleHtml(st);
     if (!done) return jobTitle;
@@ -3552,31 +3580,33 @@
     if (!root || !sid) return null;
     return root.querySelector('[data-staff-tick][data-staff-id="' + sid + '"]');
   }
-  /** 选中员工（计入已选）；roleId 为空 = 不分工位（无工位）。
-      fresh = true 时收缩态员工卡的勾**画出**（仅「点选即勾选」态 4 用：
-      该态没有选项卡可画勾，勾在员工卡上首现）；从选项卡勾选的路径不重画（q6：勾已在选项卡上画过） */
-  function spSelectStaff(sid, roleId, fresh) {
+  /** 选中员工（计入已选）。fresh = true 时收缩态员工卡的勾**画出**（仅「点选即勾选」态 4 用：
+      该态没有选项卡可画勾，勾在员工卡上首现）；从选项卡勾选的路径不重画（勾已在选项卡上画过）。
+      **本函数不动 `staffRoles`**：提成侧选择（工位 id / `SP_PICK_AVG`）由调用方先行写入，
+      这样「只勾顾客指定、没有工位/提成」也能原样保留提成侧为空。 */
+  function spSelectStaff(sid, fresh) {
     var row = spState.row;
     if (row.staffIds.indexOf(sid) < 0) row.staffIds.push(sid);
     row.staffChosen[sid] = true;
-    if (roleId) row.staffRoles[sid] = roleId;
-    else delete row.staffRoles[sid];
     /* 选中即标记「一次性回弹」：下一次渲染播 staffDonePop + staffCheckIn（重绘不重播） */
     spState.freshDone[sid] = true;
     if (fresh) spState.freshTick = sid;
   }
-  /** 取消员工选择（保留「顾客指定」勾选记忆，供「只勾顾客指定、未点工位」的未选待选态使用） */
+  /** 取消员工选择：提成侧与顾客指定侧**一并清掉**
+      （十七次起不再需要保留「只勾顾客指定」的记忆 —— 那种状态本身就已经计入已选）。 */
   function spDropStaff(sid) {
     var row = spState.row;
     row.staffIds = row.staffIds.filter(function (x) { return x !== sid; });
     row.staffChosen[sid] = false;
     delete row.staffRoles[sid];
+    delete row.staffExtra[sid];
   }
 
   /** 应用一次勾选结果（动效播完后调用）。
-      展开态**点任一按钮都收起**（含按工位时只点「顾客指定」）——
-      按工位：工位为**单选**且**可点掉**（点已勾选工位 = 取消该工位）；
-      只勾「顾客指定」而没点工位 → 落入「未选」待选态（不计入已选，卡片呈选中态样式、无勾选控件）。 */
+      展开态**点任一按钮都收起**；**提成侧与顾客指定侧各自独立、互不排斥**（十七次）——
+      · 提成侧（按工位 = 工位 / 不分工位 =「提成」）：**单选、可点掉、可全不选**；
+      · 「顾客指定」：独立勾选，**不要求先有工位/提成** —— 只勾它也能单独分配（只发顾客指定提成）；
+      · 两侧**都不勾** = 该员工未选（唯一被取消的路径）。 */
   function spApplyOptionToggle(sid, key) {
     if (!sid || !key) return;
     spEnsureState();
@@ -3587,28 +3617,28 @@
 
     if (opt.kind === 'extra') {
       if (checked) {
-        /* 取消「顾客指定」：员工还有工位 → 退回仅工位（仍计入已选）；
-           无工位（未选待选态）→ 该员工连人一并取消 */
+        /* 取消「顾客指定」：还有提成侧 → 员工仍已选（只发提成侧）；否则两侧皆空 → 取消该员工 */
         row.staffExtra[sid] = false;
-        if (!spStaffIsChosen(sid)) spDropStaff(sid);
+        if (!spBasePicked(sid)) spDropStaff(sid);
       } else {
+        /* 勾「顾客指定」：**不要求工位/提成**，只勾它也是一次有效的单独分配 */
         row.staffExtra[sid] = true;
-        if (spNeedStation() && !row.staffRoles[sid]) spDropStaff(sid);   /* → 未选待选态 */
-        else spSelectStaff(sid, spNeedStation() ? row.staffRoles[sid] : null, false);
+        spSelectStaff(sid, false);
       }
-    } else if (opt.kind === 'plain') {
-      row.staffExtra[sid] = false;
-      if (checked) spDropStaff(sid);          /* 取消「普通」→ 取消该员工选择 */
-      else spSelectStaff(sid, null, false);
-    } else if (checked) {
-      /* 点掉工位：无工位即不计入已选；已勾「顾客指定」则落入「未选」待选态 */
-      delete row.staffRoles[sid];
-      spDropStaff(sid);
-    } else {
-      spSelectStaff(sid, key, false);         /* 工位单选：勾新的即替换旧的 */
+      /* 任一按钮点选后一律收起；收起必须等勾选动效播完（spGateAfter 驱动），Morph 未播完也不收起 */
+      spApplyEdit(null);
+      return;
     }
 
-    /* 任一按钮点选后一律收起；收起必须等勾选动效播完（spGateAfter 驱动），Morph 未播完也不收起 */
+    /* 提成侧（工位 / 不分工位的「提成」卡）：单选且可点掉 */
+    if (checked) {
+      delete row.staffRoles[sid];
+      /* 还有「顾客指定」→ 员工仍已选（摘要「无工位 · 顾客指定」）；否则该员工没有任何选择 → 取消 */
+      if (row.staffExtra[sid] !== true) spDropStaff(sid);
+    } else {
+      row.staffRoles[sid] = (opt.kind === 'plain') ? SP_PICK_AVG : key;
+      spSelectStaff(sid, false);
+    }
     spApplyEdit(null);
   }
 
@@ -3624,7 +3654,8 @@
        新卡立刻变红 + 画勾（正向 170ms）；**同时**旧卡整卡红色快速淡出 + 勾反序收回（反向 85ms）；
        落定取较长者（= 正向 170ms）。**不要**再串行成 spUncheckMs() + spCheckMs()（255ms），
        那样旧卡红先淡、新卡才画勾，观感断成两截。
-       注：点**已勾选**的同一张工位卡 = 取消该工位（不再是抖动提醒），走下方单轮反向动效 */
+       注：点**已勾选**的同一张工位卡 = 取消该工位（不再抖动提醒），走下方单轮反向动效；
+           不分工位下的「提成」卡只有一张，不存在工位切换，走单轮 */
     var prevKey = opt.kind === 'role' ? spState.row.staffRoles[sid] : null;
     var prevBox = (prevKey && prevKey !== key) ? spOptBoxEl(sid, prevKey) : null;
     if (prevBox) {
@@ -3650,13 +3681,15 @@
     spGateAfter(el, function () { spRemoveStaff(sid); }, spUncheckMs());
   }
 
-  /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾在员工卡上**画出**）/ 已选再点即取消 */
+  /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾在员工卡上**画出**）/ 已选再点即取消。
+      该态没有选项卡，提成侧直接记 `SP_PICK_AVG`（= 取规则级「提成」值），也没有顾客指定侧。 */
   function spToggleStaff(sid) {
     if (!sid) return;
     spEnsureState();
     if (spStaffIsChosen(sid)) { spUntickStaff(sid, null); return; }
     spState.row.staffExtra[sid] = false;
-    spSelectStaff(sid, null, true);
+    spState.row.staffRoles[sid] = SP_PICK_AVG;
+    spSelectStaff(sid, true);
     spState.edit = null;
     spHaptic();
     spRedraw();
@@ -3706,9 +3739,8 @@
     var pool = spStaffPool();
     var tickSvg = SP_CHECK_SVG;
     var cards = pool.map(function (st, index) {
-      var isChosen = it.staffIds.indexOf(st.id) >= 0;    /* 计入已选（有工位 / 不分工位已勾选） */
-      var partial = spPartial(st.id);                    /* 未选待选态：只勾了「顾客指定」、没点工位 */
-      var done = isChosen || partial;                    /* 选中态样式（粉底）两者都吃 */
+      var isChosen = it.staffIds.indexOf(st.id) >= 0;    /* 计入已选（有工位/提成 → 有；只勾「顾客指定」→ 也有） */
+      var done = isChosen;
       var isEdit = !!(edit && edit.staffId === st.id);
       var dim = !!(edit && !isEdit);
       var origin = spCardOrigin(index);
@@ -3722,7 +3754,7 @@
           spCardPickLineHtml(st, done);
       }
       /* 勾选控件（右侧、稍放大）：**仅「计入已选」时显示**；点它取消选择。
-         未选待选态（只勾了顾客指定、没点工位）**不出勾选控件** —— 只能展开卡片取消「顾客指定」。
+         只勾「顾客指定」也是有效分配（计入已选），因此**同样出勾选控件**（十七次）。
          freshTick = 刚被选中的员工 → 勾从左到右画出（与选项卡上的动效衔接）
          freshPop  = 刚被选中的员工 → 播「回弹 + 勾弹入」（一次性，重绘不重播） */
       var fresh = spState.freshTick === st.id;
@@ -3894,10 +3926,12 @@
     var needS = spNeedStation();
     var needE = spNeedExtra();
     if (!needS && !needE) return '可多选员工；点卡片即完成选择。';
-    if (!needS && needE) return '可多选员工；点卡片后勾选「普通」或「顾客指定」（顾客指定提成另计），点选后即收起。';
+    if (!needS && needE) return '可多选员工；点卡片后勾选「提成」「顾客指定」（两者可同时勾选、提成叠加），' +
+      '只勾「顾客指定」也可单独分配；点选后即收起。';
     if (needS && !needE) return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位单选、点选后即收起，再点已勾选工位即取消。';
     return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位单选、点选后即收起，再点已勾选工位即取消；' +
-      '「顾客指定」可与任一工位同时勾选、提成叠加；只勾「顾客指定」未点工位时，卡片记为「未选」。';
+      '「顾客指定」可与任一工位同时勾选（提成叠加），也可以不选工位单独分配「顾客指定」——' +
+      '此种情况只发顾客指定提成。';
   }
 
   function spRenderScreen() {

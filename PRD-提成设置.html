@@ -140,6 +140,10 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>修订（2026-09-17 十六次）</td>
 <td><strong>Sheet 参数卡口径与排布 + 选人交互收紧（收起时机 / 未选待选态 / 点掉工位）</strong>。<strong>① Sheet 参数卡</strong>：卡内标题「额外」→「<strong>指定</strong>」；<strong>「不分工位」</strong>下的 2 张参数卡由「左右并排一行（居中）」改为「<strong>两行居左</strong>」（<code>comm2-sheet-avg-rows</code>，尺寸不变 <code>175×66</code>，行首 x 与「按工位」的首行对齐）—— 两种分配模式切换时窗口抖动由 <strong>150px 降到 48px</strong>；「按工位」下的行标签「普通」→「<strong>提成</strong>」（「不分工位」的两张卡沿用同一批行标签，不再用列头）。<strong>② 收起时机收紧</strong>：展开态下<strong>只要点选了任一按钮就收起</strong>，<strong>包括「按工位」下先点「顾客指定」</strong>（原实现会「保持展开等工位」）。<strong>③ 未选待选态（新增，A13b）</strong>：只勾「顾客指定」没点工位时，卡片为<strong>选中态样式</strong>（<code>is-done</code>：粉底 + 粉描边 + 头像粉圈）但<strong>没有勾选控件</strong>，摘要工位位显示<strong>灰字「未选」</strong>（<code>rgb(146,146,146)</code>）+ <strong>红字「顾客指定」</strong>；该员工<strong>不计入已选</strong>（入口仍「未选择」）；再次展开时「顾客指定」仍保留勾选记忆。<strong>④ 点掉工位（A12 重写）</strong>：已勾选的工位<strong>再点即取消</strong>（工位单选且可点掉），走<strong>反向收勾</strong>（55 + 30 = 85ms）；若同时勾着「顾客指定」→ 落入<strong>未选待选态</strong>，否则<strong>完全取消该员工</strong>；原「iOS 抖动（<code>spOptShake</code> / <code>is-shake</code> / 440ms，状态不变）」<strong>已整个废止</strong>（CSS 规则、JS 函数、时长阶梯、缓动曲线、触觉说明一并清理）。同步 §4.5.1 / §6.2.3 / §6.3 / §6.4 / §6.7.1 / §10.2.1（53s / 53u / 53v / 53x / 53z 改写）、§12.2.1 / §12.2.2 / §12.2.4 / §12.3（A4 / A12 重写 + 新增 A13b）/ §12.6.1 / §12.8 / §12.9（N14 / N15–N17 / N26 改写 + 新增 N17b）/ §12.10</td>
 </tr>
+<tr>
+<td>修订（2026-09-17 十七次）</td>
+<td><strong>两组参数各自独立、可单选可叠加；「顾客指定提成」可脱离工位单独分配（只发顾客指定提成）</strong>。口径一句话：<strong>「提成侧」（按工位 = 大工/中工/小工 三选一；不分工位 = 单张「提成」）与「顾客指定侧」两组参数各自独立、可单选可叠加，只要勾了任一组就算已选。</strong> <strong>① 废止「工位必选」</strong>：未点工位的员工<strong>不再</strong>因此不计入已选 —— 只勾「顾客指定」就是一次有效的单独分配。<strong>② 废止「未选待选态」（A13b 语义重写）</strong>：十六次的「不计入已选、无勾选控件、摘要 <code>未选 · 顾客指定</code>」改为 <strong>计入已选、出现勾选控件、摘要 <code>无工位 · 顾客指定</code></strong>（<code>无工位</code> 灰字 + <code>顾客指定</code> 红字）。<strong>③ 不分工位解除二选一</strong>：「普通」改名「<strong>提成</strong>」，与「顾客指定」<strong>可叠加</strong>（<code>spApplyOptionToggle</code> 删掉 <code>staffExtra = false</code> 的互斥写；<code>spOptionChecked</code> 的 <code>plain</code> 不再由 <code>chosen &amp;&amp; !extra</code> 推导）。<strong>④ 数据模型（f1 最小新增）</strong>：<code>staffRoles[sid]</code> 统一存<strong>提成侧选择</strong>（按工位 = 工位 id；不分工位 = 哨兵 <code>SP_PICK_AVG = 'avg'</code>）；订单行新增 <strong><code>basePicked</code></strong> 区分「明确没勾提成侧」（<code>false</code> → <strong>提成侧折 0、只发顾客指定提成</strong>）与「历史缺字段」（照常计提，工位仍回落 <code>stationIds[0]</code>）。<strong>⑤ 计提口径</strong>：<code>lineBasePicked(line)</code> → <code>lineRateMeta</code> 在 <code>basePicked=false</code> 时返回 <code>{rate:0, none:true}</code>；<code>schemeLineAmount</code> 的费率标签在提成侧折 0 时<strong>只出顾客指定段</strong>（<code>顾客指定 5%</code>，<strong>不得</strong>出现 <code>0%</code>）。<strong>⑥ 状态收敛</strong>：<code>spEnsureState</code> 三者（<code>staffRoles</code> / <code>staffChosen</code> / <code>staffExtra</code>）<strong>一律以 <code>staffIds</code> 为准</strong>（在册即保留、不在册即清）；<code>spDropStaff</code> 把 <code>staffRoles</code> 与 <code>staffExtra</code> <strong>一并删除</strong>；<code>spSelectStaff(sid, fresh)</code> <strong>不再写 <code>staffRoles</code></strong>（由调用方先行写入），以便「只勾顾客指定」原样保留提成侧为空。<strong>⑦ 文案</strong>：hint 四态文案、分配模式说明 Dialog 补「只勾「顾客指定」也可单独分配（只发顾客指定提成）」；界面不再出现「普通」作为不分工位侧标签、也不再出现「未选」作为摘要文案。同步 §4.5.1（四态矩阵 / 口径要点 / 落库与计提）/ §4.5 / §6.2.3 / §6.7.1（入口摘要、hint、勾选卡表、交互四态、动效摘要）/ §7.2.1（字段表新增 <code>basePicked</code>）/ §8 规则 7 · 7a · 8 / §8.1 演示试算 / §9.1 / §10.2.1（53e / 53g / 53s / 53t / 53u / 53v / 53v2 / 53w / 53x 改写 + 新增 53v3 / 53x2）/ §12.3 A12 · A13b / §12.8 / §12.9（N6 / N14 / N15–N17b / N26 改写 + 新增 N14b / N17c）/ §12.10·12.11</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -944,7 +948,7 @@ flowchart LR
 <ul>
 <li>改名在<strong>规则设置 Sheet · 按工位</strong>内完成；名称全局统一，改一处全店同步。</li>
 <li>空名 toast「名称不能为空」；超过 6 字截断或拦截（以原型为准）。</li>
-<li>按工位模式下，订单行工位缺失：取方案 <code>stationIds</code> <strong>首个工位</strong>对应参数；若该工位参数块亦不存在 → <code>defaultPair()</code>（§8 规则 7）。</li>
+<li>按工位模式下，订单行<strong>未声明</strong> <code>basePicked</code>（缺字段 / <code>true</code>）且工位缺失：取方案 <code>stationIds</code> <strong>首个工位</strong>对应参数；若该工位参数块亦不存在 → <code>defaultPair()</code>（§8 规则 7）。<strong>订单行 <code>basePicked=false</code>（开单侧明确没点工位）不适用本条 —— 提成侧折 0、只发顾客指定提成。</strong></li>
 </ul>
 <h3>4.5.1 跨系统约束：开单「选择服务员工」的工位 / 顾客指定采集与交互降级（项 × 员工 维度）</h3>
 <blockquote>
@@ -975,39 +979,40 @@ flowchart LR
 <tr>
 <td>全部为 <code>false</code></td>
 <td>任一为 <code>station</code></td>
-<td>展开 <strong>3 张</strong>工位卡（大 / 中 / 小工）；工位<strong>单选</strong>且<strong>必须用户手点</strong>（不预选默认工位），未点工位不计入已选；<strong>再点已勾选的工位 = 取消该工位</strong>；无「顾客指定」卡</td>
+<td>展开 <strong>3 张</strong>工位卡（大 / 中 / 小工）；工位<strong>单选</strong>且<strong>必须用户手点</strong>（不预选默认工位），<strong>可点掉、可全不选</strong>（全不选 = 未选）；<strong>再点已勾选的工位 = 取消该工位</strong>；无「顾客指定」卡</td>
 </tr>
 <tr>
 <td>任一为 <code>true</code></td>
 <td>全部为 <code>avg</code></td>
-<td>展开 <strong>2 张</strong>卡：「普通」/「顾客指定」，<strong>二选一</strong>（「普通」= 非顾客指定）；再点已勾选的「顾客指定」→ 退回「普通」，再点已勾选的「普通」→ 取消该员工</td>
+<td>展开 <strong>2 张</strong>卡：「<strong>提成</strong>」/「顾客指定」（原「普通」改名，与 Sheet 行标签一致）；两者<strong>各自独立、可叠加</strong>（先勾「提成」再勾「顾客指定」，或只勾其一）；<strong>点任一按钮都收起</strong>；<strong>只勾「顾客指定」也是有效的单独分配</strong> —— 该员工仍计入已选、只发顾客指定提成</td>
 </tr>
 <tr>
 <td>任一为 <code>true</code></td>
 <td>任一为 <code>station</code></td>
-<td>展开 <strong>4 张</strong>卡：大 / 中 / 小工 + 「顾客指定」；工位<strong>单选</strong>且<strong>必须用户手点</strong>；「顾客指定」<strong>可与任一工位同时勾选</strong>（再点即取消该勾）；<strong>再点已勾选的工位 = 取消该工位</strong>（不再抖动提醒）；<strong>任一按钮点选后一律收起</strong>——只勾「顾客指定」而没点工位也立即收起，落入「<strong>未选</strong>」待选态（见 §6.7.1）</td>
+<td>展开 <strong>4 张</strong>卡：大 / 中 / 小工 + 「顾客指定」；工位<strong>单选</strong>且<strong>必须用户手点</strong>（可点掉、可全不选）；「顾客指定」<strong>独立勾选、不要求先有工位</strong>（可与任一工位叠加，也可单独勾）；<strong>再点已勾选的工位 = 取消该工位</strong>（不再抖动提醒）；<strong>任一按钮点选后一律收起</strong>——只勾「顾客指定」而没点工位也立即收起，该员工<strong>仍计入已选</strong>，摘要显示 <code>无工位 · 顾客指定</code>（见 §6.7.1）</td>
 </tr>
 </tbody>
 </table>
 <p><strong>口径要点</strong></p>
 <ul>
 <li><strong>按员工差异化</strong>：同一项下，不同员工按其各自命中块集 <code>B</code> 独立呈现——有的直接勾选、有的仅 3 张工位卡、有的多一张「顾客指定」卡，互不影响。</li>
-<li><strong>顾客指定 = 叠加</strong>：勾选「顾客指定」<strong>不替代</strong>工位提成，而是在原有提成之上<strong>另加</strong>顾客指定提成（<code>extraValue</code> / <code>extraAmt</code>，§8 规则 8）。</li>
+<li><strong>两组参数各自独立、可单选可叠加</strong>：<strong>「提成侧」</strong>（按工位 = 大工 / 中工 / 小工<strong>三选一</strong>；不分工位 = 单张「<strong>提成</strong>」）与<strong>「顾客指定侧」</strong>两组参数<strong>互不排斥、互不推导</strong>——任一组单独勾选都是有效选择，两组都不勾才等于未选。</li>
+<li><strong>顾客指定 = 叠加，且不依赖提成侧</strong>：勾选「顾客指定」<strong>不替代</strong>提成侧，而是在原有提成之上<strong>另加</strong>顾客指定提成（<code>extraValue</code> / <code>extraAmt</code>，§8 规则 8）；<strong>获得「顾客指定提成」不一定要有工位提成</strong>——只勾「顾客指定」、没选工位/提成时，该员工<strong>只发顾客指定提成、提成侧为 0</strong>（§8 规则 8）。</li>
 <li><strong>顾客指定值全局、与工位无关</strong>：开启后该块的顾客指定提成为 <code>CatRule</code> 级<strong>单值</strong>；按工位态下<strong>顾客指定一律取该值</strong>，3 个工位参数只作用于「提成」侧（§6.3 / §7.2.1）。</li>
-<li><strong>顾客指定仍采集工位</strong>：采集口径维持「两个维度各自独立」（上表四态）——命中块 <code>pickMode=station</code> 时仍选工位（用于落库与提成侧），顾客指定侧金额一律按全局值计算，不受所选工位影响。</li>
-<li><strong>工位单选且可点掉</strong>：需采集工位时，<strong>工位必须由用户手点才勾选</strong>（<strong>不预选 / 不自动带默认工位</strong>）；未点工位的员工<strong>不计入已选</strong>（不落库）。<strong>再点已勾选的工位 = 取消该工位</strong>（反序收勾 85ms，不再播 iOS 抖动）；要换工位就直接点另一张工位卡（并行「红色交接」）。</li>
-<li><strong>未选待选态（只勾「顾客指定」、没点工位）</strong>：按工位 + 开顾客指定时，若用户<strong>只点了「顾客指定」</strong>而没点工位，卡片<strong>立即收起</strong>并呈：
+<li><strong>顾客指定与工位各自采集</strong>：采集口径维持「两个维度各自独立」（上表四态）——命中块 <code>pickMode=station</code> 时<strong>可选</strong>工位（用于落库与提成侧），<strong>未选 = 提成侧 0</strong>；顾客指定侧金额一律按全局值计算，不受所选工位影响。</li>
+<li><strong>工位单选且可点掉</strong>：需采集工位时，<strong>工位必须由用户手点才勾选</strong>（<strong>不预选 / 不自动带默认工位</strong>）；<strong>再点已勾选的工位 = 取消该工位</strong>（反序收勾 85ms，不再播 iOS 抖动）；要换工位就直接点另一张工位卡（并行「红色交接」）。</li>
+<li><strong>只勾「顾客指定」= 有效的单独分配</strong>：按工位 + 开顾客指定时，若用户<strong>只点了「顾客指定」</strong>而没点工位，卡片<strong>立即收起</strong>并呈：
   ①<strong>选中态样式</strong>（粉底 + 粉描边 + 头像粉圈，与已选一致）；
-  ②<strong>不出现勾选控件</strong>（勾选控件 = 「已完整选中」的标志，此态无法用它取消，只能再展开卡片取消「顾客指定」）；
-  ③卡片第三行摘要为 <strong><code>未选 · 顾客指定</code></strong> —— <strong>工位位置是灰字「未选」</strong>（<code>--text-sec</code>），<strong>「顾客指定」仍是红字</strong>（品牌红）；
-  ④<strong>不计入已选</strong>（<code>staffIds</code> 不含它）：入口仍是「未选择」/ 人数不含它，订单行员工摘要列表也不出现该员工，<strong>不参与提成计算</strong>。
-  该「顾客指定」勾选<strong>记忆保留</strong>：再次展开仍是勾选态，点工位即完成选择（→ 计入已选、出现勾选控件、摘要变 <code>大工 · 顾客指定</code>），点掉「顾客指定」则完全回到未选态。</li>
-<li><strong>取消勾选（展开态）</strong>：<strong>任一按钮点选后一律收起</strong>（含只勾「顾客指定」）。①<strong>点掉工位</strong>：无工位即不计入已选；若同时已勾「顾客指定」则落入<strong>未选待选态</strong>，否则<strong>完全取消该员工</strong>；②<strong>点掉「顾客指定」</strong>：已有工位 → 退回仅工位（员工仍已选）；无工位（未选待选态）→ 该员工连人一并取消、回到完全未选态；不分工位 → 退回「普通」（员工仍已选）；③<strong>点掉「普通」</strong>（仅不分工位态）→ <strong>取消该员工</strong>选择并收起。</li>
-<li><strong>取消选择（收缩态）</strong>：已勾选员工卡右侧的勾选控件可点，点后取消该员工选择（<code>staffChosen=false</code>），并清掉其工位 / 顾客指定标记。<strong>未选待选态</strong>（只勾顾客指定、无工位）没有勾选控件，取消路径 = 点卡片展开 → 取消「顾客指定」。</li>
+  ②<strong>出现右侧勾选控件</strong>（与普通已选一致，点它即可取消该员工）；
+  ③卡片第三行摘要为 <strong><code>无工位 · 顾客指定</code></strong> —— <strong>提成位置是灰字「无工位」</strong>（<code>--text-sec</code>），<strong>「顾客指定」是红字</strong>（品牌红）；不分工位态下两侧都勾为 <code>提成 · 顾客指定</code>、只勾顾客指定为 <code>顾客指定</code>；
+  ④<strong>计入已选</strong>（<code>staffIds</code> 含它）：入口「已选 N 人」人数含它，订单行员工摘要列表出现该员工，<strong>参与计提</strong>——<strong>只发顾客指定提成</strong>。
+  该「顾客指定」勾选<strong>记忆保留</strong>：再次展开仍是勾选态，点工位即完成叠加（摘要变 <code>大工 · 顾客指定</code>），点掉「顾客指定」则完全回到未选态。</li>
+<li><strong>取消勾选（展开态）</strong>：<strong>任一按钮点选后一律收起</strong>（含只勾「顾客指定」）。①<strong>点掉工位</strong>：<strong>还有「顾客指定」→ 员工仍已选</strong>（摘要回 <code>无工位 · 顾客指定</code>，只发顾客指定提成）；否则<strong>完全取消该员工</strong>；②<strong>点掉「顾客指定」</strong>：还有工位/提成 → 退回仅提成侧（员工仍已选）；无提成侧 → 该员工连人一并取消、回到完全未选态；③<strong>点掉「提成」</strong>（仅不分工位态）：还有「顾客指定」→ 员工仍已选（摘要回 <code>顾客指定</code>）；否则<strong>取消该员工</strong>选择并收起。</li>
+<li><strong>取消选择（收缩态）</strong>：已勾选员工卡右侧的勾选控件可点，点后取消该员工选择（<code>staffChosen=false</code>），并清掉其提成侧 / 顾客指定标记（<code>staffRoles</code> + <code>staffExtra</code> 一并删除）。</li>
 <li><strong>动效与门控</strong>：点勾选控件 → <strong>快速变红（60ms）→ 勾从左到右画出（110ms）= 170ms</strong>；取消<strong>反序播放</strong>（收勾 → 褪红）且<strong>提速一倍</strong>（收勾 55ms + 褪红 30ms = <strong>85ms</strong>），<strong>且被取消的整张卡的红色（勾选框红底 + 卡片红边/红投影 + 员工卡粉底/粉描边/头像粉圈）与勾同一个节拍同步淡出</strong>；<strong>切换工位</strong>时<strong>新卡立刻变红画勾、旧卡红色同步快速淡出</strong>（并行「红色交接」，共 ≈ <strong>170ms</strong>）；卡片的<strong>收起 / 展开都必须等动效</strong>（<code>Animation.finished</code> + 名义时长取长），<strong>不用固定计时</strong>；<strong>动效期间的新交互抢断当前动效</strong>——<strong>先把勾补画成终点态</strong>再立即落定进行中的结果、随后执行新交互（不排队、不丢失）；<strong>抢断时勾不会停在半路</strong>。展开态下<strong>服务员工卡片区</strong>内点非选项卡区域（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / <code>scrim</code>）一律收起；<strong>Sheet 标题 / 提示行 / 底部栏</strong>点了不收起（详见 §6.7.1）。<code>prefers-reduced-motion</code> 下全部瞬时切态。</li>
 <li><strong>交互呈现（点击后自适应）</strong>：选人列表<strong>不预打标</strong>；点选某员工时按该员工是否需二次选择决定是否展开「员工变为按钮」动效——需采集（工位或顾客指定<strong>任一</strong>）才展开，两者皆否则直接完成勾选。</li>
 <li><strong>内嵌选人一并生效</strong>：若「加入购物车」等 Sheet <strong>内嵌</strong>了选服务员工，同一规则一并生效。</li>
-<li><strong>未采集时的落库与计提</strong>：未勾选「顾客指定」时，订单行该员工<strong>不含顾客指定提成</strong>（<code>staffExtra=false</code>），按命中块「提成」侧取值——<code>pickMode=avg</code> 取 rule 级 <code>nonDesignated</code>，<code>pickMode=station</code> 取该工位 <code>stations[station].nonDesignated</code>；未采集「工位」时按 §8 规则 7 缺省回落（<code>stationIds[0]</code>）。计提仍按 §8 规则 3 取高、规则 7 取值。</li>
+<li><strong>未采集时的落库与计提</strong>：未勾选「顾客指定」时，订单行该员工<strong>不含顾客指定提成</strong>（<code>staffExtra=false</code>），按命中块「提成」侧取值——<code>pickMode=avg</code> 取 rule 级 <code>nonDesignated</code>，<code>pickMode=station</code> 取该工位 <code>stations[station].nonDesignated</code>；<strong>订单行「提成侧」明确没勾时</strong>（<code>basePicked=false</code>）<strong>提成侧折 0，只发顾客指定提成</strong>；<strong>未声明 <code>basePicked</code> 的旧订单行</strong>按 §8 规则 7 缺省回落（<code>stationIds[0]</code>）。计提仍按 §8 规则 3 取高、规则 7 取值。</li>
 <li><strong>无提成配置的项</strong>：商城订单（<code>mall</code>）无任何提成块命中 → 若开单侧也要为其选服务员工，一律<strong>点选即勾选</strong>。</li>
 <li><strong>旧数据兼容（旧 <code>guestSplit</code> / <code>designated*</code> → <code>extraSplit</code> / <code>extraValue</code>*）</strong>：旧模型「按工位 × 点客」为正交（3 工位 × 2 值 = 6 值），且点客与提成<strong>互斥</strong>；新模型为<strong>叠加</strong>（3 工位提成 + 1 全局顾客指定 = 4 值）。加载旧数据时把点客值提升为 <code>CatRule</code> 级 <code>extraValue</code>（<strong>取 <code>stationIds[0]</code> 对应工位的点客值</strong>，取值不变），<code>stations[*]</code> 仅保留提成侧；<code>guestSplit=true</code> → <code>extraSplit=true</code>，旧判定「两端值不等 → 视为已开启」一并沿用（§6.3）。语义变化：旧数据在新模型下表示「该员工按工位提成<strong>再加</strong>顾客指定值」，不再表示二选一。</li>
 </ul>
@@ -1428,7 +1433,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 <tr>
 <td>语义</td>
-<td><strong>顾客指定 = 叠加</strong>：该员工实得 = 提成 + 顾客指定（不是二选一、不替代工位提成）</td>
+<td><strong>顾客指定 = 叠加，且不依赖提成侧</strong>：该员工实得 = 提成 + 顾客指定（不是二选一、不替代工位提成）；<strong>只勾「顾客指定」、没选工位/提成时，提成侧折 0、实得 = 顾客指定</strong>（§8 规则 7、8）</td>
 </tr>
 <tr>
 <td>按工位</td>
@@ -1756,13 +1761,13 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 3. <strong>分配模式</strong>分段：<code>不分工位</code> / <code>按工位</code>（默认按工位）
 4. <strong>顾客指定提成</strong>分段：<code>未开顾客指定</code> / <code>开顾客指定</code>（默认开）—— 与上项组合成四态
 5. 白卡「服务员工」：入口行 + 已选摘要</p>
-<p><strong>入口行 / 摘要行</strong>：同前。摘要文案：工位 + 顾客指定 → <code>大工 · 顾客指定</code>（工位名不带其他后缀）；仅工位 → <strong>仅工位名</strong>（如 <code>大工</code>）；<strong>未选待选态</strong>（只勾顾客指定、无工位）→ <strong><code>未选 · 顾客指定</code></strong>（<code>未选</code> 为<strong>灰字</strong>、<code>顾客指定</code> 为<strong>红字</strong>，卡片呈选中态样式且<strong>无勾选控件</strong>、<strong>不计入已选</strong>）；不分工位 + 顾客指定 → <code>顾客指定</code>；不分工位 + 顾客指定 且未勾选顾客指定 → <code>普通</code>；<strong>皆否（不分工位 + 未开顾客指定）</strong> → 卡片第三行仍为<strong>灰色头衔</strong>（无红色提成摘要），入口摘要行不写 meta。</p>
+<p><strong>入口行 / 摘要行</strong>：同前。摘要文案：工位 + 顾客指定 → <code>大工 · 顾客指定</code>（工位名不带其他后缀）；仅工位 → <strong>仅工位名</strong>（如 <code>大工</code>）；<strong>只勾顾客指定、没有工位</strong> → <strong><code>无工位 · 顾客指定</code></strong>（<code>无工位</code> 为<strong>灰字</strong>、<code>顾客指定</code> 为<strong>红字</strong>，卡片呈选中态样式且<strong>有勾选控件</strong>、<strong>计入已选</strong>、<strong>只发顾客指定提成</strong>）；不分工位 + 顾客指定 且勾了「提成」→ <code>提成 · 顾客指定</code>；不分工位 + 顾客指定 且未勾「提成」→ <code>顾客指定</code>；<strong>皆否（不分工位 + 未开顾客指定）</strong> → 卡片第三行仍为<strong>灰色头衔</strong>（无红色提成摘要），入口摘要行不写 meta。</p>
 <p><strong>底部 Sheet</strong>：提示文案随四态切换：
 - 皆否：<code>可多选员工；点卡片即完成选择。</code>
-- 仅开顾客指定：<code>可多选员工；点卡片后勾选「普通」或「顾客指定」（顾客指定提成另计），点选后即收起。</code>
+- 仅开顾客指定：<code>可多选员工；点卡片后勾选「提成」「顾客指定」（两者可同时勾选、提成叠加），只勾「顾客指定」也可单独分配；点选后即收起。</code>
 - 仅按工位：<code>可多选员工；点卡片后勾选工位（大工/中工/小工），工位单选、点选后即收起，再点已勾选工位即取消。</code>
-- 按工位 + 开顾客指定：<code>可多选员工；点卡片后勾选工位（大工/中工/小工），工位单选、点选后即收起，再点已勾选工位即取消；「顾客指定」可与任一工位同时勾选、提成叠加；只勾「顾客指定」未点工位时，卡片记为「未选」。</code></p>
-<p><strong>收起时机（本次收紧）</strong>：<strong>展开态下点任一按钮（勾选 / 取消 / 点掉工位）一律收起</strong> —— 不再有「保持展开等工位」的分支；只勾「顾客指定」也立即收起并落入<strong>未选待选态</strong>。</p>
+- 按工位 + 开顾客指定：<code>可多选员工；点卡片后勾选工位（大工/中工/小工），工位单选、点选后即收起，再点已勾选工位即取消；「顾客指定」可与任一工位同时勾选（提成叠加），也可以不选工位单独分配「顾客指定」——此种情况只发顾客指定提成。</code></p>
+<p><strong>收起时机</strong>：<strong>展开态下点任一按钮（勾选 / 取消 / 点掉工位）一律收起</strong> —— 不再有「保持展开等工位」的分支；只勾「顾客指定」也立即收起（该员工<strong>计入已选</strong>）。</p>
 <p><strong>展开后的勾选卡（整行平铺）</strong>：</p>
 <table>
 <thead>
@@ -1781,28 +1786,28 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <td><strong>勾选该卡</strong>（<code>aria-pressed=true</code>）并立即<strong>收缩</strong>回员工卡；已勾选态在收缩后的员工卡上继续显示</td>
 </tr>
 <tr>
-<td>点已勾选的「普通」/「顾客指定」</td>
-<td><strong>取消该勾</strong>并<strong>收起</strong>：「顾客指定」→ 不分工位退回「普通」、按工位有工位则退回仅工位 / 无工位则完全取消该员工；「普通」→ <strong>取消该员工</strong>选择</td>
+<td>点已勾选的「提成」/「顾客指定」</td>
+<td><strong>取消该勾</strong>并<strong>收起</strong>：「顾客指定」→ 不分工位有「提成」则退回仅「提成」、按工位有工位则退回仅工位 / <strong>两侧皆空则完全取消该员工</strong>；「提成」（仅不分工位）/ 工位 → 还有「顾客指定」则<strong>员工仍已选</strong>（摘要回 <code>顾客指定</code> / <code>无工位 · 顾客指定</code>）、否则<strong>取消该员工</strong>选择</td>
 </tr>
 <tr>
 <td>点已勾选的工位</td>
-<td>走<strong>反向动效</strong>（收勾 <code>55ms</code> + 褪红 <code>30ms</code> = <code>85ms</code>）后<strong>取消该工位</strong>并收起：还有「顾客指定」→ 落入<strong>未选待选态</strong>（卡片呈选中态样式、无勾选控件、摘要 <code>未选 · 顾客指定</code>）；否则<strong>完全取消该员工</strong></td>
+<td>走<strong>反向动效</strong>（收勾 <code>55ms</code> + 褪红 <code>30ms</code> = <code>85ms</code>）后<strong>取消该工位</strong>并收起：还有「顾客指定」→ <strong>员工仍已选</strong>（摘要 <code>无工位 · 顾客指定</code>，只发顾客指定提成）；否则<strong>完全取消该员工</strong></td>
 </tr>
 <tr>
 <td>工位多张</td>
-<td>工位之间<strong>单选</strong>（勾新的即替换旧的；旧勾<strong>先反序收回</strong>再画新勾，并行「红色交接」）</td>
+<td>工位之间<strong>单选</strong>（勾新的即替换旧的；旧勾<strong>先反序收回</strong>再画新勾，并行「红色交接」）；<strong>可点掉、可全不选</strong></td>
 </tr>
 <tr>
 <td>「顾客指定」</td>
-<td><strong>可与任一工位同时勾选</strong>（互不替代）；可再点取消该勾</td>
+<td><strong>独立勾选，不要求先有工位/提成</strong>——可与任一工位（或「提成」）同时勾选，也可单独勾（= <strong>只发顾客指定提成</strong>）；可再点取消该勾</td>
 </tr>
 <tr>
-<td>只勾「顾客指定」未点工位</td>
-<td><strong>立即收起</strong> → <strong>未选待选态</strong>：卡片呈<strong>选中态样式</strong>（粉底/粉描边/头像粉圈）、<strong>不出现勾选控件</strong>、摘要 <code>未选 · 顾客指定</code>（<code>未选</code> 灰字 + <code>顾客指定</code> 红字）、<strong>不计入已选</strong>（入口人数与订单行摘要列表均不含它）；该勾选<strong>记忆保留</strong>，再展开仍是勾选态</td>
+<td>只勾「顾客指定」、没选工位/提成</td>
+<td><strong>立即收起</strong> → 卡片呈<strong>选中态样式</strong>（粉底/粉描边/头像粉圈）、<strong>出现勾选控件</strong>、摘要 <code>无工位 · 顾客指定</code>（<code>无工位</code> 灰字 + <code>顾客指定</code> 红字）、<strong>计入已选</strong>（入口人数与订单行摘要列表都含它）；<strong>只发顾客指定提成</strong>（提成侧 0）；再次展开仍是勾选态</td>
 </tr>
 <tr>
 <td>收缩后的员工卡</td>
-<td>已勾选 → 摘要行显示结果（<code>大工 · 顾客指定</code>）、右侧<strong>放大勾选控件</strong>（约 20px），<strong>点它取消该员工选择</strong>、<strong>无</strong>右上角 ×；未选待选态 → 摘要 <code>未选 · 顾客指定</code>、<strong>无勾选控件</strong>（取消只能再展开卡片点掉「顾客指定」）</td>
+<td>已勾选 → 摘要行显示结果（<code>大工 · 顾客指定</code> / <code>无工位 · 顾客指定</code> / <code>提成 · 顾客指定</code> / <code>顾客指定</code>）、右侧<strong>放大勾选控件</strong>（约 20px），<strong>点它取消该员工选择</strong>、<strong>无</strong>右上角 ×</td>
 </tr>
 </tbody>
 </table>
@@ -1819,7 +1824,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <tr>
 <td style="text-align: center;">✓</td>
 <td style="text-align: center;">✓</td>
-<td>Morph 展开为<strong>整行 4 张</strong>：「大工」「中工」「小工」「顾客指定」（工位名按 <code>stationLabels</code> 映射；每张右上角未勾选控件）；工位<strong>必须手点</strong>（不预选默认工位）、<strong>单选且可点掉</strong>；顾客指定可叠加且可再点取消；<strong>点任一按钮都收起</strong>；只勾顾客指定未点工位 → 未选待选态；工位点定后收缩，员工卡显示 <code>工位 · 顾客指定</code></td>
+<td>Morph 展开为<strong>整行 4 张</strong>：「大工」「中工」「小工」「顾客指定」（工位名按 <code>stationLabels</code> 映射；每张右上角未勾选控件）；工位<strong>必须手点</strong>（不预选默认工位）、<strong>单选且可点掉、可全不选</strong>；顾客指定<strong>独立可勾</strong>（不要求先点工位）；<strong>点任一按钮都收起</strong>；只勾顾客指定未点工位 → <strong>仍计入已选</strong>、摘要 <code>无工位 · 顾客指定</code>、只发顾客指定提成；两侧叠加时收缩后员工卡显示 <code>工位 · 顾客指定</code></td>
 </tr>
 <tr>
 <td style="text-align: center;">✓</td>
@@ -1829,7 +1834,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <tr>
 <td style="text-align: center;">✗</td>
 <td style="text-align: center;">✓</td>
-<td>展开 <strong>2 张</strong>：「普通」「顾客指定」；二选一后收缩（员工卡显示 <code>普通</code> / <code>顾客指定</code>）；再点已勾选的「顾客指定」→ 退回「普通」，再点「普通」→ 取消该员工</td>
+<td>展开 <strong>2 张</strong>：「<strong>提成</strong>」「顾客指定」；<strong>两组各自独立、可叠加</strong>（先勾「提成」再勾「顾客指定」）；只勾「提成」→ 摘要 <code>提成</code>，只勾「顾客指定」→ 摘要 <code>顾客指定</code>（<strong>仍计入已选、只发顾客指定提成</strong>），两者都勾 → <code>提成 · 顾客指定</code>；再点已勾选的任一张即取消该勾，两侧皆空才取消该员工</td>
 </tr>
 <tr>
 <td style="text-align: center;">✗</td>
@@ -1892,7 +1897,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 <tr>
 <td>点掉已勾选工位（A12）</td>
-<td>走<strong>反向</strong>收勾动效（<code>55ms</code> + <code>30ms</code> = <code>85ms</code>）后取消该工位并收起；<strong>原「iOS 抖动提醒」已废止</strong>（工位改为可点掉）。未选待选态摘要 <code>未选 · 顾客指定</code> 见 A13b</td>
+<td>走<strong>反向</strong>收勾动效（<code>55ms</code> + <code>30ms</code> = <code>85ms</code>）后取消该工位并收起；<strong>原「iOS 抖动提醒」已废止</strong>（工位改为可点掉）。若还有「顾客指定」→ 员工<strong>仍已选</strong>、摘要 <code>无工位 · 顾客指定</code>（见 A13b），否则完全取消该员工</td>
 </tr>
 <tr>
 <td>收缩回弹（A9）</td>
@@ -3062,7 +3067,11 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <tbody>
 <tr>
 <td>staffIds / staffExtra / staffRoles / staffChosen</td>
-<td>员工、顾客指定标记（<code>staffExtra</code>，旧 <code>staffDesignated</code>）、工位（<code>staffRoles[staffId]</code>）、是否已勾选（<code>staffChosen</code>）</td>
+<td>员工、顾客指定标记（<code>staffExtra</code>，旧 <code>staffDesignated</code>）、<strong>提成侧选择</strong>（<code>staffRoles[staffId]</code>：按工位 = 工位 id；不分工位 = 哨兵 <code>avg</code>）、是否已勾选（<code>staffChosen</code>）</td>
+</tr>
+<tr>
+<td>basePicked</td>
+<td><strong>提成侧是否被明确勾选</strong>：<code>false</code> = 开单侧明确没勾提成侧（按工位 = 未点工位 / 不分工位 = 未勾「提成」）→ <strong>提成侧折 0、只发顾客指定提成</strong>；<code>true</code> 或缺字段（旧订单行）= 照常计提（工位缺失仍按 §8 规则 7 回落 <code>stationIds[0]</code>）</td>
 </tr>
 <tr>
 <td>staffAchievements</td>
@@ -3310,9 +3319,9 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <li><strong>不同行可相加</strong>：不同业务行各自取高后，行与行之间可相加汇总。</li>
 <li><strong>覆盖优先于默认（方案内）</strong>：解析顺序——先按目标匹配覆盖规则项（含系统快捷开单 <code>refId=quick</code>；单项目 / 产品 / 会员卡按 <code>kind+refId</code>；整类分组按 <code>groupKind+refId</code>），<strong>命中任一条覆盖即不再回落默认分类</strong>（项目→<code>labor</code>、产品→<code>sales</code>、办卡→<code>issue</code>、充卡→<code>card</code>）。快捷开单行（<code>kind=quick</code> / 名称「快捷开单」）<strong>只命中系统覆盖</strong>，不吃项目默认。方案之间再执行规则 3。</li>
 <li><strong>计算基数</strong>：见规则 2 分摊公式；§6.9 帮助口径与此一致。<code>valueMode=amount</code> 时按规则 2 对固定额乘分摊系数（不再整单直接取固定额）。</li>
-<li><strong>分配取值</strong>：<strong>顾客指定与工位相互独立、且为叠加</strong>——凡命中块开启顾客指定（订单行该员工 <code>staffExtra=true</code>），先按工位 / 规则级取「提成」值：<code>pickMode=avg</code>（UI「不分工位」）取 rule 级 <code>nonDesignated</code> / <code>nonDesignatedAmt</code>，<code>pickMode=station</code>（UI「按工位分配」）取订单行 <code>station</code> 对应工位 <code>stations[station].nonDesignated</code> / <code>.nonDesignatedAmt</code>；<strong>再加</strong> rule 级全局顾客指定值 <code>extraValue</code> / <code>extraAmt</code>（<strong>与工位无关</strong>）。未勾选顾客指定时仅取「提成」侧、不加顾客指定。<strong>工位缺失</strong>：用方案 <code>stationIds[0]</code> 对应工位参数，若无则工位默认值 <code>{ nonDesignated: 10, nonDesignatedAmt: 0 }</code>（与原型 <code>lineRateFor</code> 一致）。按工位且开顾客指定时共 <strong>4 个</strong>可配参数（3 工位提成 + 1 全局顾客指定），未开共 <strong>3 个</strong>。两侧<strong>可各自</strong>为比例或固定金额（允许混用，如工位提成按比例 + 顾客指定按固定金额）。
-7a. <strong>开单「选择服务员工」的工位 / 顾客指定采集与交互降级（项 × 员工 维度）</strong>：开单每添加一项 <code>I</code>、对候选每个员工 <code>E</code> 独立判定——只考察 <code>E</code> 所属启用方案，按规则 5 解析该项在每个方案内的唯一命中块（单项覆盖 &gt; 整类分组覆盖 &gt; 整类默认；快捷开单只命中系统覆盖），得命中块集 <code>B</code>；<code>B</code> 中任一 <code>pickMode=station</code> → 该员工需选<strong>工位</strong>（<strong>单选，且必须由用户手点才生效——未点工位则该员工不计入已选</strong>），任一 <code>extraSplit=true</code> → 还需勾选「<strong>顾客指定</strong>」（<strong>可与任一工位叠加</strong>）；两者皆否 → <strong>点选即勾选</strong>（不展开、无二次选择）。<code>E</code> 无方案或项无提成配置（如商城订单）→ 点选即勾选。未勾选顾客指定按规则 7「无顾客指定」路径取值（<code>avg</code> 取 <code>nonDesignated</code>、<code>station</code> 取该工位 <code>nonDesignated</code>）；未采集工位按规则 7 缺省回落；计提仍按规则 3 取高。<strong>顾客指定虽仍采集工位，但其顾客指定值一律按全局值加算，不受所选工位影响。</strong> 本条约束 UI 采集，详见 §4.5.1。</li>
-<li><strong>金额计算</strong>：<code>pct</code> → <code>round(base × rate / 100)</code>；<code>amount</code> → 固定金额（提成侧用 <code>nonDesignatedAmt</code> / 按工位用 <code>stations[station].nonDesignatedAmt</code>；<strong>顾客指定用 rule 级全局 <code>extraAmt</code></strong>）再乘分摊系数（规则 2）。<strong>命中顾客指定时：金额 = 「提成」侧金额 + 「顾客指定」侧金额</strong>（两侧各自按本条与规则 2 计算后相加）。费率取值见规则 7。</li>
+<li><strong>分配取值</strong>：<strong>顾客指定与工位相互独立、且为叠加</strong>——凡命中块开启顾客指定（订单行该员工 <code>staffExtra=true</code>），先按工位 / 规则级取「提成」值：<code>pickMode=avg</code>（UI「不分工位」）取 rule 级 <code>nonDesignated</code> / <code>nonDesignatedAmt</code>，<code>pickMode=station</code>（UI「按工位分配」）取订单行 <code>station</code> 对应工位 <code>stations[station].nonDesignated</code> / <code>.nonDesignatedAmt</code>；<strong>再加</strong> rule 级全局顾客指定值 <code>extraValue</code> / <code>extraAmt</code>（<strong>与工位无关</strong>）。未勾选顾客指定时仅取「提成」侧、不加顾客指定。<strong>工位 / 提成侧缺失</strong>分两种，靠订单行显式标记 <code>basePicked</code> 区分（§7.2.1）：<strong><code>basePicked=false</code> = 开单侧明确没勾「提成侧」</strong>（按工位 = 未点工位；不分工位 = 未勾「提成」）→ <strong>提成侧折 0，只发顾客指定提成</strong>（获得顾客指定提成<strong>不要求</strong>有工位提成）；<strong>缺字段（旧订单行）</strong> → 照常计提，工位用方案 <code>stationIds[0]</code> 对应工位参数，若无则工位默认值 <code>{ nonDesignated: 10, nonDesignatedAmt: 0 }</code>（与原型 <code>lineRateFor</code> 一致）。按工位且开顾客指定时共 <strong>4 个</strong>可配参数（3 工位提成 + 1 全局顾客指定），未开共 <strong>3 个</strong>。两侧<strong>可各自</strong>为比例或固定金额（允许混用，如工位提成按比例 + 顾客指定按固定金额）。<strong>提成侧折 0 时标签只出顾客指定段</strong>（如 <code>顾客指定 5%</code>），<strong>不得</strong>出现 <code>0%</code>。
+7a. <strong>开单「选择服务员工」的工位 / 顾客指定采集与交互降级（项 × 员工 维度）</strong>：开单每添加一项 <code>I</code>、对候选每个员工 <code>E</code> 独立判定——只考察 <code>E</code> 所属启用方案，按规则 5 解析该项在每个方案内的唯一命中块（单项覆盖 &gt; 整类分组覆盖 &gt; 整类默认；快捷开单只命中系统覆盖），得命中块集 <code>B</code>；<code>B</code> 中任一 <code>pickMode=station</code> → 该员工需采集<strong>工位</strong>（<strong>单选、可点掉、可全不选</strong>；已勾选的工位再点即取消），任一 <code>extraSplit=true</code> → 还需采集「<strong>顾客指定</strong>」（<strong>独立勾选、可与任一工位叠加，也可不选工位单独勾选</strong>）；<strong>两组参数各自独立、可单选可叠加</strong> —— 只要任一组勾选即完成选择（落库 <code>basePicked=true</code> / <code>staffExtra</code>），两组皆空则该员工未选。两者皆否 → <strong>点选即勾选</strong>（不展开、无二次选择）。<code>E</code> 无方案或项无提成配置（如商城订单）→ 点选即勾选。未勾选顾客指定按规则 7「无顾客指定」路径取值（<code>avg</code> 取 <code>nonDesignated</code>、<code>station</code> 取该工位 <code>nonDesignated</code>）；<strong>只勾顾客指定、未选工位/提成时落库 <code>basePicked=false</code>，提成侧折 0、只发顾客指定提成</strong>。计提仍按规则 3 取高。<strong>顾客指定值一律按全局值加算，不受所选工位影响。</strong> 本条约束 UI 采集，详见 §4.5.1。</li>
+<li><strong>金额计算</strong>：<code>pct</code> → <code>round(base × rate / 100)</code>；<code>amount</code> → 固定金额（提成侧用 <code>nonDesignatedAmt</code> / 按工位用 <code>stations[station].nonDesignatedAmt</code>；<strong>顾客指定用 rule 级全局 <code>extraAmt</code></strong>）再乘分摊系数（规则 2）。<strong>命中顾客指定时：金额 = 「提成」侧金额 + 「顾客指定」侧金额</strong>（两侧各自按本条与规则 2 计算后相加）；<strong>订单行 <code>basePicked=false</code> 时提成侧按 0 计</strong>（<code>0 + 顾客指定侧</code>）。费率取值见规则 7。</li>
 <li><strong>适用范围合法性</strong>：任一默认块 / 覆盖块的 <code>payScope</code> 至少 1 类；保存时全校验。</li>
 <li><strong>允许重复添加</strong>：不同覆盖卡可包含同一项目 / 产品 / 会员卡；选择页<strong>不禁用</strong>；<strong>无</strong>次数标签。覆盖卡标题按命名规则生成。（整类与单项勾选互斥仍见规则 11。）</li>
 <li><strong>整类与单项互斥</strong>：添加规则项勾选整类组会清掉组内单项勾选；勾选单项会清掉涵盖它的整类勾选。</li>
@@ -3340,7 +3349,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </ol>
 <h2>8.1 试算口径（原型试算引擎）</h2>
 <p>原型内置 10 条示例订单行（<code>COMM2_TRIAL_LINES</code>）用于演示与验证：开卡·尊享组合卡、充卡·老客续充、深层补水护理、染发、染发·混合支付（原价 100 / 现金 40 + 卡付 60）、剑琅玻尿酸精华液、团购体验·洗头、卡付·时尚洗吹、<strong>快捷开单</strong>、<strong>经理签单·深层补水护理</strong>（原价 268 / 实收 0，<code>sign=true</code>）。</p>
-<p>计提验证步骤：取员工所属<strong>全部</strong>方案（列表顺序）→ 每行对每个方案解析覆盖/默认块 → 非经理签单行按适用范围分摊基数，经理签单行按命中块 <code>baseMode</code> / <code>valueMode</code> → 计算金额 → <strong>取金额最大者</strong>（并列保留列表更靠前方案）→ 汇总。结果行带 <code>winnerSchemeId</code>。费率取值：<strong>含顾客指定者 = 提成（工位提成 / 规则级提成）+ rule 级全局顾客指定值（与工位无关）</strong>；不含者仅按 §8 规则 7 取工位提成 / 规则级提成。此口径与 §8 一致，作为联调参考样例（非正式接口）。</p>
+<p>计提验证步骤：取员工所属<strong>全部</strong>方案（列表顺序）→ 每行对每个方案解析覆盖/默认块 → 非经理签单行按适用范围分摊基数，经理签单行按命中块 <code>baseMode</code> / <code>valueMode</code> → 计算金额 → <strong>取金额最大者</strong>（并列保留列表更靠前方案）→ 汇总。结果行带 <code>winnerSchemeId</code>。费率取值：<strong>含顾客指定者 = 提成（工位提成 / 规则级提成）+ rule 级全局顾客指定值（与工位无关）</strong>；不含者仅按 §8 规则 7 取工位提成 / 规则级提成；<strong>订单行 <code>basePicked=false</code>（明确没勾提成侧）时提成侧按 0 计 —— 只发顾客指定</strong>。此口径与 §8 一致，作为联调参考样例（非正式接口）。</p>
 <h2>8.2 演示数据（造数参考）</h2>
 <p>原型内置 3 个演示方案：</p>
 <table>
@@ -3403,9 +3412,10 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <p>读者：前端 ✓ · 后端 部分 · 测试 ✓</p>
 </blockquote>
 <h2>9.1 文案清单（须与原型一致）</h2>
-<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet、选择服务员工</strong>、<strong>顾客指定、指定、普通、小工、中工、大工、不分工位、按工位、未选择、已选 N 人</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
+<p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet、选择服务员工</strong>、<strong>顾客指定、指定、提成、小工、中工、大工、不分工位、按工位、未选择、已选 N 人</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、提成、<strong>顾客指定</strong>（规则卡上的取值段标签；Sheet 参数卡内标题仍为「指定」）、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
-<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工</strong>、<strong>比例 / 金额（两段式胶囊）</strong>；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 <strong>大工 / 中工 / 小工 / 顾客指定</strong>，不分工位+开顾客指定为 <strong>普通 / 顾客指定</strong>。</p>
+<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工</strong>、<strong>比例 / 金额（两段式胶囊）</strong>；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 <strong>大工 / 中工 / 小工 / 顾客指定</strong>，不分工位+开顾客指定为 <strong>提成 / 顾客指定</strong>。</p>
+<p><strong>选人摘要 / 提示（§6.7.1）</strong>：摘要 <code>大工</code> / <code>大工 · 顾客指定</code> / <code>无工位 · 顾客指定</code> / <code>提成</code> / <code>提成 · 顾客指定</code> / <code>顾客指定</code>（<code>无工位</code> 为灰字 <code>.staff-card__pick-miss</code>、<code>顾客指定</code> 为红字 <code>.staff-card__pick-x</code>）；提示行四态文案见 §6.7.1；分配模式说明 Dialog 含「只勾「顾客指定」也可单独分配（只发顾客指定提成）」。<strong>界面不得再出现「普通」作为不分工位侧标签</strong>（已改「提成」），也不得再出现「未选」作为摘要文案（已改「无工位」）。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的顾客指定比例/金额、请输入有效的提成比例/金额、比例需在 0–100%、名称不能为空、工位名最多 6 个字。</p>
 <p><strong>员工（表单/详情/列表）</strong>：员工管理、员工详情、我的资料、创建员工、邀请员工、编辑员工、完善员工信息、请完善员工信息，以便正常开单与业绩统计、去完善、信息未完善、添加头衔、头衔管理、角色管理、选择头衔、选择员工角色、权限说明、请选择、请选择员工角色、暂未分配、添加头像、剑号、宝剑、更多信息、性别、年龄段、从业年限、状态（在岗/休假/离职）、保存、已保存、请输入员工姓名、员工姓名最多 N 字、请输入员工手机号、请输入正确的手机号、请选择头衔、请选择员工角色、请选择有效的角色身份、新建员工不可设为店主、本店已有店主（{姓名}）、请输入有效从业年限、从业年限不能超过 N 年、请输入员工基本工资、请输入有效基本工资、金额不能超过 N、注：当修改基本工资后，当月的薪资统计以最新的为准、功能开发中。</p>
 <blockquote>
@@ -3659,9 +3669,9 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 53b. <strong>Given</strong> 默认「项目」已=<code>station</code>，该类全部覆盖均为 <code>avg</code>，<strong>When</strong> 开单选服务员工，<strong>Then</strong> 项目类仍需选工位。
 53c. <strong>Given</strong> 员工 <code>E</code> 命中当前项 <code>I</code> 的全部块 <code>extraSplit=false</code>，<strong>When</strong> 开单为该项选择服务员工，<strong>Then</strong> <strong>该员工 <code>E</code></strong> 在本项上<strong>不出现</strong>「顾客指定」勾选（不再是旧版必选）；同一项下命中块 <code>extraSplit=true</code> 的其他员工仍需勾选。
 53d. <strong>Given</strong> 员工 <code>E</code> 命中块 <code>extraSplit=false</code> 且 <code>pickMode</code> 全为 <code>avg</code>，<strong>When</strong> 开单点击该员工，<strong>Then</strong> <strong>直接完成勾选</strong>；<strong>不播放</strong>「员工变为按钮」的展开动效、无任何二次选择。
-53e. <strong>Given</strong> 员工 <code>E</code> 命中当前项 <code>I</code> 的某一块 <code>extraSplit=true</code>（其余命中块为 <code>false</code> 且 <code>avg</code>），<strong>When</strong> 开单为该项选择该员工，<strong>Then</strong> <strong>该员工 <code>E</code></strong> 展开 <strong>2 张</strong>卡「普通 / 顾客指定」（见 §4.5.1 / 规则 7a），并保留展开动效；同一项下命中块全为 <code>false</code> 的其他员工直接勾选。
+53e. <strong>Given</strong> 员工 <code>E</code> 命中当前项 <code>I</code> 的某一块 <code>extraSplit=true</code>（其余命中块为 <code>false</code> 且 <code>avg</code>），<strong>When</strong> 开单为该项选择该员工，<strong>Then</strong> <strong>该员工 <code>E</code></strong> 展开 <strong>2 张</strong>卡「<strong>提成</strong> / 顾客指定」（见 §4.5.1 / 规则 7a），并保留展开动效；同一项下命中块全为 <code>false</code> 的其他员工直接勾选。
 53f. <strong>Given</strong> 员工 <code>E</code> 命中块 <code>extraSplit</code> 全为 <code>false</code>，但任一命中块 <code>pickMode=station</code>，<strong>When</strong> 开单选择该员工，<strong>Then</strong> 展开 <strong>3 张</strong>工位卡（单选取其一），<strong>不出现</strong>「顾客指定」卡。
-53g. <strong>Given</strong> 同一项 <code>I</code> 下，员工 A 命中块集全为 <code>false</code>/<code>avg</code>、员工 B 命中块含 <code>station</code>、员工 C 命中块含 <code>extraSplit=true</code>，<strong>When</strong> 开单为该项选择服务员工，<strong>Then</strong> A 点选即勾选、B 展开 3 张工位卡、C 展开「普通 / 顾客指定」，三者按各自状态独立呈现（项 × 员工维度）。
+53g. <strong>Given</strong> 同一项 <code>I</code> 下，员工 A 命中块集全为 <code>false</code>/<code>avg</code>、员工 B 命中块含 <code>station</code>、员工 C 命中块含 <code>extraSplit=true</code>，<strong>When</strong> 开单为该项选择服务员工，<strong>Then</strong> A 点选即勾选、B 展开 3 张工位卡、C 展开「提成 / 顾客指定」，三者按各自状态独立呈现（项 × 员工维度）。
 53h. <strong>Given</strong> 员工 <code>E</code> 不属于任何启用方案，<strong>When</strong> 开单为任一项选择该员工，<strong>Then</strong> <strong>点选即勾选</strong>，不需工位、不需顾客指定。
 53i. <strong>Given</strong> 当前项为商城订单（<code>mall</code>，无提成配置），<strong>When</strong> 开单为其选择服务员工，<strong>Then</strong> 一律<strong>点选即勾选</strong>，不需工位、不需顾客指定。
 53j. <strong>Given</strong> 员工 <code>E</code> 命中块的旧数据「点客 ≠ 提成」（<code>guestSplit</code> 两端值不等），<strong>When</strong> 加载方案，<strong>Then</strong> 视为 <code>extraSplit=true</code>（§6.3 旧数据兼容），开单需同时评估顾客指定勾选。
@@ -3696,13 +3706,15 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 53p. <strong>Given</strong> 员工已选「大工」，<strong>When</strong> 再次点击该员工卡，<strong>Then</strong> 重新展开 4 张卡且「大工」为已勾选态；此时再点「顾客指定」，<strong>Then</strong> 「顾客指定」也被勾选，收缩后摘要为 <code>大工 · 顾客指定</code>（工位单选 + 顾客指定叠加）。
 53q. <strong>Given</strong> 员工已选「大工 + 顾客指定」，<strong>When</strong> 展开后点「中工」，<strong>Then</strong> <strong>并行「红色交接」</strong>：<strong>新卡（中工）立刻变红 + 画勾（170ms）</strong>，<strong>同时旧卡（大工）整卡红色快速淡出 + 勾反序收回（85ms）</strong>——即「新卡勾选之后，被取消的那张卡的红<strong>快速消失</strong>」；落定取较长者（≈<code>170ms</code>，实测 182ms）后收缩，摘要变为 <code>中工 · 顾客指定</code>（工位之间<strong>单选</strong>）。
 53r. <strong>Given</strong> 员工已勾选，<strong>When</strong> 点击其右侧放大勾选控件，<strong>Then</strong> 该勾<strong>反序收回</strong>（收勾 55ms → 褪红 30ms，共 85ms），随后该员工<strong>取消选择</strong>（入口摘要回到「服务员工 未选择」）。
-53s. <strong>Given</strong> 不分工位 + 开顾客指定，<strong>When</strong> 点击员工卡，<strong>Then</strong> 展开 <strong>2 张</strong>卡「普通 / 顾客指定」；勾选后收缩，摘要显示 <code>普通</code> 或 <code>顾客指定</code>；<strong>When</strong> 重新展开并再点已勾选的「顾客指定」，<strong>Then</strong> 退回「普通」并<strong>收起</strong>（员工仍已选）；再点已勾选的「普通」，<strong>Then</strong> 取消该员工。
+53s. <strong>Given</strong> 不分工位 + 开顾客指定，<strong>When</strong> 点击员工卡，<strong>Then</strong> 展开 <strong>2 张</strong>卡「<strong>提成</strong> / 顾客指定」；勾选后收缩，摘要显示 <code>提成</code> / <code>顾客指定</code> / <code>提成 · 顾客指定</code>（<strong>两组可叠加、不再二选一</strong>）；<strong>When</strong> 重新展开并再点已勾选的任一张，<strong>Then</strong> 只取消该勾并<strong>收起</strong>：还有另一侧勾 → 员工仍已选（摘要回 <code>提成</code> 或 <code>顾客指定</code>）；两侧皆空 → 取消该员工。
 53t. <strong>Given</strong> 不分工位 + 未开顾客指定，<strong>When</strong> 点击员工卡，<strong>Then</strong> <strong>点选即勾选</strong>（无展开卡，勾选控件同款画出动效），员工卡第三行仍为<strong>灰色头衔</strong>（无红色摘要）。
-53u. <strong>Given</strong> 底部 Sheet 打开，<strong>When</strong> 查看提示文案，<strong>Then</strong> 按四态分别为：皆否「可多选员工；点卡片即完成选择。」/ 仅顾客指定「…勾选「普通」或「顾客指定」（顾客指定提成另计），点选后即收起。」/ 仅按工位「…勾选工位（大工/中工/小工），工位单选、点选后即收起，再点已勾选工位即取消。」/ 按工位 + 顾客指定「…工位单选、点选后即收起，再点已勾选工位即取消；「顾客指定」可与任一工位同时勾选、提成叠加；只勾「顾客指定」未点工位时，卡片记为「未选」。」
-53v. <strong>Given</strong> 按工位 + 开顾客指定且某员工卡已展开、<strong>尚未点工位</strong>，<strong>When</strong> 点「顾客指定」，<strong>Then</strong> 该勾选<strong>立即画出并随之收起</strong>（<strong>不再保持展开等工位</strong>），卡片落入<strong>未选待选态</strong>：<code>is-done</code> 选中态样式（粉底 + 粉描边 + 头像粉圈）、<strong>无勾选控件</strong>、摘要 <code>未选 · 顾客指定</code>（<code>未选</code> 灰字 <code>rgb(146,146,146)</code> + <code>顾客指定</code> 红字 <code>rgb(243,47,65)</code>）、<strong>员工不计入已选</strong>（入口仍「未选择」、订单行员工摘要列表不含它）；<strong>When</strong> 再次展开，<strong>Then</strong> 该「顾客指定」<strong>仍为勾选态</strong>（保留记忆，不弹提示）。
-53v2. <strong>Given</strong> 处于未选待选态，<strong>When</strong> 点任一工位，<strong>Then</strong> 完成选择并收起：员工<strong>计入已选</strong>（入口 <code>已选 1 人</code>）、右侧出现放大的勾选控件、摘要为 <code>大工 · 顾客指定</code>；<strong>When</strong> 改为点掉已勾选的「顾客指定」，<strong>Then</strong> 卡片<strong>完全回到未选态</strong>（粉底与摘要一并撤除、不计入已选）。
-53w. <strong>Given</strong> 处于「顾客指定已勾、工位未点」的未选待选态，<strong>When</strong> 点卡片展开，<strong>Then</strong> 「顾客指定」为已勾选态、4 张卡齐备；<strong>When</strong> 点「小工」，<strong>Then</strong> 完成选择并收缩，摘要为 <code>小工 · 顾客指定</code>。
-53x. <strong>Given</strong> 员工已勾选「大工」，<strong>When</strong> 再点「大工」（已勾选的那张），<strong>Then</strong> 该工位被<strong>取消</strong>（<code>staffRoles</code> 删除、员工不再计入已选），走<strong>反向收勾动效</strong>（55ms + 30ms = 85ms）后收起；若该员工同时勾了「顾客指定」→ 卡片落入<strong>未选待选态</strong>（选中态样式、无勾选控件、摘要 <code>未选 · 顾客指定</code>）；否则<strong>完全取消该员工</strong>（回到未选态）；<strong>不再</strong>播放 iOS 抖动、不弹 toast。
+53u. <strong>Given</strong> 底部 Sheet 打开，<strong>When</strong> 查看提示文案，<strong>Then</strong> 按四态分别为：皆否「可多选员工；点卡片即完成选择。」/ 仅顾客指定「…勾选「提成」「顾客指定」（两者可同时勾选、提成叠加），只勾「顾客指定」也可单独分配；点选后即收起。」/ 仅按工位「…勾选工位（大工/中工/小工），工位单选、点选后即收起，再点已勾选工位即取消。」/ 按工位 + 顾客指定「…工位单选、点选后即收起，再点已勾选工位即取消；「顾客指定」可与任一工位同时勾选（提成叠加），也可以不选工位单独分配「顾客指定」——此种情况只发顾客指定提成。」
+53v. <strong>Given</strong> 按工位 + 开顾客指定且某员工卡已展开、<strong>尚未点工位</strong>，<strong>When</strong> 点「顾客指定」，<strong>Then</strong> 该勾选<strong>立即画出并随之收起</strong>（<strong>不再保持展开等工位</strong>），卡片呈：<code>is-done</code> 选中态样式（粉底 + 粉描边 + 头像粉圈）、<strong>出现右侧勾选控件</strong>、摘要 <code>无工位 · 顾客指定</code>（<code>无工位</code> 灰字 <code>rgb(146,146,146)</code> + <code>顾客指定</code> 红字 <code>rgb(243,47,65)</code>）、<strong>员工计入已选</strong>（入口 <code>已选 1 人</code>、订单行员工摘要列表含它）；<strong>When</strong> 再次展开，<strong>Then</strong> 该「顾客指定」<strong>仍为勾选态</strong>（保留记忆，不弹提示）。
+53v2. <strong>Given</strong> 处于「只勾顾客指定、无工位」的状态，<strong>When</strong> 点任一工位，<strong>Then</strong> 完成叠加并收起：摘要变为 <code>大工 · 顾客指定</code>；<strong>When</strong> 改为点掉已勾选的「顾客指定」，<strong>Then</strong> 该员工<strong>仍已选</strong>（摘要变为 <code>大工</code>）；<strong>When</strong> 两侧都点掉，<strong>Then</strong> 卡片<strong>完全回到未选态</strong>（粉底与摘要一并撤除、入口回「未选择」）。
+53v3. <strong>Given</strong> 只勾「顾客指定」、没有工位，<strong>When</strong> 该员工参与计提，<strong>Then</strong> <strong>提成侧折 0、只发顾客指定提成</strong>（订单行落库 <code>basePicked=false</code>，金额 = 顾客指定侧金额；费率标签只出 <code>顾客指定 x</code>，<strong>不得</strong>出现 <code>0%</code>）；<strong>Given</strong> 订单行<strong>缺</strong> <code>basePicked</code> 字段（旧订单行），<strong>When</strong> 按工位计提且缺 <code>station</code>，<strong>Then</strong> 仍按 §8 规则 7 回落 <code>stationIds[0]</code> 对应工位参数，<strong>不得</strong>折 0。
+53w. <strong>Given</strong> 处于「顾客指定已勾、工位未点」的状态，<strong>When</strong> 点卡片展开，<strong>Then</strong> 「顾客指定」为已勾选态、4 张卡齐备；<strong>When</strong> 点「小工」，<strong>Then</strong> 完成叠加并收缩，摘要为 <code>小工 · 顾客指定</code>。
+53x. <strong>Given</strong> 员工已勾选「大工」，<strong>When</strong> 再点「大工」（已勾选的那张），<strong>Then</strong> 该工位被<strong>取消</strong>，走<strong>反向收勾动效</strong>（55ms + 30ms = 85ms）后收起；若该员工同时勾了「顾客指定」→ <strong>员工仍已选</strong>（摘要 <code>无工位 · 顾客指定</code>、保留勾选控件、只发顾客指定提成）；否则<strong>完全取消该员工</strong>（回到未选态）；<strong>不再</strong>播放 iOS 抖动、不弹 toast。
+53x2. <strong>Given</strong> 员工已勾选「提成」（不分工位），<strong>When</strong> 再点「提成」，<strong>Then</strong> 该勾被取消并收起；若同时勾了「顾客指定」→ <strong>员工仍已选</strong>（摘要 <code>顾客指定</code>）；否则<strong>完全取消该员工</strong>。
 53y. <strong>Given</strong> 任一勾选动效播放中（单轮<strong>正向约 170ms / 反向约 85ms</strong>），<strong>When</strong> 立刻点其他交互（点遮罩收起 / 点另一张卡 / 点另一员工），<strong>Then</strong> 当前动效被<strong>抢断</strong>：进行中的勾先<strong>补画成终点态</strong>（不停在半路），随即落定其结果并执行新交互——不排队、点击不丢失。
 53z. <strong>Given</strong> 系统开启「减弱动态效果」，<strong>When</strong> 勾选 / 取消勾选 / 切换工位 / 点掉工位，<strong>Then</strong> 动效瞬时切态（不播放变红、画勾），状态变更与摘要仍正确。
 53aa. <strong>Given</strong> 单轮勾选动效（变红 60ms + 画勾 110ms = 170ms），<strong>When</strong> 点「顾客指定」完成选择，<strong>Then</strong> 卡片<strong>在动效播完后</strong>（≈170ms）才收缩，<strong>不会</strong>在勾还没画完时收起；实测收起时刻 ≥ 动效结束时刻。
@@ -4188,7 +4200,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </table>
 <h2>12.3 A 组 · 选择服务员工（<code>staff-pick</code> / 选人 Sheet）</h2>
 <blockquote>
-<p>共 14 项（A1–A13 + <strong>A13b</strong>）。<strong>A13 是门控状态机、A13b 是「未选待选态」卡片，是其余各项的调度与状态收口，必须一并实现。</strong></p>
+<p>共 14 项（A1–A13 + <strong>A13b</strong>）。<strong>A13 是门控状态机、A13b 是「只勾顾客指定（未选工位/提成）」卡片，是其余各项的调度与状态收口，必须一并实现。</strong></p>
 </blockquote>
 <h3>A1 · 网格 Morph 展开（收起态员工卡 → 整行勾选卡）</h3>
 <table>
@@ -4526,7 +4538,7 @@ requestAnimationFrame(function () {
 <tbody>
 <tr>
 <td>触发</td>
-<td>点击已勾选的「顾客指定」/「普通」/ 收缩态勾选控件 / <strong>再点已勾选的工位（A12）</strong></td>
+<td>点击已勾选的「顾客指定」/「提成」（或工位）/ 收缩态勾选控件 / <strong>再点已勾选的工位（A12）</strong></td>
 </tr>
 <tr>
 <td>过程</td>
@@ -4554,7 +4566,7 @@ requestAnimationFrame(function () {
 </tr>
 <tr>
 <td>生效范围</td>
-<td><strong>全部反向路径</strong>：① 切换工位时被取消的旧工位；② 取消「顾客指定」→ 退回「普通」/ 仅工位 / 完全未选；③ 取消「普通」；④ 收缩态员工卡点右侧勾选控件取消选择；⑤ <strong>点掉已勾选工位</strong>（A12）</td>
+<td><strong>全部反向路径</strong>：① 切换工位时被取消的旧工位；② 取消「顾客指定」→ 退回仅提成侧 / 完全未选；③ 取消「提成」（仅不分工位）；④ 收缩态员工卡点右侧勾选控件取消选择；⑤ <strong>点掉已勾选工位</strong>（A12）</td>
 </tr>
 <tr>
 <td>降级</td>
@@ -4789,7 +4801,7 @@ spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
 </tr>
 <tr>
 <td>结束态</td>
-<td><code>opacity: 1</code>、<code>translateY(0)</code>；文案为 <code>工位 · 顾客指定</code> / 仅工位名 / <code>未选 · 顾客指定</code>（未选待选态）/ <code>顾客指定</code> / <code>普通</code></td>
+<td><code>opacity: 1</code>、<code>translateY(0)</code>；文案为 <code>工位 · 顾客指定</code> / 仅工位名 / <code>无工位 · 顾客指定</code> / <code>提成 · 顾客指定</code> / <code>提成</code> / <code>顾客指定</code></td>
 </tr>
 <tr>
 <td>时长 / 缓动</td>
@@ -4801,7 +4813,7 @@ spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
 </tr>
 <tr>
 <td>实现锚点</td>
-<td><code>comm2.css</code> → <code>staffMetaIn</code>；未选待选态的灰/红双色拆分见 <code>comm2.css</code> → <code>.staff-card__pick-miss</code> / <code>.staff-card__pick-x</code></td>
+<td><code>comm2.css</code> → <code>staffMetaIn</code>；「无工位 · 顾客指定」的灰/红双色拆分见 <code>comm2.css</code> → <code>.staff-card__pick-miss</code> / <code>.staff-card__pick-x</code></td>
 </tr>
 </tbody>
 </table>
@@ -4835,7 +4847,7 @@ spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
 </tr>
 <tr>
 <td>结束态</td>
-<td>工位勾取消、收起；<strong>还有「顾客指定」→ 落入 A13b 未选待选态；否则完全取消该员工</strong>（<code>staffRoles</code> 删除、不再计入已选）</td>
+<td>工位勾取消、收起；<strong>还有「顾客指定」→ 员工仍已选</strong>（摘要 <code>无工位 · 顾客指定</code>，见 A13b）；否则完全取消该员工（<code>staffRoles</code> 删除、<code>staffIds</code> 移除）</td>
 </tr>
 <tr>
 <td>触觉</td>
@@ -4908,13 +4920,13 @@ spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
 <td style="text-align: center;">等（A6 播完 · 170ms）</td>
 </tr>
 <tr>
-<td>选项卡（已选「顾客指定」/「普通」）</td>
-<td>取消勾 → 落定 → 收起</td>
+<td>选项卡（已选「顾客指定」/「提成」）</td>
+<td>取消勾 → 落定 → 收起；还有另一侧勾 → 员工仍已选</td>
 <td style="text-align: center;">等（A7 播完 · 85ms）</td>
 </tr>
 <tr>
 <td><strong>已勾选的工位卡</strong></td>
-<td>点掉该工位（A12 反向收勾）→ 落定 → 收起；还有「顾客指定」→ 未选待选态（A13b），否则完全取消该员工</td>
+<td>点掉该工位（A12 反向收勾）→ 落定 → 收起；还有「顾客指定」→ <strong>员工仍已选</strong>（A13b 摘要 <code>无工位 · 顾客指定</code>），否则完全取消该员工</td>
 <td style="text-align: center;">等（A7 播完 · 85ms）</td>
 </tr>
 <tr>
@@ -4990,7 +5002,7 @@ function spGateFlush() {
 </code></pre>
 <p><strong>验收要点（正向）</strong>：把 <code>--sp-check-draw</code> 临时改成 <code>600ms</code>，收起时刻<strong>必须</strong>随之推到 ≈670ms（实测 672ms）。若收起时刻不变，说明用了固定计时 —— 不合格。</p>
 <p><strong>验收要点（反向提速）</strong>：把 <code>--sp-uncheck-draw</code> 临时改成 <code>600ms</code>，<strong>取消</strong>路径（如取消「顾客指定」）的收起时刻<strong>必须</strong>随之推到 ≈630ms（实测 <strong>636ms</strong>）；默认值下该时刻为 <strong>91ms</strong>（名义 85ms）。若反向仍落 170ms，说明反向路径误用了正向名义时长 —— 不合格。</p>
-<h3>A13b · 未选待选态卡片（只勾「顾客指定」、没点工位）</h3>
+<h3>A13b · 「只勾顾客指定」卡片（未选工位/提成 → 只发顾客指定提成）</h3>
 <table>
 <thead>
 <tr>
@@ -5009,23 +5021,23 @@ function spGateFlush() {
 </tr>
 <tr>
 <td>过程</td>
-<td>动效播完（A13 门控）→ 收起（A2 即时重绘）→ 卡片以<strong>未选待选态</strong>重绘</td>
+<td>动效播完（A13 门控）→ 收起（A2 即时重绘）→ 卡片以<strong>「只勾顾客指定」态</strong>重绘</td>
 </tr>
 <tr>
 <td>视觉</td>
-<td>①<code>is-done</code> 选中态样式（粉底 + 粉描边 + 头像粉圈，与已选一致）；②<strong>不出现勾选控件</strong>（<code>.staff-card__tick</code> 只在该员工<strong>计入已选</strong>时渲染）；③摘要行 <code>未选 · 顾客指定</code>：<code>未选</code> 用 <code>.staff-card__pick-miss</code>（<code>--text-sec</code> 灰）+ 分隔符灰，<code>顾客指定</code> 用 <code>.staff-card__pick-x</code>（品牌红）</td>
+<td>①<code>is-done</code> 选中态样式（粉底 + 粉描边 + 头像粉圈，与已选一致）；②<strong>出现勾选控件</strong>（<code>.staff-card__tick</code> 在该员工<strong>计入已选</strong>时渲染 —— 十七次起此态<strong>计入已选</strong>）；③摘要行 <code>无工位 · 顾客指定</code>：<code>无工位</code> 用 <code>.staff-card__pick-miss</code>（<code>--text-sec</code> 灰）+ 分隔符灰，<code>顾客指定</code> 用 <code>.staff-card__pick-x</code>（品牌红）</td>
 </tr>
 <tr>
 <td>数据</td>
-<td><code>staffExtra[sid] = true</code>、<code>staffChosen[sid] = false</code>、<code>staffIds</code> <strong>不含</strong> sid → <strong>不计入已选、不参与提成计算</strong>；入口「已选 N 人」与订单行员工摘要列表均不含它</td>
+<td><code>staffExtra[sid] = true</code>、<code>staffChosen[sid] = true</code>、<code>staffRoles</code> <strong>无该 sid</strong>、<code>staffIds</code> <strong>含</strong> sid → <strong>计入已选</strong>；入口「已选 N 人」与订单行员工摘要列表<strong>都含它</strong>；订单行落库 <code>basePicked=false</code> → <strong>提成侧折 0、只发顾客指定提成</strong></td>
 </tr>
 <tr>
 <td>记忆</td>
-<td><code>staffExtra</code> <strong>不随「未选」清空</strong>（<code>spEnsureState</code> 明确保留）→ 再次展开仍是勾选态</td>
+<td>该勾选<strong>保留</strong>（<code>spEnsureState</code> 三者一律以 <code>staffIds</code> 为准：在册即保留、不在册即清）→ 再次展开仍是勾选态</td>
 </tr>
 <tr>
 <td>退出路径</td>
-<td>①点任一工位 → 计入已选（出现勾选控件、摘要 <code>工位 · 顾客指定</code>）；②点掉「顾客指定」→ 完全未选（粉底与摘要一并撤除）；③点掉工位同理（无工位即不计入已选）</td>
+<td>①点任一工位 → 叠加（摘要 <code>工位 · 顾客指定</code>，<code>basePicked=true</code> 恢复提成侧）；②点掉「顾客指定」→ 两侧皆空 → 完全取消该员工（粉底与摘要一并撤除、入口人数减 1）；③收缩态点右侧勾选控件 → 同 ②</td>
 </tr>
 <tr>
 <td>时长 / 缓动</td>
@@ -5037,7 +5049,7 @@ function spGateFlush() {
 </tr>
 <tr>
 <td>实现锚点</td>
-<td><code>comm2.js</code> → <code>spPartial(sid)</code> / <code>spSummaryHtml(sid)</code> / <code>spCardPickLineHtml()</code>（<code>done = isChosen \|\| partial</code>）+ <code>spRenderPickerHtml()</code> 的 <code>tickBtn = (isChosen &amp;&amp; !isEdit) ? … : ''</code>；<code>comm2.css</code> → <code>.staff-card__pick-miss</code> / <code>.staff-card__pick-x</code></td>
+<td><code>comm2.js</code> → <code>spExtraOnly(sid)</code> / <code>spSummaryParts(sid)</code> / <code>spSummaryHtml(sid)</code> / <code>spCardPickLineHtml()</code>（<code>done = isChosen</code>）+ <code>spRenderPickerHtml()</code> 的 <code>tickBtn = (isChosen &amp;&amp; !isEdit) ? … : ''</code>；<code>comm2.css</code> → <code>.staff-card__pick-miss</code> / <code>.staff-card__pick-x</code></td>
 </tr>
 </tbody>
 </table>
@@ -5623,7 +5635,7 @@ function spGateFlush() {
 <li>勾选控件必须是 <code>&lt;button&gt;</code> 且带 <code>aria-pressed</code>（<code>true</code>/<code>false</code>），文案 <code>aria-label</code> 含员工名（如「取消选择 顾清扬」）。</li>
 <li>选项组容器 <code>role="group"</code> + <code>aria-label="选择工位或顾客指定"</code>；Sheet 容器 <code>role="dialog"</code> + <code>aria-label="选择服务员工"</code>。</li>
 <li>勾 / 删除图标一律 <code>aria-hidden="true"</code>（语义由按钮承载）。</li>
-<li><strong>动效不得是唯一反馈</strong>：状态变化必须同时有<strong>静态可读反馈</strong>（摘要行文案 <code>工位 · 顾客指定</code> / <code>未选 · 顾客指定</code> / <code>普通</code> / <code>顾客指定</code>、入口「已选 N 人」、Sheet 提示行文案，见 §6.7.1）。</li>
+<li><strong>动效不得是唯一反馈</strong>：状态变化必须同时有<strong>静态可读反馈</strong>（摘要行文案 <code>工位 · 顾客指定</code> / <code>无工位 · 顾客指定</code> / <code>提成 · 顾客指定</code> / <code>提成</code> / <code>顾客指定</code>、入口「已选 N 人」、Sheet 提示行文案，见 §6.7.1）。</li>
 <li>键盘：<code>Esc</code> 关闭 Sheet / Dialog；<code>Enter</code>/<code>Space</code> 激活选项卡与勾选控件（原生按钮已满足）。</li>
 </ul>
 <h2>12.9 验收用例（动效专项）</h2>
@@ -5674,7 +5686,7 @@ function spGateFlush() {
 <td>N6</td>
 <td>已勾选「顾客指定」</td>
 <td>再点「顾客指定」</td>
-<td>勾先由右向左收回（<strong><code>55ms</code></strong>）→ 红底褪白（<strong><code>30ms</code></strong>）→ 共 <strong><code>85ms</code></strong> 后收起；退回「普通」态；<strong>反向总时长恰为正向前一半</strong></td>
+<td>勾先由右向左收回（<strong><code>55ms</code></strong>）→ 红底褪白（<strong><code>30ms</code></strong>）→ 共 <strong><code>85ms</code></strong>；若还有工位/提成 → 退回仅提成侧（员工仍已选）；不分工位只有「提成」→ 退回「提成」态；若无提成侧 → <strong>完全取消该员工</strong>；<strong>反向总时长恰为正向前一半</strong></td>
 </tr>
 <tr>
 <td>N7</td>
@@ -5746,13 +5758,19 @@ function spGateFlush() {
 <td>N14</td>
 <td>展开态，已勾选「大工」</td>
 <td>再点「大工」</td>
-<td>走 <strong>A12 反向收勾</strong>（<code>55ms</code> + <code>30ms</code> = <code>85ms</code>）→ 取消该工位 → 收起；若同时已勾「顾客指定」→ 落入<strong>未选待选态</strong>（<code>is-done</code> 样式、无勾选控件、摘要 <code>未选 · 顾客指定</code>、不计入已选）；否则<strong>完全取消该员工</strong>（入口回「未选择」）；<code>vibrate(8)</code>；<strong>不再有抖动动效、不出 toast</strong></td>
+<td>走 <strong>A12 反向收勾</strong>（<code>55ms</code> + <code>30ms</code> = <code>85ms</code>）→ 取消该工位 → 收起；若同时已勾「顾客指定」→ <strong>员工仍已选</strong>（<code>is-done</code> 样式、<strong>有</strong>勾选控件、摘要 <code>无工位 · 顾客指定</code>、只发顾客指定提成）；否则<strong>完全取消该员工</strong>（入口回「未选择」）；<code>vibrate(8)</code>；<strong>不再有抖动动效、不出 toast</strong></td>
+</tr>
+<tr>
+<td>N14b</td>
+<td>不分工位，已勾选「提成」+「顾客指定」</td>
+<td>再点「提成」</td>
+<td>走 A12 反向收勾（<code>85ms</code>）→ 取消「提成」→ 收起；<strong>员工仍已选</strong>（摘要 <code>顾客指定</code>）；再点「顾客指定」→ 两侧皆空 → <strong>完全取消该员工</strong></td>
 </tr>
 <tr>
 <td>N15</td>
 <td>按工位 + 开顾客指定，未选工位</td>
 <td>只点「顾客指定」</td>
-<td>勾选动效播完（170ms）后卡片<strong>立即收起</strong>（<strong>不再保持展开等工位</strong>）；卡片为<strong>未选待选态</strong>：<code>is-done</code> 选中态样式、<strong>无勾选控件</strong>、摘要 <code>未选 · 顾客指定</code>（<code>未选</code> 灰字 <code>rgb(146,146,146)</code>、<code>顾客指定</code> 红字 <code>rgb(243,47,65)</code>）；员工<strong>不计入已选</strong>（<code>getStaffCount()</code> 不变、入口仍「未选择」）</td>
+<td>勾选动效播完（170ms）后卡片<strong>立即收起</strong>（<strong>不再保持展开等工位</strong>）；卡片呈：<code>is-done</code> 选中态样式、<strong>出现勾选控件</strong>、摘要 <code>无工位 · 顾客指定</code>（<code>无工位</code> 灰字 <code>rgb(146,146,146)</code>、<code>顾客指定</code> 红字 <code>rgb(243,47,65)</code>）；员工<strong>计入已选</strong>（入口 <code>已选 1 人</code>、订单行员工摘要列表含它）；订单行落库 <code>basePicked=false</code> → <strong>提成侧折 0、只发顾客指定提成</strong></td>
 </tr>
 <tr>
 <td>N16</td>
@@ -5764,13 +5782,19 @@ function spGateFlush() {
 <td>N17</td>
 <td>承接 N15</td>
 <td>点任一工位</td>
-<td>完成选择并收起：<strong>计入已选</strong>（入口 <code>已选 1 人</code>）、右侧出现 20×20 勾选控件、摘要 <code>大工 · 顾客指定</code></td>
+<td>完成叠加并收起：摘要 <code>大工 · 顾客指定</code>（<code>basePicked=true</code>，提成侧恢复计提）</td>
 </tr>
 <tr>
 <td>N17b</td>
 <td>承接 N15</td>
 <td>再展开后点「顾客指定」取消</td>
-<td>该勾取消 → <strong>完全回到未选态</strong>（<code>is-done</code> 粉底与摘要一并撤除、无勾选控件、不计入已选）</td>
+<td>该勾取消 → <strong>两侧皆空 → 完全回到未选态</strong>（<code>is-done</code> 粉底与摘要一并撤除、无勾选控件、入口人数减 1）</td>
+</tr>
+<tr>
+<td>N17c</td>
+<td>不分工位 + 开顾客指定</td>
+<td>只点「顾客指定」→ 再展开点「提成」</td>
+<td>两侧各自独立勾选、可叠加：摘要 <code>顾客指定</code> → <code>提成 · 顾客指定</code>；<strong>不得</strong>出现「点「提成」把「顾客指定」清掉」的二选一行为</td>
 </tr>
 <tr>
 <td>N18</td>
@@ -5824,7 +5848,7 @@ function spGateFlush() {
 <td>N26</td>
 <td>已选「大工」，<strong>展开后 120ms（<code>is-splitting</code> 仍在 DOM）</strong> 立刻再点一次「大工」</td>
 <td>观察该卡</td>
-<td>走反向收勾（<code>55ms</code> + <code>30ms</code> = <code>85ms</code>）→ 工位被取消 → 收起；<strong>入场动画 <code>staffRoleSplit</code> 不得吞掉反向动效</strong>（<code>is-undraw</code> / 盒 <code>transition</code> 与 <code>animation</code> 互不干扰）；落定后工位为未勾选态</td>
+<td>走反向收勾（<code>55ms</code> + <code>30ms</code> = <code>85ms</code>）→ 工位被取消 → 收起；<strong>入场动画 <code>staffRoleSplit</code> 不得吞掉反向动效</strong>（<code>is-undraw</code> / 盒 <code>transition</code> 与 <code>animation</code> 互不干扰）；落定后工位为未勾选态；若还有「顾客指定」→ <strong>员工仍已选</strong>、摘要 <code>无工位 · 顾客指定</code></td>
 </tr>
 </tbody>
 </table>
@@ -5844,7 +5868,9 @@ function spGateFlush() {
 <li>[ ] 回弹（<code>is-pop</code>）与勾弹入（<code>is-in</code>）走<strong>一次性标记</strong>，渲染后即清空；<strong>不得</strong>把 <code>animation</code> 挂在 <code>.is-done</code> / <code>.staff-card__tick</code> 基础类上（否则每次重绘都重播）</li>
 <li>[ ] 已勾选工位「再点即取消」走 A7 反向路径（<code>spPlayCheck(el, false)</code> + 宿主 <code>is-undraw</code>），<strong>不得</strong>再有 <code>is-shake</code> / <code>spOptShake</code> / <code>staffRoleSplit</code> 抢 <code>animation</code> 的补丁</li>
 <li>[ ] 展开态<strong>任一</strong>选项卡/选项按钮点击后一律收起（含只点「顾客指定」），不得残留「保持展开等工位」</li>
-<li>[ ] 「只勾顾客指定、未点工位」→ <strong>未选待选态</strong>：<code>is-done</code> 样式 + <strong>无勾选控件</strong> + 摘要 <code>未选 · 顾客指定</code>（灰 <code>rgb(146,146,146)</code> / 红 <code>rgb(243,47,65)</code>）+ <strong>不计入</strong> <code>getStaffCount()</code></li>
+<li>[ ] 「只勾顾客指定、未选工位/提成」→ <strong>有效的单独分配</strong>：<code>is-done</code> 样式 + <strong>有勾选控件</strong> + 摘要 <code>无工位 · 顾客指定</code>（灰 <code>rgb(146,146,146)</code> / 红 <code>rgb(243,47,65)</code>）+ <strong>计入</strong> <code>getStaffCount()</code>；订单行落库 <code>basePicked=false</code> → 提成侧折 0、只发顾客指定提成</li>
+<li>[ ] 「提成侧 / 顾客指定侧」两组参数在 <code>spOptionChecked()</code> / <code>spApplyOptionToggle()</code> 里<strong>各自独立</strong>判断，<code>staffRoles[sid]</code> 统一存提成侧选择（工位 id / 不分工位的哨兵 <code>avg</code>）；<strong>不得</strong>再由「<code>chosen &amp;&amp; !extra</code>」推导「提成」勾选态</li>
+<li>[ ] 收缩态点勾选控件取消选择时，<code>staffRoles</code> 与 <code>staffExtra</code> <strong>一并删除</strong>（<code>spDropStaff</code>）</li>
 <li>[ ] <code>is-splitting</code> 在 <code>520ms</code>（第 4 张卡播完）才从 DOM 摘除</li>
 <li>[ ] 同帧改样式处有 <code>void el.offsetWidth</code> 强制 reflow</li>
 <li>[ ] 卡片区之外（Sheet 标题 / 提示行 / 底部栏）点击<strong>不</strong>收起</li>
@@ -5874,7 +5900,7 @@ function spGateFlush() {
 <tr>
 <td>2</td>
 <td>「已展开不重播 Morph」依赖状态位 <code>opened</code> + <code>.is-opened</code>；十六次<strong>废止「保持展开等工位」后该位恒为 <code>false</code></strong>，<code>.is-opened</code> 成为<strong>死代码</strong></td>
-<td>每次展开都会重播 Morph（<strong>当前符合预期</strong>：未选待选态卡片再展开本就该有入场）；死代码留着易误读</td>
+<td>每次展开都会重播 Morph（<strong>当前符合预期</strong>：「只勾顾客指定」卡片再展开本就该有入场）；死代码留着易误读</td>
 <td>清理 <code>spState.edit.opened</code> / <code>.is-opened</code> 渲染分支与 CSS 规则（A1 判据改为「该卡本次是否由<strong>收起</strong>转为<strong>展开</strong>」）</td>
 </tr>
 </tbody>
@@ -5887,7 +5913,7 @@ function spGateFlush() {
 <ol>
 <li>任何动效改动<strong>先改本节</strong>（数值 / 时序 / 可中断性），标注修订记录。</li>
 <li>再改原型（<code>comm2.css</code> / <code>comm2.js</code> / <code>salary.css</code> / <code>base.css</code> / <code>shell.css</code>）。</li>
-<li>跑 §12.9 的 <code>N1–N25</code>；其中 <strong>N5–N9 / N18 / N21 / N25</strong> 是回归必跑项（勾选动效、门控与一次性标记最易回归）。</li>
+<li>跑 §12.9 的 <code>N1–N26</code>；其中 <strong>N5–N9 / N14 / N14b / N15–N17c / N18 / N21 / N25</strong> 是回归必跑项（勾选动效、门控、一次性标记、「只勾顾客指定」态最易回归）。</li>
 <li>本节新增动效时，必须补齐 §12.1.1 的 10 个字段，缺项视为不合格。</li>
 </ol>
 <hr />

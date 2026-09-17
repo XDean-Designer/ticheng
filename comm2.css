@@ -1429,8 +1429,8 @@
   letter-spacing: .01em;
   animation: staffMetaIn .36s cubic-bezier(.22,.82,.24,1);
 }
-/* 未选待选态（按工位 + 开顾客指定：只勾了顾客指定、还没点工位）：
-   摘要的**工位位置**是灰字「未选」，「顾客指定」仍是红字（=.title--pick 的 brand 色） */
+/* 「只勾顾客指定、没选工位/提成」的合法状态（十七次起计入已选，只发顾客指定提成）：
+   摘要的**提成位置**是灰字「无工位」，「顾客指定」仍是红字（=.title--pick 的 brand 色） */
 .staff-card__pick-miss { color: var(--text-sec); font-weight: 500; }
 .staff-card__pick-x { color: var(--brand); }
 @keyframes staffMetaIn {
