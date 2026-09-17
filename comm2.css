@@ -1,9 +1,13 @@
 /* ==== comm2 · 提成设置（可整模块删除） ==== */
-/* 勾选动效时长（JS 与 CSS **同源**：comm2.js 直接读这两个变量算门控时长，改这里即可）：
-   变红 60ms + 画勾 110ms = 单轮 170ms；取消 = 反序播放（收勾 110ms + 褪红 60ms） */
+/* 勾选动效时长（JS 与 CSS **同源**：comm2.js 直接读这四个变量算门控时长，改这里即可）：
+   正向勾选 = 变红 60ms + 画勾 110ms = 单轮 170ms；
+   反向取消 = 反序播放（收勾 55ms + 褪红 30ms = 85ms），**时长与速度都是正向的一半**：收勾比画勾快一倍、
+   褪红比变红快一倍。故 `--sp-uncheck-*` 必须恒为 `--sp-check-*` 的 1/2，改一处要同时改另一处 */
 :root {
   --sp-check-red: 60ms;
   --sp-check-draw: 110ms;
+  --sp-uncheck-draw: 55ms;
+  --sp-uncheck-red: 30ms;
 }
 #screen-comm2-list,
 #screen-comm2-edit,
@@ -1308,7 +1312,8 @@
   border-color: var(--brand); background: var(--brand); color: #fff;
 }
 /* —— 勾选控件动效：点按 → 快速变红（--sp-check-red 60ms）→ 勾从左到右画出（--sp-check-draw 110ms）；
-      取消 = 反序播放（先收勾再褪红）。时长见文件顶部 :root —— */
+      取消 = 反序播放（先收勾再褪红），**时长减半、速度加快一倍**（--sp-uncheck-draw 55ms + --sp-uncheck-red 30ms）。
+      时长见文件顶部 :root —— */
 .staff-opt__box,
 .staff-card__tick {
   transition: background-color var(--sp-check-red) ease,
@@ -1328,20 +1333,20 @@
 .staff-card__tick.is-draw svg path {
   animation: spCheckDraw var(--sp-check-draw) linear var(--sp-check-red) both;
 }
-/* 取消：先收勾再褪红（反序） */
+/* 取消：先收勾再褪红（反序）；时长减半、速度加快一倍（--sp-uncheck-* = --sp-check-* / 2） */
 .staff-opt__box.is-undraw {
   background: #fff; border-color: #D6D6D6; color: transparent;
-  transition: background-color var(--sp-check-red) ease var(--sp-check-draw),
-    border-color var(--sp-check-red) ease var(--sp-check-draw),
-    color var(--sp-check-red) ease var(--sp-check-draw);
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
 }
 .staff-opt__box.is-undraw svg path,
-.staff-card__tick.is-undraw svg path { animation: spCheckUndraw var(--sp-check-draw) linear both; }
+.staff-card__tick.is-undraw svg path { animation: spCheckUndraw var(--sp-uncheck-draw) linear both; }
 .staff-card__tick.is-undraw {
   background: transparent; box-shadow: none; color: transparent;
-  transition: background-color var(--sp-check-red) ease var(--sp-check-draw),
-    box-shadow var(--sp-check-red) ease var(--sp-check-draw),
-    color var(--sp-check-red) ease var(--sp-check-draw);
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
 }
 @keyframes spCheckDraw {
   from { stroke-dashoffset: 24; }
@@ -1350,6 +1355,40 @@
 @keyframes spCheckUndraw {
   from { stroke-dashoffset: 0; }
   to { stroke-dashoffset: 24; }
+}
+/* —— 反向「整卡红色快速淡出」（q7-C）——
+   取消勾选时，勾选框（红色填充 + 描边）与**宿主卡片的红色** （选项卡的红边/红投影、
+   员工卡的粉底/粉描边/头像粉圈）在 85ms 内**一起**退干净 —— 节拍与 A7 完全一致
+   （收勾 55ms → 褪红 30ms）。
+
+   ① **必须反超 `.is-on`（实测 BUG 根因）**：`.staff-opt.is-on .staff-opt__box` 特异性 (0,3,0)
+      高于 `.staff-opt__box.is-undraw` (0,2,0)，不反超则红底在整个动效期间**纹丝不动**，
+      只在落定重绘那一帧「啪」地硬切消失（实测 26→276ms 恒为纯红 rgb(243,47,65)）。
+   ② 选项卡红边/红投影来自 `.staff-opt.is-on` (0,2,0)，用 `.staff-opt.is-on.is-undraw` (0,3,0) 反超。
+   ③ 员工卡粉底是 `linear-gradient`（**不可插值**），故在 `.is-done` 下垫一层同色
+      `background-color`、渐变置其上：褪色时先摘渐变（与垫底同色，肉眼无感），再让
+      `background-color` 过渡到白 —— 否则粉底同样会硬切。 */
+.staff-opt.is-on .staff-opt__box.is-undraw { background: #fff; border-color: #D6D6D6; color: transparent; }
+.staff-opt.is-on.is-undraw {
+  border-color: #E8E8E8;
+  box-shadow: 0 2px 8px rgba(26, 26, 26, .06);
+  transition: border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+/* 「顾客指定」卡未勾选时本身就带淡红边，取消后回它自己的基线色 */
+.staff-opt--extra.is-on.is-undraw { border-color: rgba(243, 47, 65, .18); }
+/* 员工卡（收缩态）：粉底 + 粉描边 + 头像粉圈 */
+.staff-card.is-done .staff-card__panel { background-color: #FFF5F5; }
+.staff-card.is-done.is-undraw .staff-card__panel {
+  background-image: none; background-color: #fff;
+  border-color: #E8E8E8; box-shadow: none;
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+.staff-card.is-done.is-undraw .staff-card__avatar {
+  box-shadow: 0 0 0 2px #fff;
+  transition: box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
 }
 /* 工位不可点掉（q1-C）：iOS 风格卡片抖动提醒 —— 只抖动、不出 toast
    注意：本规则必须排在 `.staff-card.is-splitting .staff-opt` **之后**（同特异性靠源码顺序取胜），

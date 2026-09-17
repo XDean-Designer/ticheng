@@ -3347,7 +3347,8 @@
   }
 
   /* —— 勾选动效门控 ——
-     时长与 CSS **同源**（`--sp-check-red` 变红 + `--sp-check-draw` 画勾，当前 60ms + 110ms），
+     时长与 CSS **同源**（正向 `--sp-check-red` 变红 + `--sp-check-draw` 画勾 = 60ms + 110ms = 170ms；
+     反向 `--sp-uncheck-draw` 收勾 + `--sp-uncheck-red` 褪红 = 55ms + 30ms = 85ms，恒为正向一半），
      改一处即可，避免 JS 与 CSS 对不齐。
      卡片的收起 / 展开**必须等动效真正播完**才发生：由 `animation.finished` 驱动 + 超时兜底，
      **不再用固定计时**（主线程卡顿时固定计时正是「没播完就收起」的根因）。
@@ -3355,6 +3356,10 @@
      展开 Morph（380ms）另有**独立占位门**：Morph 播完前不收起；该门不受抢断清除。 —— */
   var SP_CHECK_RED_FALLBACK = 60;
   var SP_CHECK_DRAW_FALLBACK = 110;
+  /* 反向（取消）动效 = 正向时长的一半 → 速度加快一倍：收勾 55ms + 褪红 30ms = 85ms。
+     字面量常量与 CSS 的 `--sp-uncheck-*` 对应；`--sp-uncheck-*` 必须恒为 `--sp-check-*` 的 1/2 */
+  var SP_UNCHECK_DRAW_FALLBACK = 55;
+  var SP_UNCHECK_RED_FALLBACK = 30;
 
   function spCssMs(name, fallback) {
     try {
@@ -3364,11 +3369,18 @@
       return m[2] === 's' ? parseFloat(m[1]) * 1000 : parseFloat(m[1]);
     } catch (e) { return fallback; }
   }
-  /** 单轮勾选动效总时长 = 变红 + 画勾（与 CSS 变量同源） */
+  /** 正向单轮勾选动效总时长 = 变红 + 画勾（与 CSS 变量同源） */
   function spCheckMs() {
     return spCssMs('--sp-check-red', SP_CHECK_RED_FALLBACK) +
       spCssMs('--sp-check-draw', SP_CHECK_DRAW_FALLBACK);
   }
+  /** 反向（取消）单轮动效总时长 = 收勾 + 褪红（与 CSS 变量同源；恒为 spCheckMs() 的一半） */
+  function spUncheckMs() {
+    return spCssMs('--sp-uncheck-draw', SP_UNCHECK_DRAW_FALLBACK) +
+      spCssMs('--sp-uncheck-red', SP_UNCHECK_RED_FALLBACK);
+  }
+  /** 取该方向的门控名义时长：on = 正向勾选 170ms；off = 反向取消 85ms */
+  function spCheckMsFor(on) { return on ? spCheckMs() : spUncheckMs(); }
 
   var spGate = { checkUntil: 0, morphUntil: 0, timer: 0, floorTimer: 0, token: null };
 
@@ -3420,6 +3432,7 @@
     if (animsDone && floorDone) { tok.fire(); return tok; }
     var maybe = function () { if (animsDone && floorDone) tok.fire(); };
     spGate.token = tok;
+    /* 兜底上限取**较长**的正向单轮（170ms）——反向取消更短（85ms），故 spCheckMs() 恒为上界 */
     var guard = Math.max(spCheckMs() + 300, floor + 300);
     spGate.checkUntil = Date.now() + guard;
     spGate.timer = setTimeout(tok.fire, guard);          /* 兜底：动画被取消 / 不触发也能落定 */
@@ -3482,12 +3495,22 @@
     return true;
   }
 
-  /** 播放勾选控件动效：on = 变红 + 画勾；off = 收勾 + 褪红（反序） */
+  /** 勾选控件的**宿主卡片**：工位/顾客指定选项卡 → `.staff-opt`；收缩态员工卡的勾 → `.staff-card`。
+      反向（取消）时宿主一起标 `is-undraw`：整张卡的红色（选项卡红边/红投影、员工卡粉底/粉描边/
+      头像粉圈）与勾选框**同节拍快速淡出** —— 否则红色只会在落定重绘那一帧硬切消失（q7-C）。 */
+  function spCheckHost(el) {
+    if (!el || typeof el.closest !== 'function') return null;
+    return el.closest('.staff-opt') || el.closest('.staff-card');
+  }
+  /** 播放勾选控件动效：on = 变红 + 画勾；off = 收勾 + 褪红（反序，且宿主卡片红色同步快速淡出） */
   function spPlayCheck(el, on) {
     if (!el || spReduceMotion()) return;
+    var host = spCheckHost(el);
     el.classList.remove('is-draw', 'is-undraw');
+    if (host) host.classList.remove('is-undraw');
     void el.offsetWidth;
     el.classList.add(on ? 'is-draw' : 'is-undraw');
+    if (!on && host) host.classList.add('is-undraw');
   }
   function spOptBoxEl(sid, key) {
     var root = spEl('comm2StaffSheetRoot');
@@ -3596,28 +3619,33 @@
     var checked = spOptionChecked(sid, opt);
     /* 工位是必选项：再点已勾选的工位**不取消**，改用 iOS 抖动动效提醒（q1-C） */
     if (checked && opt.kind === 'role') { spShakeOpt(sid, key); spHaptic(); return; }
-    /* 切换工位：旧勾先反序收回（播完）→ 再画新勾（播完）→ 才落定（q3） */
+    /* 切换工位：**并行「红色交接」**（q3 / q7-C）——
+       新卡立刻变红 + 画勾（正向 170ms）；**同时**旧卡整卡红色快速淡出 + 勾反序收回（反向 85ms）；
+       落定取较长者（= 正向 170ms）。**不要**再串行成 spUncheckMs() + spCheckMs()（255ms），
+       那样旧卡红先淡、新卡才画勾，观感断成两截 */
     var prevKey = opt.kind === 'role' ? spState.row.staffRoles[sid] : null;
     var prevBox = (prevKey && prevKey !== key) ? spOptBoxEl(sid, prevKey) : null;
     if (prevBox) {
-      spPlayCheck(prevBox, false);
-      spGateAfter(prevBox, function () {
-        spPlayCheck(spOptBoxEl(sid, key), true);
-        spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMs());
-      }, spCheckMs());
+      var nextBox = spOptBoxEl(sid, key);
+      spPlayCheck(prevBox, false);                   /* 旧卡：红色 85ms 淡出 + 收勾 */
+      spPlayCheck(nextBox, true);                    /* 新卡：立刻变红 + 画勾（170ms） */
+      spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
+        Math.max(spCheckMs(), spUncheckMs()));
       return;
     }
+    /* 单轮：勾选按正向时长（170ms）、取消按反向时长（85ms）——取消时整卡红色同步淡出 */
     spPlayCheck(spOptBoxEl(sid, key), !checked);
-    spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMs());
+    spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMsFor(!checked));
   }
 
-  /** 收缩态员工卡右侧「取消选择」：反序播放动效（播完）后再取消 */
+  /** 收缩态员工卡右侧「取消选择」：反序播放动效（播完）后再取消 —— 反向时长（85ms）；
+      整卡红色（粉底 / 粉描边 / 头像粉圈）与勾选框同节拍淡出 */
   function spUntickStaff(sid, tickEl) {
     if (!sid) return;
     if (spGateBusy()) spGateFlush();                 /* 抢断 */
     var el = tickEl || spTickEl(sid);
     spPlayCheck(el, false);
-    spGateAfter(el, function () { spRemoveStaff(sid); }, spCheckMs());
+    spGateAfter(el, function () { spRemoveStaff(sid); }, spUncheckMs());
   }
 
   /** 态4（不分工位 + 未开顾客指定）：点卡片即勾选（勾在员工卡上**画出**）/ 已选再点即取消 */

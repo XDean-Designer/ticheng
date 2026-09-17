@@ -126,7 +126,15 @@ tr:nth-child(even) td{background:#fafbfc}
 </tr>
 <tr>
 <td>修订（2026-09-16 十三次）</td>
-<td><strong>新增 §12「交互动效规范」——全套动效进 PRD，作为唯一规范来源。</strong> 覆盖 <strong>26 项动效</strong>（A 选人 Sheet 13 项 · B 提成设置 6 项 · C 员工管理 / 薪资 4 项 · D 壳层基座 4 项，其中 C 组 2 项属阶梯提成、§1.4 本期不做）。每项固定给出 10 个字段（触发 / 起始态 / 过程 / 结束态 / 时长 / 缓动 / <strong>可中断</strong> / <strong>互斥</strong> / <strong>降级</strong> / 实现锚点），并提供<strong>可照抄的 CSS / JS 代码块</strong>。新增 5 个全局小节：①<strong>时长阶梯</strong>（含 <code>--sp-check-red 60ms</code> / <code>--sp-check-draw 110ms</code>，要求 JS 门控与 CSS <strong>同源</strong>）；②<strong>缓动曲线</strong>（iOS spring <code>cubic-bezier(.34,1.3,.64,1)</code> / Apple 标准 <code>.22,.82,.24,1</code> / 抖动 <code>.36,.07,.19,.97</code> / 画勾必须 <code>linear</code>）；③<strong>几何与视觉 token</strong>（实测 <code>gridW 332</code> / <code>cellW 105.33</code> / 位移步长 <code>113.33</code> 等）；④<strong>触觉</strong>（选人 <code>8ms</code>、拖拽 <code>12ms</code>）；⑤<strong>按压反馈统一规则</strong>（仅三类元素有形变）。<strong>动效细节实证补全</strong>：Morph 展开的关键帧与公式、<strong>收起为即时重绘（实测 2ms、无过渡）</strong>、同行卡片淡出（瞬时）、选项卡分裂逐张 <code>0/35/70/105ms</code>、选项面板淡入（实测 ≈200ms）、门控状态机（<code>morphUntil</code> + <code>checkUntil</code> 双门 + 名义时长取长 + <code>300ms</code> 兜底 + 抢断补画 + 只认最后一次意图）、左滑删除（横向位移绝对量 &gt; 8px 起滑、<code>clamp(−72,0,dx)</code>、<code>dx≤−48</code> 吸附、<code>.22s</code>）、列表拖拽排序（长按 <code>400ms</code>、移动 <code>8px</code> 取消、<code>opacity .55 / .15s</code>）、Toast（<code>.2s</code>、<code>2000/2600ms</code>、<code>&gt;18</code> 字多行）、抽屉（<code>.28s</code>、<code>.55</code> 阈值、<code>22px</code> 热区）。新增 §12.7 组合 / 互斥矩阵、§12.8 降级与可访问性、<strong>§12.9 动效专项验收 N1–N24</strong>、§12.10 实现自检清单 + <strong>2 项已知偏差待确认</strong>（收起与展开不对称、<code>opened</code> 判据；原「重绘重播 <code>staffDonePop</code>/<code>staffCheckIn</code>」已<strong>同批修掉</strong> —— 改为一次性标记 <code>is-pop</code> / <code>is-in</code>，<code>spSelectStaff()</code> 置位、渲染读取、渲染后清空，多选时不再「噗噗」连弹，回归项 N18 / N25）。<strong>同批附带修掉一个连带 BUG</strong>：刚展开（<code>is-splitting</code> 仍在 DOM）时点已选工位，抖动会被 <code>fill: both</code> 的入场动画吃掉（<code>is-shake</code> 被 <code>staffRoleSplit</code> 的 <code>animationend</code> 在 ≈260ms 截断）—— ① CSS 中抖动规则移到 <code>is-splitting</code> 之后并加组合选择器；② <code>animationend</code> 回调按 <code>animationName</code> 过滤；③ <code>is-splitting</code> 延到 <code>520ms</code> 才摘除。回归项 <strong>N26</strong>。§12.11 变更流程。§6.7.1 动效表精简为摘要并链至 §12.3。模块编号顺延：原「模块 12 交付物」→ <strong>模块 13 交付物</strong></td>
+<td><strong>新增 §12「交互动效规范」——全套动效进 PRD，作为唯一规范来源。</strong> 覆盖 <strong>26 项动效</strong>（A 选人 Sheet 13 项 · B 提成设置 6 项 · C 员工管理 / 薪资 4 项 · D 壳层基座 4 项，其中 C 组 2 项属阶梯提成、§1.4 本期不做）。每项固定给出 10 个字段（触发 / 起始态 / 过程 / 结束态 / 时长 / 缓动 / <strong>可中断</strong> / <strong>互斥</strong> / <strong>降级</strong> / 实现锚点），并提供<strong>可照抄的 CSS / JS 代码块</strong>。新增 5 个全局小节：①<strong>时长阶梯</strong>（含 <code>--sp-check-red 60ms</code> / <code>--sp-check-draw 110ms</code>，要求 JS 门控与 CSS <strong>同源</strong>）；②<strong>缓动曲线</strong>（iOS spring <code>cubic-bezier(.34,1.3,.64,1)</code> / Apple 标准 <code>.22,.82,.24,1</code> / 抖动 <code>.36,.07,.19,.97</code> / 画勾必须 <code>linear</code>）；③<strong>几何与视觉 token</strong>（实测 <code>gridW 332</code> / <code>cellW 105.33</code> / 位移步长 <code>113.33</code> 等）；④<strong>触觉</strong>（选人 <code>8ms</code>、拖拽 <code>12ms</code>）；⑤<strong>按压反馈统一规则</strong>（仅三类元素有形变）。<strong>动效细节实证补全</strong>：Morph 展开的关键帧与公式、<strong>收起为即时重绘（实测 2ms、无过渡）</strong>、同行卡片淡出（瞬时）、选项卡分裂逐张 <code>0/35/70/105ms</code>、选项面板淡入（实测 ≈200ms）、门控状态机（<code>morphUntil</code> + <code>checkUntil</code> 双门 + 名义时长取长 + <code>300ms</code> 兜底 + 抢断补画 + 只认最后一次意图）、左滑删除（横向位移绝对量 &gt; 8px 起滑、<code>clamp(−72,0,dx)</code>、<code>dx≤−48</code> 吸附、<code>.22s</code>）、列表拖拽排序（长按 <code>400ms</code>、移动 <code>8px</code> 取消、<code>opacity .55 / .15s</code>）、Toast（<code>.2s</code>、<code>2000/2600ms</code>、<code>&gt;18</code> 字多行）、抽屉（<code>.28s</code>、<code>.55</code> 阈值、<code>22px</code> 热区）。新增 §12.7 组合 / 互斥矩阵、§12.8 降级与可访问性、<strong>§12.9 动效专项验收 N1–N24</strong>、§12.10 实现自检清单 + <strong>2 项已知偏差待确认</strong>（收起与展开不对称、<code>opened</code> 判据；原「重绘重播 <code>staffDonePop</code>/<code>staffCheckIn</code>」已<strong>同批修掉</strong> —— 改为一次性标记 <code>is-pop</code> / <code>is-in</code>，<code>spSelectStaff()</code> 置位、渲染读取、渲染后清空，多选时不再「噗噗」连弹，回归项 N18 / N25）。<strong>同批附带修掉一个连带 BUG</strong>：刚展开（<code>is-splitting</code> 仍在 DOM）时点已选工位，抖动会被 <code>fill: both</code> 的入场动画吃掉（<code>is-shake</code> 被 <code>staffRoleSplit</code> 的 <code>animationend</code> 在 ≈260ms 截断）—— ① CSS 中抖动规则移到 <code>is-splitting</code> 之后并加组合选择器；② <code>animationend</code> 回调按 <code>animationName</code> 过滤；③ <code>is-splitting</code> 延到 <code>520ms</code> 才摘除。回归项 <strong>N26</strong>。同步 §12.11 变更流程。§6.7.1 动效表精简为摘要并链至 §12.3。模块编号顺延：原「模块 12 交付物」→ <strong>模块 13 交付物</strong></td>
+</tr>
+<tr>
+<td>修订（2026-09-17 十四次）</td>
+<td><strong>反向（取消）勾选动效提速一倍</strong>：取消 = <strong>反序播放</strong>（先收勾、再褪红），时长整体<strong>减半</strong> —— 收勾 <code>110ms → 55ms</code>、褪红 <code>60ms → 30ms</code>，单轮 <code>170ms → **85ms**</code>（时长与速度都是正向的一半）。新增两个 CSS 变量 <code>--sp-uncheck-draw: 55ms</code> / <code>--sp-uncheck-red: 30ms</code>，<strong>JS 与 CSS 仍同源</strong>：<code>comm2.js</code> 新增 <code>spUncheckMs()</code> 读这两个变量，并按方向取时长（<code>spCheckMsFor(on)</code>：正向 170ms / 反向 85ms），反向路径的门控名义时长改由它给出；兜底上限仍取较长的正向 <code>spCheckMs() + 300ms</code>。<strong>生效范围 = 全部反向路径</strong>：①切换工位时被取消的旧工位；②取消「顾客指定」（退回「普通」/ 仅工位）；③取消「普通」；④收缩态员工卡点右侧勾选控件取消选择。<strong>切换工位（A8）</strong>随之从 <code>170 + 170 = 340ms</code>（实测 359ms）变为 <code>85 + 170 = **255ms**</code>（实测 <strong>267ms</strong>）。正向 A6 <strong>不变</strong>（仍 170ms）；A6/A7 时长<strong>刻意不对称</strong>（取消求干脆、确认求笔顺），已在 §12.10 标注「设计如此、不是偏差」。<strong>实测</strong>：<code>.is-undraw</code> 盒 <code>transition-duration 30ms / delay 55ms</code>，<code>svg path</code> 上 <code>spCheckUndraw</code> <code>duration 55ms / delay 0</code>；取消「顾客指定」→ 落定 <strong>91ms</strong>；<code>--sp-uncheck-draw</code> 拉到 <code>600ms</code> → 落定 <strong>636ms</strong>（证明读的是反向变量）。同步 §4.5.1 / §6.7.1 / §10.2.1（53q / 53r / 53y 改写 + 新增 53ab2）、§12.2.1（时长阶梯新增两变量 + 公式 + 1/2 硬性约束）、§12.3 A6 / A7 / A8 / A13、§12.8、§12.9（N6 / N7 / N9 改写 + 新增 N9b / N9c）、§12.10</td>
+</tr>
+<tr>
+<td>修订（2026-09-17 十五次）</td>
+<td><strong>换选时「被取消那卡的红」真正快速消失 —— 修掉一个 CSS 优先级 BUG + 换工位改为并行「红色交接」</strong>。<strong>① 修 BUG（根因）</strong>：反向褪红一直<strong>没生效</strong> —— 旧卡勾选框的红来自 <code>.staff-opt.is-on .staff-opt__box</code>（特异性 <code>0,3,0</code>），压过了反向的 <code>.staff-opt__box.is-undraw</code>（<code>0,2,0</code>），实测旧卡在整个动效期间（26→276ms）<strong>恒为纯红 <code>rgb(243,47,65)</code></strong>、只在落定重绘那一帧「啪」地硬切消失。现以<strong>组合选择器反超</strong>：<code>.staff-opt.is-on .staff-opt__box.is-undraw</code>（<code>0,4,0</code>）。<strong>② 整卡红色一起淡出</strong>：反向时<strong>宿主卡片</strong>也标 <code>is-undraw</code>（新增 <code>spCheckHost()</code>：选项卡 → <code>.staff-opt</code>；收缩态员工卡 → <code>.staff-card</code>），让<strong>选项卡红边 + 红投影</strong>、<strong>员工卡粉底 + 粉描边 + 头像粉圈</strong>与勾选框<strong>同一个节拍</strong>（<code>--sp-uncheck-draw</code> 后起、<code>--sp-uncheck-red</code> 内结束）退干净；选项卡用 <code>.staff-opt.is-on.is-undraw</code> 反超 <code>.staff-opt.is-on</code>，<code>顾客指定</code>卡取消后回它自己的基线红边 <code>rgba(243,47,65,.18)</code>。<strong>③ 粉底不可插值</strong>：员工卡粉底是 <code>linear-gradient</code>，渐变 → 白色只能硬切；故在 <code>.is-done</code> 下垫一层同色 <code>background-color: #FFF5F5</code>、渐变置其上，褪色时先摘渐变（同色、肉眼无感）再让 <code>background-color</code> 过渡到白（实测采到 <code>#FFF5F5 → #FFF6F6 → #FFFCFC → #FFFEFE → #FFF</code>）。<strong>④ 换工位由串行改为并行「红色交接」（A8 重写）</strong>：<strong>新卡立刻</strong>变红 + 画勾（正向 170ms），<strong>同时</strong>旧卡整卡红色快速淡出 + 收勾（反向 85ms），落定取较长者 = <strong>170ms</strong>（实测 182ms）；串行版本（旧先淡、新后画 = 255ms / 实测 267ms）因「旧卡红先淡、新卡才画勾」而观感断成两截，已废弃。<strong>⑤ 生效范围 = 全部反向路径</strong>：换工位 / 取消「顾客指定」/ 取消「普通」/ 收缩态点勾取消选择。<strong>实测</strong>：换工位时 <strong>62ms</strong> 新卡勾选框已纯红、<strong>82ms</strong> 旧卡红底退净、<strong>182ms</strong> 落定；<code>is-undraw</code> 期间旧卡盒底为白 <code>rgb(255,255,255)</code>、卡片边框褪到 <code>rgb(232,232,232)</code>。同步 §4.5.1 / §6.7.1 / §10.2.1（53q 改写 + 新增 53ab3 / 53ab4）、§12.2.1（换工位公式 <code>max(170,85)=170</code>）、§12.3 A7（新增「宿主卡片红色」字段 + 反超 CSS/JS 代码块）/ A8（重写为并行）/ A13、§12.8、§12.9（N7 改写 + 新增 N9d / N9e）、§12.10</td>
 </tr>
 </tbody>
 </table>
@@ -987,7 +995,7 @@ flowchart LR
 <li><strong>待选工位态</strong>：先勾「顾客指定」但尚未点工位时，该勾选<strong>立即生效显示</strong>，卡片<strong>保持展开</strong>等待工位；此时若收起卡片 / 关闭 Sheet，该「顾客指定」勾选<strong>保留</strong>（再次展开仍是勾选态，不弹提示），直到用户点工位（→ 完成选择）或手动取消该勾（→ 保持展开且仍未选）。</li>
 <li><strong>取消勾选（展开态）</strong>：<strong>工位不可点掉</strong>（抖动提醒）；「<strong>顾客指定</strong>」可再点取消 —— ①<strong>待选工位态</strong>（无工位）取消 → 卡片<strong>保持展开</strong>、员工仍未选；②已有工位取消 → 退回仅工位并收起；③不分工位取消 → 退回「普通」，员工仍为已选；「<strong>普通</strong>」（仅不分工位态）再点 → <strong>取消该员工</strong>选择并收起。</li>
 <li><strong>取消选择（收缩态）</strong>：已勾选员工卡右侧的勾选控件可点，点后取消该员工选择（<code>staffChosen=false</code>），并清掉其工位 / 顾客指定标记。</li>
-<li><strong>动效与门控</strong>：点勾选控件 → <strong>快速变红（60ms）→ 勾从左到右画出（110ms）</strong>，取消<strong>反序播放</strong>（收勾 → 褪红）；<strong>切换工位</strong>时旧勾<strong>先反序收回</strong>、再画新勾（约 340ms）；卡片的<strong>收起 / 展开都必须等动效</strong>（<code>Animation.finished</code> + 名义时长取长），<strong>不用固定计时</strong>；<strong>动效期间的新交互抢断当前动效</strong>——<strong>先把勾补画成终点态</strong>再立即落定进行中的结果、随后执行新交互（不排队、不丢失）；<strong>抢断时勾不会停在半路</strong>。展开态下<strong>服务员工卡片区</strong>内点非选项卡区域（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / <code>scrim</code>）一律收起；<strong>Sheet 标题 / 提示行 / 底部栏</strong>点了不收起（详见 §6.7.1）。<code>prefers-reduced-motion</code> 下全部瞬时切态。</li>
+<li><strong>动效与门控</strong>：点勾选控件 → <strong>快速变红（60ms）→ 勾从左到右画出（110ms）= 170ms</strong>；取消<strong>反序播放</strong>（收勾 → 褪红）且<strong>提速一倍</strong>（收勾 55ms + 褪红 30ms = <strong>85ms</strong>），<strong>且被取消的整张卡的红色（勾选框红底 + 卡片红边/红投影 + 员工卡粉底/粉描边/头像粉圈）与勾同一个节拍同步淡出</strong>；<strong>切换工位</strong>时<strong>新卡立刻变红画勾、旧卡红色同步快速淡出</strong>（并行「红色交接」，共 ≈ <strong>170ms</strong>）；卡片的<strong>收起 / 展开都必须等动效</strong>（<code>Animation.finished</code> + 名义时长取长），<strong>不用固定计时</strong>；<strong>动效期间的新交互抢断当前动效</strong>——<strong>先把勾补画成终点态</strong>再立即落定进行中的结果、随后执行新交互（不排队、不丢失）；<strong>抢断时勾不会停在半路</strong>。展开态下<strong>服务员工卡片区</strong>内点非选项卡区域（编辑卡空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / <code>scrim</code>）一律收起；<strong>Sheet 标题 / 提示行 / 底部栏</strong>点了不收起（详见 §6.7.1）。<code>prefers-reduced-motion</code> 下全部瞬时切态。</li>
 <li><strong>交互呈现（点击后自适应）</strong>：选人列表<strong>不预打标</strong>；点选某员工时按该员工是否需二次选择决定是否展开「员工变为按钮」动效——需采集（工位或顾客指定<strong>任一</strong>）才展开，两者皆否则直接完成勾选。</li>
 <li><strong>内嵌选人一并生效</strong>：若「加入购物车」等 Sheet <strong>内嵌</strong>了选服务员工，同一规则一并生效。</li>
 <li><strong>未采集时的落库与计提</strong>：未勾选「顾客指定」时，订单行该员工<strong>不含顾客指定提成</strong>（<code>staffExtra=false</code>），按命中块「提成」侧取值——<code>pickMode=avg</code> 取 rule 级 <code>nonDesignated</code>，<code>pickMode=station</code> 取该工位 <code>stations[station].nonDesignated</code>；未采集「工位」时按 §8 规则 7 缺省回落（<code>stationIds[0]</code>）。计提仍按 §8 规则 3 取高、规则 7 取值。</li>
@@ -1851,7 +1859,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 <tr>
 <td>勾选控件（A6 / A7）</td>
-<td><strong>变红 <code>60ms</code>（<code>--sp-check-red</code>）→ 画勾 <code>110ms</code>（<code>--sp-check-draw</code>，<code>linear</code>，<code>stroke-dashoffset 24→0</code>）</strong>；取消<strong>反序</strong>（收勾 110 → 褪红 60）；切换工位两轮串行 ≈<code>340ms</code></td>
+<td><strong>正向</strong>：变红 <code>60ms</code>（<code>--sp-check-red</code>）→ 画勾 <code>110ms</code>（<code>--sp-check-draw</code>，<code>linear</code>，<code>stroke-dashoffset 24→0</code>）= <code>170ms</code>；<strong>反向（取消）</strong>：反序播放且<strong>提速一倍</strong> —— 收勾 <code>55ms</code>（<code>--sp-uncheck-draw</code>）→ 褪红 <code>30ms</code>（<code>--sp-uncheck-red</code>）= <code>85ms</code>，<strong>被取消的整卡红色（含卡片红边/红投影/粉底）同节拍一起淡出</strong>；切换工位为<strong>并行「红色交接」</strong>（新卡立刻勾选 + 旧卡红色同步快淡）≈<code>170ms</code></td>
 </tr>
 <tr>
 <td>收起 / 展开时机（A13）</td>
@@ -3672,18 +3680,21 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <p>53n. <strong>Given</strong> 按工位 + 开顾客指定，<strong>When</strong> 点击某员工卡，<strong>Then</strong> 该卡 Morph 展开为<strong>整行 4 张</strong>勾选卡「大工 / 中工 / 小工 / 顾客指定」（工位名按 <code>stationLabels</code> 映射），每张<strong>右上角</strong>有<strong>未勾选</strong>控件。
 53o. <strong>Given</strong> 4 张勾选卡已展开且<strong>未点任何工位</strong>，<strong>When</strong> 查看，<strong>Then</strong> 4 张全为<strong>未勾选</strong>态（工位<strong>不预选默认工位</strong>）；<strong>When</strong> 点「大工」，<strong>Then</strong> 勾选控件<strong>变红并画出对勾</strong>，动效播完后该卡变为<strong>已勾选</strong>并<strong>收缩</strong>回员工卡；员工卡显示红色摘要 <code>大工</code>，右侧出现<strong>放大勾选控件</strong>（约 20px）且其勾<strong>画出</strong>，<strong>无</strong>右上角 ×。
 53p. <strong>Given</strong> 员工已选「大工」，<strong>When</strong> 再次点击该员工卡，<strong>Then</strong> 重新展开 4 张卡且「大工」为已勾选态；此时再点「顾客指定」，<strong>Then</strong> 「顾客指定」也被勾选，收缩后摘要为 <code>大工 · 顾客指定</code>（工位单选 + 顾客指定叠加）。
-53q. <strong>Given</strong> 员工已选「大工 + 顾客指定」，<strong>When</strong> 展开后点「中工」，<strong>Then</strong> <strong>旧勾（大工）先反序收回</strong>、随后<strong>新勾（中工）画出</strong>，动效播完后才收缩，摘要变为 <code>中工 · 顾客指定</code>（工位之间<strong>单选</strong>）。
-53r. <strong>Given</strong> 员工已勾选，<strong>When</strong> 点击其右侧放大勾选控件，<strong>Then</strong> 该勾<strong>反序收回</strong>、随后该员工<strong>取消选择</strong>（入口摘要回到「服务员工 未选择」）。
+53q. <strong>Given</strong> 员工已选「大工 + 顾客指定」，<strong>When</strong> 展开后点「中工」，<strong>Then</strong> <strong>并行「红色交接」</strong>：<strong>新卡（中工）立刻变红 + 画勾（170ms）</strong>，<strong>同时旧卡（大工）整卡红色快速淡出 + 勾反序收回（85ms）</strong>——即「新卡勾选之后，被取消的那张卡的红<strong>快速消失</strong>」；落定取较长者（≈<code>170ms</code>，实测 182ms）后收缩，摘要变为 <code>中工 · 顾客指定</code>（工位之间<strong>单选</strong>）。
+53r. <strong>Given</strong> 员工已勾选，<strong>When</strong> 点击其右侧放大勾选控件，<strong>Then</strong> 该勾<strong>反序收回</strong>（收勾 55ms → 褪红 30ms，共 85ms），随后该员工<strong>取消选择</strong>（入口摘要回到「服务员工 未选择」）。
 53s. <strong>Given</strong> 不分工位 + 开顾客指定，<strong>When</strong> 点击员工卡，<strong>Then</strong> 展开 <strong>2 张</strong>卡「普通 / 顾客指定」；勾选后收缩，摘要显示 <code>普通</code> 或 <code>顾客指定</code>；<strong>When</strong> 重新展开并再点已勾选的「顾客指定」，<strong>Then</strong> 退回「普通」（员工仍已选）；再点已勾选的「普通」，<strong>Then</strong> 取消该员工。
 53t. <strong>Given</strong> 不分工位 + 未开顾客指定，<strong>When</strong> 点击员工卡，<strong>Then</strong> <strong>点选即勾选</strong>（无展开卡，勾选控件同款画出动效），员工卡第三行仍为<strong>灰色头衔</strong>（无红色摘要）。
 53u. <strong>Given</strong> 底部 Sheet 打开，<strong>When</strong> 查看提示文案，<strong>Then</strong> 按四态分别为：皆否「可多选员工；点卡片即完成选择。」/ 仅顾客指定「…勾选「普通」或「顾客指定」（顾客指定提成另计）。」/ 仅按工位「…勾选工位（大工/中工/小工），工位单选。」/ 按工位 + 顾客指定「…工位单选；「顾客指定」可与任一工位同时勾选，顾客指定提成叠加。」
 53v. <strong>Given</strong> 按工位 + 开顾客指定且某员工卡已展开、<strong>尚未点工位</strong>，<strong>When</strong> 点「顾客指定」，<strong>Then</strong> 该勾选<strong>立即画出</strong>、卡片<strong>保持展开</strong>等待工位，员工<strong>不计入已选</strong>（入口摘要仍为「未选择」）；<strong>When</strong> 此时收起卡片或关闭 Sheet 后再展开，<strong>Then</strong> 该「顾客指定」<strong>仍为勾选态</strong>（保留记忆，不弹提示）。
 53w. <strong>Given</strong> 处于「顾客指定已勾、工位未点」的待选态，<strong>When</strong> 再点已勾选的「顾客指定」，<strong>Then</strong> 取消该勾、卡片<strong>保持展开</strong>、员工仍未选；<strong>When</strong> 随后点「小工」，<strong>Then</strong> 完成选择并收缩，摘要为 <code>小工</code>。
 53x. <strong>Given</strong> 员工已勾选「大工」，<strong>When</strong> 再点「大工」（已勾选的那张），<strong>Then</strong> <strong>不取消</strong>该勾：该卡播 <strong>iOS 抖动动效</strong>提醒（<strong>不弹 toast</strong>），状态与摘要不变；改点「中工」或到收缩态点右侧勾选控件才能变更。
-53y. <strong>Given</strong> 任一勾选动效播放中（单轮约 170ms），<strong>When</strong> 立刻点其他交互（点遮罩收起 / 点另一张卡 / 点另一员工），<strong>Then</strong> 当前动效被<strong>抢断</strong>：进行中的勾先<strong>补画成终点态</strong>（不停在半路），随即落定其结果并执行新交互——不排队、点击不丢失。
+53y. <strong>Given</strong> 任一勾选动效播放中（单轮<strong>正向约 170ms / 反向约 85ms</strong>），<strong>When</strong> 立刻点其他交互（点遮罩收起 / 点另一张卡 / 点另一员工），<strong>Then</strong> 当前动效被<strong>抢断</strong>：进行中的勾先<strong>补画成终点态</strong>（不停在半路），随即落定其结果并执行新交互——不排队、点击不丢失。
 53z. <strong>Given</strong> 系统开启「减弱动态效果」，<strong>When</strong> 勾选 / 取消勾选 / 切换工位，<strong>Then</strong> 动效瞬时切态（不播放变红、画勾、抖动），状态变更与摘要仍正确。
-53aa. <strong>Given</strong> 单轮勾选动效（变红 60ms + 画勾 110ms），<strong>When</strong> 点「顾客指定」完成选择，<strong>Then</strong> 卡片<strong>在动效播完后</strong>（≈170ms）才收缩，<strong>不会</strong>在勾还没画完时收起；实测收起时刻 ≥ 动效结束时刻。
+53aa. <strong>Given</strong> 单轮勾选动效（变红 60ms + 画勾 110ms = 170ms），<strong>When</strong> 点「顾客指定」完成选择，<strong>Then</strong> 卡片<strong>在动效播完后</strong>（≈170ms）才收缩，<strong>不会</strong>在勾还没画完时收起；实测收起时刻 ≥ 动效结束时刻。
 53ab. <strong>Given</strong> 把画勾时长人为拉长（如 <code>--sp-check-draw: 600ms</code>），<strong>When</strong> 点「顾客指定」，<strong>Then</strong> 收起时刻随之推后到画勾播完之后（证明门控按<strong>真实动画终点</strong>判定，而非固定 <code>setTimeout</code>）。
+53ab2. <strong>Given</strong> 取消（反向）动效提速一倍 —— 收勾 <code>55ms</code> + 褪红 <code>30ms</code> = <strong>85ms</strong>（<code>--sp-uncheck-draw</code> / <code>--sp-uncheck-red</code> 恰为 <code>--sp-check-draw</code> / <code>--sp-check-red</code> 的 1/2），<strong>When</strong> 取消已勾选的「顾客指定」，<strong>Then</strong> 收起时刻 ≈ <code>85ms</code>（实测 91ms，<strong>不得</strong>仍等 170ms）、勾<strong>反序收回</strong>（先收勾再褪红）、红的底色在收勾结束后才褪完（实测 21ms 仍纯红 → 62ms 中间色 → 81ms 回到基线白）；<strong>When</strong> 把 <code>--sp-uncheck-draw</code> 人为拉到 <code>600ms</code>，<strong>Then</strong> 收起时刻随之推到 ≈<code>630ms</code>（实测 636ms，证明反向门控与 CSS <strong>同源</strong>）；<strong>And When</strong> 点收缩态员工卡右侧勾选控件取消选择，<strong>Then</strong> 同样按 85ms 反序收回后才移除该员工。
+53ab3. <strong>Given</strong> 被取消勾选的卡片（选项卡或收缩态员工卡），<strong>When</strong> 观察取消动效期间该卡的计算样式，<strong>Then</strong> <strong>整张卡的红色与勾选框同一个节拍一起淡出</strong>：选项卡的<strong>红边</strong>与<strong>红投影</strong>褪到基线（<code>is-undraw</code> 期间盒底为白 <code>rgb(255,255,255)</code>、卡片边框为 <code>rgb(232,232,232)</code>，<strong>不得</strong>恒为品牌红 <code>rgb(243,47,65)</code>）；员工卡的<strong>粉色渐变底 / 粉描边 / 头像粉圈</strong>一起淡出（粉底采样须出现中间色，如 <code>#FFF5F5 → #FFF6F6 → #FFFCFC → #FFFEFE → #FFF</code>，<strong>不得</strong>硬切）；<strong>顾客指定卡</strong>取消后红边回它自己的基线 <code>rgba(243,47,65,.18)</code>，<strong>不得</strong>统一变成灰。
+53ab4. <strong>Given</strong> 已选「大工」，<strong>When</strong> 点「中工」换工位，<strong>Then</strong> 两路<strong>并行</strong>（新卡立刻变红 + 画勾、旧卡红色同步快淡），<strong>不得</strong>串行等待；实测 <strong>62ms</strong> 新卡勾选框已纯红、<strong>82ms</strong> 旧卡红底退净、<strong>182ms</strong> 落定 —— 总时长 ≈<code>170ms</code>（<code>max(正向, 反向)</code>），<strong>不得</strong>退化成 <code>85 + 170 = 255ms</code>。
 53ac. <strong>Given</strong> 某员工卡处于展开态，<strong>When</strong> 点<strong>服务员工卡片区</strong>内任一非选项卡区域（编辑卡自身空白 / 选项行间隙 / 卡片区与 Sheet 正文空白 / <code>scrim</code>），<strong>Then</strong> 卡片<strong>收起</strong>；<strong>When</strong> 点 <strong>Sheet 标题 / 提示行 / 底部栏空白</strong>，<strong>Then</strong> <strong>不收起</strong>；<strong>When</strong> 点底部「完成」或 Sheet 外遮罩，<strong>Then</strong> <strong>关闭整个 Sheet</strong>；<strong>When</strong> 点另一张员工卡，<strong>Then</strong> 收起当前并展开那一张。
 53ad. <strong>Given</strong> 从选项卡勾选完成并已收缩，<strong>When</strong> 观察收缩后员工卡右侧的勾，<strong>Then</strong> 勾为<strong>完整态</strong>（不重画一遍）；<strong>Given</strong>「不分工位 + 未开顾客指定」态点选员工，<strong>Then</strong> 勾在员工卡上以<strong>画出</strong>动效呈现（该态无选项卡）。
 65f. <strong>Given</strong> 员工详情 / 我的资料 / 创建·完善表单，<strong>When</strong> 查看内容区底部，<strong>Then</strong> 有次要白底「社区形象」卡，内仅剑号/宝剑；头像仍在顶部主卡。</p>
@@ -3845,12 +3856,22 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <tr>
 <td><code>--sp-check-red</code></td>
 <td><code>60ms</code></td>
-<td>勾选控件「变红 / 褪红」</td>
+<td>勾选控件「<strong>变红</strong>」（正向 A6）</td>
 </tr>
 <tr>
 <td><code>--sp-check-draw</code></td>
 <td><code>110ms</code></td>
-<td>勾选控件「画勾 / 收勾」</td>
+<td>勾选控件「<strong>画勾</strong>」（正向 A6）</td>
+</tr>
+<tr>
+<td><code>--sp-uncheck-draw</code></td>
+<td><code>55ms</code></td>
+<td>勾选控件「<strong>收勾</strong>」（反向 A7；恒为 <code>--sp-check-draw</code> 的一半）</td>
+</tr>
+<tr>
+<td><code>--sp-uncheck-red</code></td>
+<td><code>30ms</code></td>
+<td>勾选控件「<strong>褪红</strong>」（反向 A7；恒为 <code>--sp-check-red</code> 的一半）</td>
 </tr>
 <tr>
 <td>微反馈</td>
@@ -3899,9 +3920,12 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 </tbody>
 </table>
-<p><strong>单轮勾选 = 60 + 110 = 170ms</strong>（<code>--sp-check-red + --sp-check-draw</code>）；<strong>切换工位 = 2 × 170 = 340ms</strong>。</p>
+<p><strong>单轮勾选（正向）= 60 + 110 = 170ms</strong>（<code>--sp-check-red + --sp-check-draw</code>）；
+<strong>单轮取消（反向）= 55 + 30 = 85ms</strong>（<code>--sp-uncheck-draw + --sp-uncheck-red</code>，<strong>时长减半 = 速度加快一倍</strong>）；
+<strong>切换工位（并行「红色交接」）= max(170, 85) = 170ms</strong>。</p>
 <blockquote>
-<p><strong>强制要求</strong>：<code>--sp-check-red</code> / <code>--sp-check-draw</code> 必须在 <code>:root</code> 定义，<strong>CSS 与 JS 同源</strong>——JS 门控时长直接读这两个变量（§12.3 A13），不得各写一份常量，否则必然对不齐。</p>
+<p><strong>强制要求</strong>：四个变量都必须在 <code>:root</code> 定义，<strong>CSS 与 JS 同源</strong>——JS 门控时长直接读这些变量（§12.3 A13：正向 <code>spCheckMs()</code>、反向 <code>spUncheckMs()</code>、按方向取用 <code>spCheckMsFor(on)</code>），不得各写一份常量，否则必然对不齐。</p>
+<p><strong>反向提速硬性约束</strong>：<code>--sp-uncheck-draw</code> / <code>--sp-uncheck-red</code> <strong>必须恒为</strong> <code>--sp-check-draw</code> / <code>--sp-check-red</code> 的 <strong>1/2</strong>（反向 = 反序播放且速度加快一倍）。改正向必须同时改反向；<code>--sp-uncheck-*</code> 只作用于<strong>反向路径</strong>，正向 A6 不受影响。</p>
 </blockquote>
 <h3>12.2.2 缓动曲线</h3>
 <table>
@@ -4486,7 +4510,7 @@ requestAnimationFrame(function () {
 <blockquote>
 <p><strong>CD 顺序</strong>：变色是 <code>transition</code>（60ms），画勾是 <code>animation</code> 且 <code>delay = 60ms</code> —— 两者靠<strong>延迟对齐</strong>，不是嵌套。改任一时长必须<strong>同时</strong>改另一处，故统一走 CSS 变量。</p>
 </blockquote>
-<h3>A7 · 勾选控件：反序取消（收勾 + 褪红）</h3>
+<h3>A7 · 勾选控件：反序取消（收勾 + 褪红） · <strong>提速一倍</strong> · <strong>宿主卡片红色同步快速淡出</strong></h3>
 <table>
 <thead>
 <tr>
@@ -4497,51 +4521,109 @@ requestAnimationFrame(function () {
 <tbody>
 <tr>
 <td>触发</td>
-<td>点击已勾选的「顾客指定」/「普通」/ 收缩态勾选控件（工位<strong>不可</strong>此路取消）</td>
+<td>点击已勾选的「顾客指定」/「普通」/ 收缩态勾选控件（工位<strong>不可</strong>此路取消 → A12）</td>
 </tr>
 <tr>
 <td>过程</td>
-<td><strong>① 收勾（110ms）</strong>：<code>stroke-dashoffset 0 → 24</code>，<strong>线性</strong>，无延迟；<strong>② 褪红（60ms，延迟 110ms）</strong>：盒 → <code>#fff</code> / <code>#D6D6D6</code> / <code>transparent</code></td>
+<td><strong>① 收勾（55ms）</strong>：<code>stroke-dashoffset 0 → 24</code>，<strong>线性</strong>，无延迟；<strong>② 褪红（30ms，延迟 55ms）</strong>：盒 → <code>#fff</code> / <code>#D6D6D6</code> / <code>transparent</code>；<strong>③ 宿主卡片红色同时淡出</strong>（见下一行）</td>
+</tr>
+<tr>
+<td><strong>宿主卡片红色</strong></td>
+<td>控件<strong>所在卡片</strong>一起标 <code>is-undraw</code>（<code>spCheckHost()</code>：选项卡 → <code>.staff-opt</code>；收缩态员工卡 → <code>.staff-card</code>），让<strong>整张卡的红色</strong>与勾选框<strong>同一个节拍（55ms 后起、30ms 内）退干净：选项卡的</strong>红边 + 红投影<strong>、员工卡的</strong>粉色渐变底 + 粉描边 + 头像粉圈<strong>。</strong>否则红色只在落定重绘那一帧硬切消失** —— 实测原实现旧卡在整个动效期间恒为纯红 <code>rgb(243,47,65)</code>、红边也纹丝不动</td>
 </tr>
 <tr>
 <td>时长</td>
-<td><strong>110 + 60 = 170ms</strong></td>
+<td><strong>55 + 30 = 85ms</strong>（<code>--sp-uncheck-draw</code> + <code>--sp-uncheck-red</code>）—— <strong>恰为正向 A6 的一半，速度加快一倍</strong></td>
 </tr>
 <tr>
 <td>结束态</td>
-<td>盒空心态；勾隐藏；相关状态类清空</td>
+<td>盒空心态；勾隐藏；宿主卡片红边/红投影/粉底全部回到基线；相关状态类清空</td>
 </tr>
 <tr>
 <td>可中断</td>
-<td>同 A6（可抢断，抢断时补画到终点）</td>
+<td>同 A6（可抢断，抢断时补画到终点 + 宿主红色直接落终态）</td>
+</tr>
+<tr>
+<td><strong>速度关系</strong></td>
+<td>反向<strong>必须</strong>恒为正向的 1/2（<code>--sp-uncheck-* = --sp-check-* / 2</code>）：收勾比画勾快一倍、褪红比变红快一倍。正向不动（170ms），只有反向提速</td>
+</tr>
+<tr>
+<td>生效范围</td>
+<td><strong>全部反向路径</strong>：① 切换工位时被取消的旧工位；② 取消「顾客指定」→ 退回「普通」/ 仅工位；③ 取消「普通」；④ 收缩态员工卡点右侧勾选控件取消选择</td>
 </tr>
 <tr>
 <td>降级</td>
-<td>直接终态（<code>is-undraw</code> 下 <code>stroke-dashoffset: 24</code>、盒白底）</td>
+<td>直接终态（<code>is-undraw</code> 下 <code>stroke-dashoffset: 24</code>、盒白底、宿主红色全退）</td>
 </tr>
 <tr>
 <td>实现锚点</td>
-<td><code>comm2.css</code> → <code>spCheckUndraw</code>；<code>comm2.js</code> → <code>spPlayCheck(el, false)</code></td>
+<td><code>comm2.css</code> → <code>spCheckUndraw</code> + 宿主红色反超规则；<code>comm2.js</code> → <code>spPlayCheck(el, false)</code> / <code>spCheckHost()</code>；门控时长 <code>spUncheckMs()</code></td>
 </tr>
 </tbody>
 </table>
-<pre><code class="language-css">.staff-opt__box.is-undraw svg path,
-.staff-card__tick.is-undraw svg path { animation: spCheckUndraw var(--sp-check-draw) linear both; }
+<pre><code class="language-css">/* ① 勾选框本身 */
+.staff-opt__box.is-undraw svg path,
+.staff-card__tick.is-undraw svg path { animation: spCheckUndraw var(--sp-uncheck-draw) linear both; }
 .staff-opt__box.is-undraw {
   background: #fff; border-color: #D6D6D6; color: transparent;
-  transition: background-color var(--sp-check-red) ease var(--sp-check-draw),
-    border-color var(--sp-check-red) ease var(--sp-check-draw),
-    color var(--sp-check-red) ease var(--sp-check-draw);
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
 }
 .staff-card__tick.is-undraw {
   background: transparent; box-shadow: none; color: transparent;
-  transition: background-color var(--sp-check-red) ease var(--sp-check-draw),
-    box-shadow var(--sp-check-red) ease var(--sp-check-draw),
-    color var(--sp-check-red) ease var(--sp-check-draw);
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    color var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
 }
 @keyframes spCheckUndraw { from { stroke-dashoffset: 0; } to { stroke-dashoffset: 24; } }
 </code></pre>
-<h3>A8 · 切换工位（两轮串行）</h3>
+<pre><code class="language-css">/* ② 宿主卡片红色同步淡出 —— 三处**必须反超 `.is-on`**（否则红底根本不淡出，实测 BUG 根因） */
+/* 2a. 选项卡勾选框：`.staff-opt.is-on .staff-opt__box`(0,3,0) 压过 `.staff-opt__box.is-undraw`(0,2,0) */
+.staff-opt.is-on .staff-opt__box.is-undraw { background: #fff; border-color: #D6D6D6; color: transparent; }
+/* 2b. 选项卡红边 / 红投影：来自 `.staff-opt.is-on`(0,2,0)，用 (0,3,0) 反超 */
+.staff-opt.is-on.is-undraw {
+  border-color: #E8E8E8;
+  box-shadow: 0 2px 8px rgba(26, 26, 26, .06);
+  transition: border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+.staff-opt--extra.is-on.is-undraw { border-color: rgba(243, 47, 65, .18); }   /* 顾客指定卡自己的淡红边基线 */
+/* 2c. 员工卡粉底 / 粉描边 / 头像粉圈 */
+.staff-card.is-done .staff-card__panel { background-color: #FFF5F5; }        /* 垫在渐变下的同色底 */
+.staff-card.is-done.is-undraw .staff-card__panel {
+  background-image: none; background-color: #fff;
+  border-color: #E8E8E8; box-shadow: none;
+  transition: background-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    border-color var(--sp-uncheck-red) ease var(--sp-uncheck-draw),
+    box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+.staff-card.is-done.is-undraw .staff-card__avatar {
+  box-shadow: 0 0 0 2px #fff;
+  transition: box-shadow var(--sp-uncheck-red) ease var(--sp-uncheck-draw);
+}
+</code></pre>
+<pre><code class="language-js">/* 宿主卡片标记：反向时控件与宿主一起 is-undraw（抢断补画时宿主红色直接落终态） */
+function spCheckHost(el) {                    /* 选项卡 → .staff-opt；收缩态员工卡 → .staff-card */
+  if (!el || typeof el.closest !== 'function') return null;
+  return el.closest('.staff-opt') || el.closest('.staff-card');
+}
+function spPlayCheck(el, on) {
+  if (!el || spReduceMotion()) return;
+  var host = spCheckHost(el);
+  el.classList.remove('is-draw', 'is-undraw');
+  if (host) host.classList.remove('is-undraw');
+  void el.offsetWidth;
+  el.classList.add(on ? 'is-draw' : 'is-undraw');
+  if (!on &amp;&amp; host) host.classList.add('is-undraw');
+}
+</code></pre>
+<blockquote>
+<p><strong>CD 顺序（反序对齐）</strong>：收勾是 <code>animation</code>（55ms，<strong>无延迟</strong>），褪红是 <code>transition</code> 且 <code>delay = 55ms</code>（= 收勾时长）—— 同样是<strong>延迟对齐</strong>，不是嵌套。改收勾时长必须<strong>同时</strong>改褪红的 delay；宿主卡片的红色也用同一个 <code>delay</code>（<code>--sp-uncheck-draw</code>），三路<strong>同节拍</strong>。
+<strong>粉底为什么要垫同色底</strong>：员工卡粉底是 <code>linear-gradient</code>，<strong>渐变不可插值</strong>，渐变 → 白色只能硬切。故在 <code>.is-done</code> 下加一层同色 <code>background-color: #FFF5F5</code>、渐变置于其上：褪色时先摘渐变（与垫底同色，肉眼无感），再让 <code>background-color</code> 过渡到白。
+<strong>实测</strong>（390 画布）：<code>.is-undraw</code> 盒 <code>transition-duration 0.03s / transition-delay 0.055s</code>；<code>svg path</code> 上 <code>spCheckUndraw</code> <code>duration 55ms / delay 0</code>；取消「顾客指定」点击 → 落定收起 <strong>91ms</strong>（名义 85ms）；取消时盒底 21ms 仍纯红 → 62ms 中间色 → 81ms 回到基线白（顾客指定卡回自身淡红边 <code>rgba(243,47,65,.18)</code>）；收缩态点勾取消时粉底采样 <strong><code>#FFF5F5</code> → <code>#FFF6F6</code> → <code>#FFFCFC</code> → <code>#FFFEFE</code> → <code>#FFF</code></strong>（确为淡出，非硬切）。</p>
+</blockquote>
+<h3>A8 · 切换工位（<strong>并行「红色交接」</strong>）</h3>
 <table>
 <thead>
 <tr>
@@ -4556,11 +4638,11 @@ requestAnimationFrame(function () {
 </tr>
 <tr>
 <td>过程</td>
-<td><strong>严格串行</strong>：旧勾播 A7（170ms）→ <strong>播完</strong> → 新勾播 A6（170ms）→ <strong>播完</strong> → 落定（收起）</td>
+<td><strong>并行「红色交接」</strong>（两路同时起跑）：<strong>新卡立刻</strong>走 A6 正向（变红 60ms → 画勾 110ms = <strong>170ms</strong>）；<strong>同时</strong>旧卡走 A7 反向（收勾 55ms → 褪红 30ms = <strong>85ms</strong>，含整卡红边/红投影一起淡出）</td>
 </tr>
 <tr>
 <td>时长</td>
-<td>≈ <strong>340ms</strong>（实测收起发生在 359ms）</td>
+<td><strong>max(170, 85) = 170ms</strong>（实测收起发生在 <strong>182ms</strong>）。~~85 + 170 = 255ms 串行~~—— 串行会让旧卡红先淡、新卡才画勾，观感断成两截；实测串行版本收起 267ms</td>
 </tr>
 <tr>
 <td>缓动</td>
@@ -4568,11 +4650,11 @@ requestAnimationFrame(function () {
 </tr>
 <tr>
 <td>可中断</td>
-<td><strong>可</strong>（抢断 → 旧勾补画到终点、当前轮立即落定并执行新交互）</td>
+<td><strong>可</strong>（抢断 → 旧勾补画到终点 + 旧卡红色直接落终态，当前轮立即落定并执行新交互）</td>
 </tr>
 <tr>
 <td>互斥</td>
-<td>两轮<strong>不得并行</strong>——并行会看到两个勾同时半画</td>
+<td>两路<strong>并行</strong>（新卡正向 + 旧卡反向），但<strong>同一张卡上不并存</strong> <code>is-draw</code> 与 <code>is-undraw</code>（<code>spPlayCheck</code> 先双向清类）</td>
 </tr>
 <tr>
 <td>降级</td>
@@ -4580,17 +4662,20 @@ requestAnimationFrame(function () {
 </tr>
 <tr>
 <td>实现锚点</td>
-<td><code>comm2.js</code> → <code>spTapOption()</code> 的 <code>prevBox</code> 分支（嵌套 <code>spGateAfter</code>）</td>
+<td><code>comm2.js</code> → <code>spTapOption()</code> 的 <code>prevBox</code> 分支（<strong>单个</strong> <code>spGateAfter([prevBox, nextBox], …)</code>，名义时长 <code>Math.max(spCheckMs(), spUncheckMs())</code>）</td>
 </tr>
 </tbody>
 </table>
-<pre><code class="language-js">/* 串行两轮：第一轮播完才启动第二轮；第二轮播完才落定 */
-spPlayCheck(prevBox, false);
-spGateAfter(prevBox, function () {
-  spPlayCheck(nextBox, true);
-  spGateAfter(nextBox, function () { spApplyOptionToggle(sid, key); }, spCheckMs());
-}, spCheckMs());
+<pre><code class="language-js">/* 并行「红色交接」：新卡立刻变红 + 画勾（170ms）；同时旧卡整卡红色快速淡出 + 收勾（85ms）；
+   落定取较长者（= 正向 170ms）。**不要**串行成 spUncheckMs() + spCheckMs()（255ms） */
+spPlayCheck(prevBox, false);            /* 旧卡：红色 85ms 淡出 + 收勾 */
+spPlayCheck(nextBox, true);             /* 新卡：立刻变红 + 画勾（170ms） */
+spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
+  Math.max(spCheckMs(), spUncheckMs()));
 </code></pre>
+<blockquote>
+<p><strong>实测（390 画布，逐帧）</strong>：点击后 <strong>62ms</strong> 新卡勾选框已变纯红（不再等旧卡播完）；旧卡红底 <strong>82ms</strong> 退净（<code>is-undraw</code> 期间盒底为白、卡片边框已褪到 <code>rgb(232,232,232)</code>）；<strong>182ms</strong> 落定收起。</p>
+</blockquote>
 <h3>A9 · 已选中卡片回弹（<code>staffDonePop</code>）</h3>
 <table>
 <thead>
@@ -4813,7 +4898,7 @@ spGateAfter(prevBox, function () {
 </table>
 <p><strong>落定判定（收起 / 展开共用）</strong>：</p>
 <pre><code>可以落定  ⇔  ① 所有相关动画的 animation.finished 均已 resolve
-          且 ② 已过「名义时长」（minMs = 单轮 170ms / 两轮 340ms）
+          且 ② 已过「名义时长」（minMs = 单轮正向 170ms / 单轮反向 85ms / 换工位并行 170ms）
 </code></pre>
 <p>两者<strong>取长者</strong>，并加 <code>名义时长 + 300ms</code> 的<strong>超时兜底</strong>（动画被取消或元素被移除时 <code>finished</code> 可能永不 resolve）。</p>
 <p><strong>待落定意图（<code>spEditChange</code>）</strong>：同一时刻<strong>只认最后一次意图</strong>（后到覆盖先到）。先等 <code>morphUntil</code> 到期，再轮询 <code>checkUntil</code>（每 <code>busy + 20ms</code>），两者都空才执行并重绘。这样「先收起、随后又被旧意图展开」不会发生。</p>
@@ -4831,22 +4916,22 @@ spGateAfter(prevBox, function () {
 <tr>
 <td>选项卡（未选）</td>
 <td>勾选 → 落定 → 收起</td>
-<td style="text-align: center;">等（A6 播完）</td>
+<td style="text-align: center;">等（A6 播完 · 170ms）</td>
 </tr>
 <tr>
 <td>选项卡（已选「顾客指定」/「普通」）</td>
 <td>取消勾 → 落定 → 收起（工位例外 → A12 抖动，不落定）</td>
-<td style="text-align: center;">等（A7 播完）</td>
+<td style="text-align: center;">等（A7 播完 · 85ms）</td>
 </tr>
 <tr>
 <td>另一工位卡</td>
-<td>A8 两轮串行 → 落定 → 收起</td>
-<td style="text-align: center;">等（两轮各播完）</td>
+<td>A8 <strong>并行红色交接</strong> → 落定 → 收起</td>
+<td style="text-align: center;">等（max(170, 85) = 170ms）</td>
 </tr>
 <tr>
 <td>收缩态勾选控件</td>
 <td>A7 → 移除该员工</td>
-<td style="text-align: center;">等（A7 播完）</td>
+<td style="text-align: center;">等（A7 播完 · 85ms）</td>
 </tr>
 <tr>
 <td><code>scrim</code> / 编辑卡自身空白 / 选项行间隙 / 卡片区与 Sheet 正文空白</td>
@@ -4889,7 +4974,7 @@ function spGateAfter(roots, apply, minMs) {
     clearTimeout(tok.guard); clearTimeout(tok.floor);
     apply();
   };
-  var guard = Math.max(spCheckMs() + 300, (minMs || 0) + 300);
+  var guard = Math.max(spCheckMs() + 300, (minMs || 0) + 300);   /* 兜底上限取较长的正向单轮（170ms） */
   tok.guard = setTimeout(tok.fire, guard);                     /* 兜底 */
   anims.forEach(function (a) {
     var one = function () { if (--left === 0) { tok.animsDone = true; maybe(); } };
@@ -4909,7 +4994,8 @@ function spGateFlush() {
   /* 随后立即执行待落定的状态变更 */
 }
 </code></pre>
-<p><strong>验收要点</strong>：把 <code>--sp-check-draw</code> 临时改成 <code>600ms</code>，收起时刻<strong>必须</strong>随之推到 ≈670ms（实测 672ms）。若收起时刻不变，说明用了固定计时 —— 不合格。</p>
+<p><strong>验收要点（正向）</strong>：把 <code>--sp-check-draw</code> 临时改成 <code>600ms</code>，收起时刻<strong>必须</strong>随之推到 ≈670ms（实测 672ms）。若收起时刻不变，说明用了固定计时 —— 不合格。</p>
+<p><strong>验收要点（反向提速）</strong>：把 <code>--sp-uncheck-draw</code> 临时改成 <code>600ms</code>，<strong>取消</strong>路径（如取消「顾客指定」）的收起时刻<strong>必须</strong>随之推到 ≈630ms（实测 <strong>636ms</strong>）；默认值下该时刻为 <strong>91ms</strong>（名义 85ms）。若反向仍落 170ms，说明反向路径误用了正向名义时长 —— 不合格。</p>
 <h2>12.4 B 组 · 提成设置</h2>
 <h3>B1 · 规则卡左滑露出删除</h3>
 <table>
@@ -5452,8 +5538,8 @@ function spGateFlush() {
 </tr>
 <tr>
 <td>A6 / A7 / A8 勾选</td>
-<td>170ms / 340ms</td>
-<td>瞬时切态，仍落 <code>stroke-dashoffset</code> 终值</td>
+<td>正向 170ms / 反向 85ms / 换工位并行 170ms</td>
+<td>瞬时切态，仍落 <code>stroke-dashoffset</code> 终值，宿主卡片红色仍落终态</td>
 </tr>
 <tr>
 <td>A12 抖动</td>
@@ -5543,13 +5629,13 @@ function spGateFlush() {
 <td>N6</td>
 <td>已勾选「顾客指定」</td>
 <td>再点「顾客指定」</td>
-<td>勾先由右向左收回（<code>110ms</code>）→ 红底褪白（<code>60ms</code>）→ 共 <code>170ms</code> 后收起；退回「普通」态</td>
+<td>勾先由右向左收回（<strong><code>55ms</code></strong>）→ 红底褪白（<strong><code>30ms</code></strong>）→ 共 <strong><code>85ms</code></strong> 后收起；退回「普通」态；<strong>反向总时长恰为正向前一半</strong></td>
 </tr>
 <tr>
 <td>N7</td>
 <td>已勾选「大工」</td>
 <td>点「中工」</td>
-<td>旧勾 A7（170ms）<strong>播完</strong>→ 新勾 A6（170ms）<strong>播完</strong>→ 才落定；两轮<strong>不得并行</strong>；总 ≈<code>340ms</code></td>
+<td><strong>并行「红色交接」</strong>：新卡（中工）<strong>立刻</strong>变红（实测 62ms 已纯红）+ 画勾（170ms）；<strong>同时</strong>旧卡（大工）整卡红色快速淡出 + 收勾（85ms，实测 82ms 红底退净）；<strong>两路并行</strong>（不是串行）；落定 ≈<code>170ms</code>（实测 182ms；串行版本为 267ms）</td>
 </tr>
 <tr>
 <td>N8</td>
@@ -5559,9 +5645,33 @@ function spGateFlush() {
 </tr>
 <tr>
 <td>N9</td>
-<td>单轮勾选动效（170ms）</td>
+<td>单轮<strong>正向</strong>勾选动效（170ms）</td>
 <td>点「顾客指定」后记录收起时刻</td>
 <td>收起时刻 <strong>≥ 170ms</strong>（实测 173ms）；把 <code>--sp-check-draw</code> 改为 <code>600ms</code> 后收起时刻<strong>随之推到 ≈670ms</strong>（实测 672ms）</td>
+</tr>
+<tr>
+<td>N9b</td>
+<td>单轮<strong>反向</strong>取消动效（85ms）</td>
+<td>取消已勾选的「顾客指定」后记录收起时刻</td>
+<td>收起时刻 <strong>≥ 85ms</strong>（实测 <strong>91ms</strong>，<strong>不得</strong>等到 170ms）；<code>--sp-uncheck-*</code> 恰为 <code>--sp-check-*</code> 的一半（<code>55/30</code> vs <code>110/60</code>）；把 <code>--sp-uncheck-draw</code> 改为 <code>600ms</code> 后收起时刻<strong>随之推到 ≈630ms</strong>（实测 <strong>636ms</strong>）—— 证明反向门控读的是<strong>反向变量</strong>、与 CSS 同源</td>
+</tr>
+<tr>
+<td>N9c</td>
+<td>已选中员工（收缩态）</td>
+<td>点其右侧勾选控件取消选择</td>
+<td>勾<strong>反序收回</strong>（收勾 55ms → 褪红 30ms），<strong>85ms</strong> 后才真正移除该员工；改工位时被取消的旧工位同样 85ms</td>
+</tr>
+<tr>
+<td>N9d</td>
+<td>已选中员工（收缩态，卡片带粉底 + 粉描边 + 头像粉圈）</td>
+<td>点其右侧勾选控件取消选择，逐帧采样 <code>panel</code> 的 <code>background-color</code></td>
+<td>粉底<strong>淡出</strong>而非硬切：采样须出现中间色（实测 <code>#FFF5F5 → #FFF6F6 → #FFFCFC → #FFFEFE → #FFF</code>）；粉描边与头像粉圈同期回到基线（粉描边 → <code>rgb(232,232,232)</code>、粉圈 → 白）</td>
+</tr>
+<tr>
+<td>N9e</td>
+<td>展开态，已勾选「大工」+「顾客指定」</td>
+<td>点「顾客指定」取消</td>
+<td>该卡勾选框与<strong>卡片红边/红投影</strong>同节拍淡出（<code>is-undraw</code> 期间盒底为白 <code>rgb(255,255,255)</code>、边框褪到基线，<strong>不得</strong>恒为品牌红）；取消后「顾客指定」卡的红边回它自己的基线 <code>rgba(243,47,65,.18)</code>，<strong>不得</strong>变灰</td>
 </tr>
 <tr>
 <td>N10</td>
@@ -5670,8 +5780,11 @@ function spGateFlush() {
 <h2>12.10 实现自检清单 + 已知偏差</h2>
 <p><strong>自检清单（逐项打勾）</strong>：</p>
 <ul>
-<li>[ ] <code>:root</code> 定义了 <code>--sp-check-red: 60ms</code> / <code>--sp-check-draw: 110ms</code>，且 JS 门控<strong>读取</strong>这两个变量（不得各写常量）</li>
-<li>[ ] 画勾 / 收勾动画用 <code>linear</code>；<code>delay = 变红时长</code>（不是 <code>0</code>）</li>
+<li>[ ] <code>:root</code> 定义了 <code>--sp-check-red: 60ms</code> / <code>--sp-check-draw: 110ms</code> / <code>--sp-uncheck-draw: 55ms</code> / <code>--sp-uncheck-red: 30ms</code>，且 JS 门控<strong>读取</strong>这四个变量（不得各写常量）；<code>--sp-uncheck-*</code> 恒为 <code>--sp-check-*</code> 的 1/2</li>
+<li>[ ] 画勾 / 收勾动画用 <code>linear</code>；正向 <code>delay = 变红时长</code>（不是 <code>0</code>）、反向 <code>delay = 收勾时长</code></li>
+<li>[ ] <strong>正向</strong>名义时长 <code>spCheckMs()</code>（170ms）与<strong>反向</strong>名义时长 <code>spUncheckMs()</code>（85ms）分别喂给各自方向的 <code>spGateAfter</code>；换工位用<strong>单个</strong> <code>spGateAfter([prevBox, nextBox], …)</code> + <code>Math.max(spCheckMs(), spUncheckMs())</code>（170ms），<strong>不得</strong>串行嵌套（255ms）</li>
+<li>[ ] 反向时<strong>宿主卡片一起标 <code>is-undraw</code></strong>（<code>spCheckHost()</code>），且 CSS <strong>反超 <code>.is-on</code></strong>（<code>.staff-opt.is-on .staff-opt__box.is-undraw</code> / <code>.staff-opt.is-on.is-undraw</code> / <code>.staff-card.is-done.is-undraw …</code>）—— 否则红底只会在落定重绘那一帧硬切</li>
+<li>[ ] 员工卡粉底在 <code>.is-done</code> 下垫了同色 <code>background-color</code>（渐变不可插值，必须垫底才能淡出）</li>
 <li>[ ] 收起 / 展开由 <code>animation.finished</code> <strong>+</strong> 名义时长取长驱动，并有 <code>名义时长 + 300ms</code> 兜底</li>
 <li>[ ] 抢断时<strong>先 <code>finish()</code> 补画勾</strong>再落定（无半画）</li>
 <li>[ ] 待落定意图「只认最后一次」，不会被旧意图反向覆盖</li>
@@ -5716,6 +5829,7 @@ function spGateFlush() {
 </table>
 <blockquote>
 <p><strong>已修（原待确认项 1）</strong>：<code>staffDonePop</code> / <code>staffCheckIn</code> 曾挂在 <code>.is-done</code> / <code>.staff-card__tick</code> <strong>基础类</strong>上，导致<strong>每次重绘都重播</strong>（选完 A 再选 B 时 A 也再弹一次）。已改为一次性标记 <code>is-pop</code> / <code>is-in</code>：<code>spSelectStaff()</code> 置位 → 渲染读取 → 渲染后清空。回归项见 §12.9 <strong>N18 / N25</strong>。</p>
+<p><strong>设计如此（不是偏差）</strong>：<strong>A6 正向（170ms）与 A7 反向（85ms）时长不对称</strong> —— 反向 = 反序播放且<strong>速度加快一倍</strong>（<code>--sp-uncheck-* = --sp-check-* / 2</code>），这是<strong>有意为之</strong>（取消要「干脆利落」，确认要「看得清笔顺」）。不要为了「对称好看」把反向改回 170ms；<code>--sp-uncheck-*</code> 若被改成非 1/2 值即为 <strong>BUG</strong>，验收见 §12.9 <strong>N9b / N9c</strong>。</p>
 </blockquote>
 <h2>12.11 变更流程</h2>
 <ol>
