@@ -401,11 +401,17 @@
       'comm2-menu': openListThen('#comm2List [data-comm2-menu]'),
       'comm2-name': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="rename"]', 240)]),
       'comm2-delete': openListThen('#comm2List [data-comm2-menu]', [click('#comm2MenuMask [data-comm2-menu-act="delete"]', 240)]),
-      'comm2-unsaved': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-bar-base-toggle]', 240), click('#comm2EditBack', 200)],
+      'comm2-unsaved': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-base="list"]', 240), click('#comm2EditBack', 240)],
       'comm2-override-del': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-swipe-del]', 260)],
       'comm2-override-swipe': [openFlagshipEdit(), openOverrideSwipe()],
       'comm2-help': [go('comm2-list', 60), click('#comm2HelpBtn', 220)],
-      'comm2-unassigned': [go('comm2-list', 60), click('#comm2UnassignedTip', 220)],
+      /* 未分配名单：走真实路径——把 c2_flagship 的分配清空，使 Lisa 变成未分配，tip 才出现 */
+      'comm2-unassigned': [go('comm2-list', 120), click('#comm2List [data-comm2-assign="c2_flagship"]', 400), click('#comm2AssignClear', 300), click('#comm2AssignOk', 420), click('#comm2UnassignedTip', 400)],
+      /* 方案编辑页标题右侧 ⓘ：提成怎么设、钱怎么算（弹窗浮在编辑页之上） */
+      'comm2-rule-help': [openFlagshipEdit(), click('#comm2EditHelpBtn', 300)],
+      /* 规则设置 Sheet 行标签后的 ⓘ：计算基数说明 / 分配模式说明（弹窗浮在 Sheet 之上，Sheet 不关） */
+      'comm2-sheet-help-base': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 300), click('#comm2CatSheetBody [data-comm2-sheet-help="base"]', 320)],
+      'comm2-sheet-help-pick': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 300), click('#comm2CatSheetBody [data-comm2-sheet-help="pick"]', 320)],
 
       /* 关联页面 · 选择服务员工 */
       'staff-pick': [go('staff-pick', 80)],
@@ -414,6 +420,8 @@
       'staff-pick-edit': [spSetExtra(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 460)],
       'staff-pick-role': [spSetExtra(true), spSetMode('station'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 460)],
       'staff-pick-avg': [spSetExtra(true), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
+      /* 不分工位的展开态：点员工卡 → 「服务提成」+「顾客指定」两卡 */
+      'staff-pick-avg-expand': [spSetExtra(true), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300), click('#comm2StaffSheetRoot [data-staff-card-hit]', 460)],
       'staff-pick-direct': [spSetExtra(false), spSetMode('avg'), go('staff-pick', 80), click('#comm2SpBlock [data-open-comm2-sp-staff]', 300)],
       /* 已选：工位 + 顾客指定 同时勾选 */
       'staff-pick-sel': [
