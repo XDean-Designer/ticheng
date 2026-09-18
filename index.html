@@ -380,7 +380,7 @@
 <div class="screen hidden" id="screen-comm2-edit">
   <div class="page-title-bar">
     <button type="button" class="back" id="comm2EditBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <span class="title" id="comm2EditTitle">提成设置</span>
+    <span class="title title--with-help" id="comm2EditTitle"><span class="title__txt" id="comm2EditTitleText">提成设置</span><button type="button" class="emp-ach-help-btn" id="comm2EditHelpBtn" aria-label="提成怎么设置、钱怎么算"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.25v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="5.2" r="0.85" fill="currentColor"/></svg></button></span>
   </div>
   <div class="page-body" style="padding:0;">
     <div class="comm2-stack">
@@ -457,6 +457,35 @@
     </div>
     <div class="dialog__actions dialog__actions--single">
       <button type="button" class="btn-main" id="comm2PickHelpOk">知道了</button>
+    </div>
+  </div>
+</div>
+<div class="dialog-mask" id="comm2RuleHelpMask">
+  <div class="dialog dialog--emp-help" role="dialog" aria-labelledby="comm2RuleHelpTitle">
+    <div class="dialog__title" id="comm2RuleHelpTitle">提成怎么设、钱怎么算</div>
+    <div class="dialog__scroll emp-help-body">
+      <h4>一、怎么设置（5 步）</h4>
+      <div class="comm2-hint-list">
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">1</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">一个方案管一类人</p><p class="comm2-hint-item__d">比如「顾问」「技师」各建一个方案，谁用哪个，就把方案分给谁。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">2</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">方案里有 5 张卡，每张卡管一类业务</p><p class="comm2-hint-item__d">项目、产品、办卡、充卡、快捷开单。哪张要改就点哪张。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">3</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">想单独给某个项目定数，就加「规则项」</p><p class="comm2-hint-item__d">加进去的项目按这张新卡算，不再按大类算，而且它更优先。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">4</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">每张卡要定 4 件事</p><p class="comm2-hint-item__d">① 哪些付款方式算（现金 / 卡付 / 团购）② 按原价还是按实收算 ③ 分不分工位 ④ 给几个点（%）还是给几块钱。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">5</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">改完点「保存」</p><p class="comm2-hint-item__d">没保存就返回，改动不会生效。</p></div></div>
+      </div>
+      <h4>二、钱怎么算出来（8 条）</h4>
+      <div class="comm2-hint-list">
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">1</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">先看这单属于哪一类</p><p class="comm2-hint-item__d">项目、产品、办卡、充卡还是快捷开单，找对应的卡。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">2</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">再看付款方式算不算</p><p class="comm2-hint-item__d">卡上只勾了「现金」，那刷卡付的那部分钱就不给提成。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">3</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">算出「基数」</p><p class="comm2-hint-item__d">按原价算就是标价；按实收算就是实际收到的钱。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">4</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">基数 × 比例 = 提成</p><p class="comm2-hint-item__d">如果设的是固定金额，就直接给那个钱数。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">5</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">单独加的卡更优先</p><p class="comm2-hint-item__d">有单独加的规则项，就按它算，不再按大类卡算。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">6</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">一个人挂了好几个方案怎么办</p><p class="comm2-hint-item__d">同一笔业务，只按「算出来钱最多」的那个方案给，不叠加。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">7</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">不同业务各算各的，最后加起来</p><p class="comm2-hint-item__d">洗剪吹和买产品，分开算完再相加。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">8</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">「顾客指定」是另外加的</p><p class="comm2-hint-item__d">在提成上再加一笔；只勾了顾客指定、没选工位，就只发这一笔。</p></div></div>
+      </div>
+    </div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="comm2RuleHelpOk">知道了</button>
     </div>
   </div>
 </div>

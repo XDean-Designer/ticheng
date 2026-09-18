@@ -1355,7 +1355,8 @@
   function renderEdit() {
     var sch = editing();
     if (!sch) return;
-    var title = $('comm2EditTitle');
+    /* 标题右侧有 ⓘ（信息增强），只覆盖文字节点，避免连带清掉按钮 */
+    var title = $('comm2EditTitleText') || $('comm2EditTitle');
     if (title) title.textContent = sch.name;
     renderEditCards(sch);
   }
@@ -1862,9 +1863,14 @@
       '</svg>';
   }
 
-  function sheetRowHtml(lbl, ctrlHtml, cls, attrs) {
+  function sheetRowHtml(lbl, ctrlHtml, cls, attrs, helpKey) {
+    /* helpKey：行标签后附 ⓘ（复用 .emp-ach-info-btn），点击说明见 §6.9；用 data-* 以便 Sheet 重渲染后仍走委派 */
+    var lblHtml = esc(lbl) + (helpKey
+      ? '<button type="button" class="emp-ach-info-btn comm2-sheet-row__help" data-comm2-sheet-help="' + esc(helpKey) +
+        '" aria-label="' + esc(lbl) + '说明">?</button>'
+      : '');
     return '<div class="comm2-sheet-row' + (cls ? ' ' + cls : '') + '"' + (attrs || '') + '>' +
-      '<span class="comm2-sheet-row__lbl">' + esc(lbl) + '</span>' +
+      '<span class="comm2-sheet-row__lbl">' + lblHtml + '</span>' +
       '<div class="comm2-sheet-row__ctrl">' + ctrlHtml + '</div></div>';
   }
 
@@ -1922,8 +1928,8 @@
     var html = '';
     /* 仅全量 Sheet；params 变体已废弃，一律按 full 渲染 */
     html += sheetRowHtml('适用范围', '<div class="comm2-rule-card__scope comm2-sheet-scope">' + sheetScopeChipsHtml(block) + '</div>') +
-      sheetRowHtml('计算基数', sheetSegHtml('base', block));
-    html += sheetRowHtml('分配模式', sheetSegHtml('pick', block));
+      sheetRowHtml('计算基数', sheetSegHtml('base', block), null, null, 'base');
+    html += sheetRowHtml('分配模式', sheetSegHtml('pick', block), null, null, 'pick');
     if (opts.showCardRole) {
       html += sheetRowHtml('会员卡', sheetCardRoleHtml(block));
     }
@@ -2840,6 +2846,21 @@
     $('comm2HelpMask') && $('comm2HelpMask').addEventListener('click', function (e) {
       if (e.target === $('comm2HelpMask')) closeDialog('comm2HelpMask');
     });
+    /* 方案编辑页标题右侧 ⓘ：提成怎么设、钱怎么算（PRD §6.9） */
+    $('comm2EditHelpBtn') && $('comm2EditHelpBtn').addEventListener('click', function () { openDialog('comm2RuleHelpMask'); });
+    $('comm2RuleHelpOk') && $('comm2RuleHelpOk').addEventListener('click', function () { closeDialog('comm2RuleHelpMask'); });
+    $('comm2RuleHelpMask') && $('comm2RuleHelpMask').addEventListener('click', function (e) {
+      if (e.target === $('comm2RuleHelpMask')) closeDialog('comm2RuleHelpMask');
+    });
+    /* 规则 Sheet 行标签后的 ⓘ：计算基数说明 / 分配模式说明（PRD §6.9，由 #comm2CatSheetBody 委派触发） */
+    $('comm2BaseHelpOk') && $('comm2BaseHelpOk').addEventListener('click', function () { closeDialog('comm2BaseHelpMask'); });
+    $('comm2BaseHelpMask') && $('comm2BaseHelpMask').addEventListener('click', function (e) {
+      if (e.target === $('comm2BaseHelpMask')) closeDialog('comm2BaseHelpMask');
+    });
+    $('comm2PickHelpOk') && $('comm2PickHelpOk').addEventListener('click', function () { closeDialog('comm2PickHelpMask'); });
+    $('comm2PickHelpMask') && $('comm2PickHelpMask').addEventListener('click', function (e) {
+      if (e.target === $('comm2PickHelpMask')) closeDialog('comm2PickHelpMask');
+    });
     $('comm2BtnAdd') && $('comm2BtnAdd').addEventListener('click', function () {
       openComm2NameDialog('create', null);
     });
@@ -3074,6 +3095,14 @@
       var modeToggle = e.target.closest('[data-comm2-cap-mode]');
       if (modeToggle) {
         toggleCapValueMode(modeToggle.getAttribute('data-comm2-cap-mode'));
+        return;
+      }
+      /* 行标签后的 ⓘ：Sheet 重渲染后仍可点击（说明弹窗浮在 Sheet 之上，不关 Sheet） */
+      var helpBtn = e.target.closest('[data-comm2-sheet-help]');
+      if (helpBtn) {
+        var helpKey = helpBtn.getAttribute('data-comm2-sheet-help');
+        if (helpKey === 'base') openDialog('comm2BaseHelpMask');
+        else if (helpKey === 'pick') openDialog('comm2PickHelpMask');
         return;
       }
     });

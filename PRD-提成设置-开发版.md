@@ -18,9 +18,9 @@
 
 ---
 
-## 版本摘要（源 PRD 21 条修订的终态压缩）
+## 版本摘要（源 PRD 23 条修订的终态压缩）
 
-> 源 PRD 的 21 条修订是**迭代流水**，开发只需**终态口径**。下表把每条压成一句话终态 + 影响面；要看完整流水请回源 PRD 文件头。
+> 源 PRD 的 23 条修订是**迭代流水**，开发只需**终态口径**。下表把每条压成一句话终态 + 影响面；要看完整流水请回源 PRD 文件头。
 
 | 日期 / 次序 | 终态口径（一句话） | 主要影响章节 |
 |---|---|---|
@@ -46,6 +46,8 @@
 | 09-17 十九 | **删除收缩态员工卡的红色勾选控件**（勾只留在展开态选项卡）；**收起补 220ms Morph 动画**（四条路径统一，`--sp-collapse` JS/CSS 同源）；选人选项卡「提成」→「**服务提成**」（仅此一处） | §12.3 A2 · A10 废止 · §9.1 |
 | 09-17 二十 | **新增 §12.3.0「实现总览」（可照抄、前端还原入口）**；几何过期值更正（`334 / 106 / 114`） | §12.3.0 |
 | 09-17 二十一 | **清理死属性 / 死字段**：`--staff-origin` / `data-origin` / `edit.opened` / `.is-opened` / `data-outside-close` 全部删除 | §12.3.0 · §12.10 |
+| 09-18 二十二 | **方案编辑页标题右侧新增信息增强 ⓘ**（复用列表页同款组件），点开白话版「**提成怎么设、钱怎么算**」帮助弹窗（两节 **5 + 8 条**序号卡片：结论加粗 13px + 灰字 12px `#929292` 补充）；方案名过长时只截断文字、ⓘ 恒可见（`#comm2EditTitleText`）；与列表页「多方案规则」**分工不合并** | §6.2 · §6.9 · §9.1 · §10.2 |
+| 09-18 二十三 | **两处孤立帮助弹窗接入触发点**（此前 HTML 有弹窗、JS 无入口）：规则 Sheet「计算基数」行标签右侧 ⓘ → `#comm2BaseHelpMask`；「分配模式」行右侧 ⓘ → `#comm2PickHelpMask`；`sheetRowHtml(..., helpKey)` 注入 `[data-comm2-sheet-help]`，事件走 `#comm2CatSheetBody` **委派**（Sheet 重渲染后仍有效）；弹窗 `z 50` > Sheet `30`、打开时 Sheet 不关；「分配模式说明」补「只勾顾客指定也可单独分配」 | §6.9 |
 
 ---
 
@@ -565,7 +567,7 @@ flowchart LR
 
 ## 6.2 方案编辑
 
-- 标题 = 方案名。
+- 标题 = 方案名；**标题右侧带信息增强 ⓘ**（`comm2EditHelpBtn`，20×20 热区 / 16×16 线性 ⓘ、`#B2B2B2`，与列表页帮助同一组件），点击弹「提成怎么设、钱怎么算」（见 §6.9）。方案名过长时**只截断文字**（`.title__txt` 省略号），**ⓘ 恒完整可见**。
 - 卡片区：5 张默认规则卡（项目 / 产品 / 办卡 / 充卡 / 快捷开单）+ 用户覆盖规则项卡 + 底部「+ 添加规则项」。
 - 交互分区见下；覆盖删除见 §5.5。
 - 底部「保存」：校验全部默认 / 覆盖范围 ≥1 类 → toast「提成方案已保存」→ 回列表。
@@ -852,8 +854,42 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 | 弹窗 | 内容 |
 |------|------|
 | 多方案规则（列表页帮助） | ①每人可分配多个提成方案（已在其他方案以图标+方案名提示，仍可勾选）；②计算项重叠按行取金额更高者（并列按列表顺序）；③按订单行内适用范围金额分摊计提（非整单命中）；④方案内覆盖优先于默认；同方案多覆盖重叠取高（并列按添加顺序）；⑤不同业务行分别取高后可相加 |
-| 计算基数说明（规则 Sheet「原价模式」旁） | **按项分摊**（非整单过滤）：原价模式基数 = 原价 × (范围内实付 / 该行全部实付)；实收模式基数 = 范围内实付之和；固定金额时提成 = 固定额 × (范围内实付 / 全部实付)。**卡付**计入面值（充值+赠送）与计次（购买+赠送）；计次按卡内成本/均价折算。经理签单不走三类适用范围（见 §8 规则 32） |
-| 分配模式说明 | 不分工位：开单不分工位，统一按提成计提、顾客指定可单独设置（**叠加**在原提成之上）；按工位分配：固定大 / 中 / 小工分别设置提成；可点工位名改名（全局同步，不可增减）。**开单是否采集「选择工位」/ 勾选「顾客指定」**不单看当前规则卡，而按 **§4.5.1 项 × 员工 维度**（按每项、每员工各自命中块 OR 判定） |
+| 计算基数说明（规则 Sheet **「计算基数」行标签右侧 ⓘ**，`data-comm2-sheet-help="base"` → `#comm2BaseHelpMask`） | **按项分摊**（非整单过滤）：原价模式基数 = 原价 × (范围内实付 / 该行全部实付)；实收模式基数 = 范围内实付之和；固定金额时提成 = 固定额 × (范围内实付 / 全部实付)。**卡付**计入面值（充值+赠送）与计次（购买+赠送）；计次按卡内成本/均价折算。经理签单不走三类适用范围（见 §8 规则 32） |
+| 分配模式说明（规则 Sheet **「分配模式」行标签右侧 ⓘ**，`data-comm2-sheet-help="pick"` → `#comm2PickHelpMask`） | 不分工位：开单不分工位，统一按提成计提、顾客指定可单独设置（**叠加**在原提成之上）；按工位分配：固定大 / 中 / 小工分别设置提成；可点工位名改名（全局同步，不可增减）。**开单是否采集「选择工位」/ 勾选「顾客指定」**不单看当前规则卡，而按 **§4.5.1 项 × 员工 维度**（按每项、每员工各自命中块 OR 判定）。补「也可以只勾「顾客指定」单独分配（此种情况只发顾客指定提成）」 |
+| **提成怎么设、钱怎么算** | **方案编辑页**标题右侧 ⓘ（`comm2EditHelpBtn`）打开（`comm2RuleHelpMask`）。**白话条目版**，面向文化水平有限的小店主 / 店员；与列表页「多方案规则」**分工**：列表页讲多方案之间的取高规则，本弹窗讲**「这张卡怎么填 + 钱怎么算」**。分两节：**「一、怎么设置（5 步）」/「二、钱怎么算出来（8 条）」**，条目渲染为**序号圆点卡片**（序号 18×18 圆形 + 加粗 13px 结论 + 12px `#929292` 补充），序号与分节标题**左对齐**，正文区可滚动。文案原文见下（可整段照抄） |
+
+**§6.9 附 · 「提成怎么设、钱怎么算」文案原文（原型 `#comm2RuleHelpMask`，须逐字一致）**
+
+弹窗标题：**提成怎么设、钱怎么算**；底部单按钮「知道了」。
+
+| 节 | 序 | 加粗结论（`comm2-hint-item__t`，13px/600） | 灰字补充（`comm2-hint-item__d`，12px/`#929292`） |
+|---|:--:|---|---|
+| 一、怎么设置（5 步） | 1 | 一个方案管一类人 | 比如「顾问」「技师」各建一个方案，谁用哪个，就把方案分给谁。 |
+| | 2 | 方案里有 5 张卡，每张卡管一类业务 | 项目、产品、办卡、充卡、快捷开单。哪张要改就点哪张。 |
+| | 3 | 想单独给某个项目定数，就加「规则项」 | 加进去的项目按这张新卡算，不再按大类算，而且它更优先。 |
+| | 4 | 每张卡要定 4 件事 | ① 哪些付款方式算（现金 / 卡付 / 团购）② 按原价还是按实收算 ③ 分不分工位 ④ 给几个点（%）还是给几块钱。 |
+| | 5 | 改完点「保存」 | 没保存就返回，改动不会生效。 |
+| 二、钱怎么算出来（8 条） | 1 | 先看这单属于哪一类 | 项目、产品、办卡、充卡还是快捷开单，找对应的卡。 |
+| | 2 | 再看付款方式算不算 | 卡上只勾了「现金」，那刷卡付的那部分钱就不给提成。 |
+| | 3 | 算出「基数」 | 按原价算就是标价；按实收算就是实际收到的钱。 |
+| | 4 | 基数 × 比例 = 提成 | 如果设的是固定金额，就直接给那个钱数。 |
+| | 5 | 单独加的卡更优先 | 有单独加的规则项，就按它算，不再按大类卡算。 |
+| | 6 | 一个人挂了好几个方案怎么办 | 同一笔业务，只按「算出来钱最多」的那个方案给，不叠加。 |
+| | 7 | 不同业务各算各的，最后加起来 | 洗剪吹和买产品，分开算完再相加。 |
+| | 8 | 「顾客指定」是另外加的 | 在提成上再加一笔；只勾了顾客指定、没选工位，就只发这一笔。 |
+
+**样式契约（`comm2.css`）**：
+
+- 容器 `.comm2-hint-list`（`flex` 竖排、`gap: 9px`）；条目 `.comm2-hint-item`（`flex`、`gap: 8px`、`align-items: flex-start`）＋ `.comm2-hint-item__no`＋ `.comm2-hint-item__main`
+- `.comm2-hint-item__no`：`18×18`、`border-radius: 50%`、`background: #F0F0F0`、`color: #666`、`11px/600`、`line-height: 18px`、居中、`margin-top: 1px`（与首行文字视觉居中）
+- 结论 `.comm2-hint-item__t`：`margin: 0`、`13px/600`、`color: var(--text)`、`line-height: 1.45`
+- 补充 `.comm2-hint-item__d`：`margin: 2px 0 0`、`12px`、`color: var(--text-sec)`（`#929292`）、`line-height: 1.6`
+- 两条 `__t` / `__d` 规则须写作 **`.emp-help-body .comm2-hint-item__*`**（特异性 `0,2,0`）—— 否则被 `.emp-help-body p`（`0,1,1`）覆盖
+- 复用 `dialog dialog--emp-help` + `dialog__scroll emp-help-body`（`max-width: 326px` / `max-height: min(520px, 75vh)` / `padding: 20px 20px 16px`）
+- 标题栏：`.page-title-bar .title.title--with-help > .title__txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }` —— 方案名可省略，ⓘ 不被裁切
+- 方案名写入 `#comm2EditTitleText`（**不是** `#comm2EditTitle`；后者含 ⓘ 按钮，写 `textContent` 会连带清掉）
+
+**关闭**：`知道了` / 点遮罩空白（`e.target === mask`）。**不改动**列表页「多方案规则」弹窗（`comm2HelpMask`）。
 
 ## 6.10 关联页面变更（薪资 / 流水 · 对齐提成设置）
 
@@ -1167,7 +1203,7 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 
 **规则卡**：原价、实收、**固定**、提成、**顾客指定**（规则卡上的取值段标签；Sheet 参数卡内标题仍为「指定」）、大工、中工、小工、**基数**、**适用范围**、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。
 
-**Dialog/Sheet**：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、**选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工**、**比例 / 金额（两段式胶囊）**；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 **大工 / 中工 / 小工 / 顾客指定**，不分工位+开顾客指定为 **服务提成 / 顾客指定**。
+**Dialog/Sheet**：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、**提成怎么设、钱怎么算**（方案编辑页帮助，两节 5 + 8 条白话条目，原文见 §6.9）、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、**选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工**、**比例 / 金额（两段式胶囊）**；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 **大工 / 中工 / 小工 / 顾客指定**，不分工位+开顾客指定为 **服务提成 / 顾客指定**。
 
 **选人摘要 / 提示（§6.7.1）**：**员工卡第三行**摘要 `大工` / `大工 · 顾客指定` / `顾客指定` / `提成` / `提成 · 顾客指定`（`顾客指定` 为红字 `.staff-card__pick-x`）；**入口下方「已选员工」摘要行**另记缺工位情形为 `无工位 · 顾客指定`（纯文本）。提示行四态文案见 §6.7.1；分配模式说明 Dialog 含「只勾「顾客指定」也可单独分配（只发顾客指定提成）」。**界面不得再出现「普通」作为不分工位侧标签**（已改「提成」），不得再出现「未选」作为摘要文案，卡片第三行也不得再出现灰字「无工位」（「未选」/「无工位」只允许出现在入口摘要行）。
 
@@ -1301,6 +1337,10 @@ Sheet **仅全量**变体（同一 `comm2CatSheetMask`；**已删除**参数精�
 56i4. **Given** 工位提成按比例、顾客指定按固定金额（混用），**When** 勾选顾客指定的员工行计提，**Then** 金额 = 基数 × 工位比例 + 顾客指定固定额 × 分摊系数。
 56j. **Given** 旧数据（正交 3×2 = 6 值，存在 3 组工位点客值且互不相同），**When** 加载方案，**Then** 点客值提升为 `CatRule` 级 `extraValue` 并取 **`stationIds[0]` 对应工位**的点客值；`stations[*]` 仅保留提成侧；旧 `guestSplit` / `designated*` 键删除、`_ex1` 置为已归一化、`extraSplit` 按「点客 ≠ 工位提成」判定为 `true`。
 56k. **Given** 按工位 + 开顾客指定的方案，**When** 分别对「未勾选顾客指定」「勾选顾客指定」的员工开单并把订单行落在大工 / 中工 / 小工，**Then** 未勾选者三次金额分别取该工位提成值（互不相同）；勾选者三次金额 = 各自工位提成 **+ 同一全局顾客指定值**。
+56l. **Given** 方案编辑页，**When** 查看标题栏，**Then** 标题（方案名）右侧有一个 `20×20` 热区 / `16×16` 线性 ⓘ（`comm2EditHelpBtn`、`#B2B2B2`，与列表页帮助同一组件、与方案名间距 `4px`）；**And When** 把方案名改为超过可视宽度的长名，**Then** **只截断方案名本身**（`#comm2EditTitleText` 省略号），**ⓘ 恒完整可见、不溢出标题栏**；**And** 方案名由 `renderEdit()` 写入 `#comm2EditTitleText`，**不得**直接写 `#comm2EditTitle`（否则会连带清掉 ⓘ）。
+56l2. **Given** 方案编辑页，**When** 点标题右侧 ⓘ，**Then** 弹出「**提成怎么设、钱怎么算**」（`comm2RuleHelpMask`，`dialog--emp-help`，`max-width 326px` / `max-height min(520px,75vh)`、正文可滚动、底部单按钮「知道了」）：两节 **「一、怎么设置（5 步）」** 与 **「二、钱怎么算出来（8 条）」**，共 **13 条**；每条为**序号卡片** —— 序号圆点 `18×18`（`border-radius:50%`、`#F0F0F0` 底、`11px/600`）与分节标题**左对齐**、与文字间距 `8px`，右侧为**加粗 13px 白话结论** + **12px `#929292` 灰字补充**（文案逐字见 §6.9「文案原文」表）；**统一用白话**，不得出现「取高」「分摊」「覆盖优先于默认」等术语（这些留在列表页「多方案规则」弹窗，两处**分工不合并**）。**And When** 点「知道了」或点遮罩空白，**Then** 关闭；**And Given** 列表页，**Then** 其 ⓘ 仍打开原「多方案规则」弹窗（`comm2HelpMask`），**不受影响**。
+
+56m. **Given** 规则设置 Sheet（`#comm2CatSheetBody`），**When** 查看行标签，**Then** **仅「计算基数」「分配模式」两行**标签文字后各有一个 ⓘ（`emp-ach-info-btn comm2-sheet-row__help`，`14×14` 圆 `#929292`、字号 `9px`、`aria-label` 分别为「计算基数说明」「分配模式说明」、`data-comm2-sheet-help` 为 `base` / `pick`），其余行（适用范围 / 提成参数表头等）**无 ⓘ**；**And** 行标签列宽恒为 `72px`、内容宽 `52 + 4 + 14 = 70px`（**不换行、不溢出、控件区左缘不位移**）。**And When** 点「计算基数」ⓘ，**Then** 打开 `#comm2BaseHelpMask`（「计算基数说明」，两节「原价模式 / 实收模式」）；**And** 点「分配模式」ⓘ，**Then** 打开 `#comm2PickHelpMask`（「分配模式说明」，两节「不分工位 / 按工位分配」，含「也可以只勾「顾客指定」单独分配（此种情况只发顾客指定提成）」）。**And** 两弹窗 **`z-index 50` > Sheet `30`**，打开时 **Sheet 保持打开**（可边看说明边配置）；**And When** 点「知道了」或点遮罩空白，**Then** 关弹窗**且不关 Sheet**。**And Given** Sheet 重渲染（改任一参数）后，**Then** 两处 ⓘ **仍可点**（事件绑在 `#comm2CatSheetBody` 上**委派** `[data-comm2-sheet-help]`，不得绑具体按钮）。
 
 ### 10.2.1 关联页面 · 选择服务员工（§6.7.1）P0
 
@@ -3733,14 +3773,15 @@ function spGateFlush() {
 | **Sheet 参数区**（§6.3 / §6.4） | 875–992 | `capSegHtml` · `capRowHtml` · `capCardHtml` · `capFieldHtml` · `singleCapHtml` · **`extraCapHtml`（卡内标题「指定」）** · `extraAddCardHtml`（虚线卡「+ 顾客指定提成」）· `nonCapHtml` · `sheetColNameHtml`（工位名 13px + 改名图标 16px）· **`commissionParamsHtml`（3 工位横排 + 顾客指定行 / 不分工位两行居左）** |
 | 金额输入框宽度 | 993–1025 | `flashEl` · `measureTextPx` · `syncCapFieldWidth` · `syncCapFieldWidths`（修「胶囊被顶出卡外」的 BUG，验收 56h2） |
 | **规则卡**（§6.2.1–§6.2.4） | 1026–1243 | `barScopeCapsulesHtml` · `barBaseShort` · `barBaseCtrlHtml` · `barPayCtrlHtml` · `barFieldHtml` · `sheetScopeChipsHtml` · `sheetSegHtml` · **`barParamSegHtml` / `barStationParamsHtml` / `barParamsHtml`（左参数区）** · `buildOverrideTitle` · `renderRuleCard` |
-| 编辑页 / Sheet 开关 | 1244–1421 | `renderEditCards` · `toggleBlockScope` · `getSheetBlock` · `setSheetBase` / `setSheetPick` / `setCardBase` / `toggleCardScope` / `setSheetCardRole` · `renderEdit` · `openList` · `openEdit` · `markDirty` · `leaveComm2Edit` / `requestComm2Exit`（未保存 Dialog） |
-| **计提引擎**（§8 · §8.1） | 1422–1665 | `COMM2_TRIAL_LINES`（10 条试算行）· `schemesForStaff` · `resolveLineBlock`（规则 5 覆盖优先）· `linePayParts` / `payPartsInScope`（规则 2 分摊）· `lineBaseAmount` · **`lineBasePicked`（规则 7 的 `basePicked=false` 分支）** · **`lineRateMeta`** · `lineExtraAmount` · `lineExtra` / `lineExtraLabel` · **`schemeLineAmount`（含费率标签：提成侧折 0 时只出顾客指定段）** · `calcStaffTrial` |
-| 方案菜单 / 命名 / 复制 / 删除 | 1666–1740 | `openComm2Menu` · `applyComm2Name` · `copyComm2Scheme` · `requestComm2Delete` · `confirmComm2Delete` |
-| **分配员工 Sheet**（§6.6） | 1741–1857 | `comm2StaffPool` · `comm2AvatarHtml` · `comm2CheckSvg` · `pickCheckHtml` · `renderComm2Assign` · `openComm2Assign` · `applyComm2Assign` · `syncComm2AssignCount` |
-| 规则设置 Sheet 渲染 | 1858–2200 | `sheetRowHtml` · `sheetCardRoleHtml` · `renderRuleSheetBody` · `renderCardSheetBody` · `refreshCardSheetBody` · `openCardSheet` · **`setSheetExtraSplit`（开/关顾客指定）** · `openPickSettingsSheet` · `readSheetNum` · `flushSheetCapDraft` · **`toggleCapValueMode`（两段式胶囊，整块热区）** · `applySheetPairs` · `savePickSheet` · `saveCatSheet` |
-| **添加规则项**（§6.5） | 2202–2480 | `comm2Catalog` · `comm2Groups` · `resolveComm2ItemMeta` · `coveredTargetKeys` · `initPickBundle` · `renderPickGroups` · `renderPickList` · `renderPickScreen` · `togglePickItem` · `togglePickGroup`（整类与单项互斥，规则 11）· `openRulePick` / `closeRulePick` |
-| **覆盖删除 / 左滑**（§5.5 · §12.4 B1） | 2484–2760 | `RULE_UNDO_MS` · `showDeleteUndoToast` · `softDeleteOverride` · `requestOverrideDelete` · `undoOverrideDelete` · `setRuleSwipeX` · `snapRuleSwipe` · `flyOutAndDelete` · **`wireRuleCardGestures`（左滑手势）** · `confirmOverrideDelete` |
-| 工位改名 | 2553–2585 · 2763–2830 | `applyStationsGlobal` · `commitStationRename` · `scrubStationFromBlocks` · `renderStationSheet` · `openStationSheet` |
+| 编辑页 / Sheet 开关 | 1244–1422 | `renderEditCards` · `toggleBlockScope` · `getSheetBlock` · `setSheetBase` / `setSheetPick` / `setCardBase` / `toggleCardScope` / `setSheetCardRole` · `renderEdit` · `openList` · `openEdit` · `markDirty` · `leaveComm2Edit` / `requestComm2Exit`（未保存 Dialog） |
+| **计提引擎**（§8 · §8.1） | 1423–1666 | `COMM2_TRIAL_LINES`（10 条试算行）· `schemesForStaff` · `resolveLineBlock`（规则 5 覆盖优先）· `linePayParts` / `payPartsInScope`（规则 2 分摊）· `lineBaseAmount` · **`lineBasePicked`（规则 7 的 `basePicked=false` 分支）** · **`lineRateMeta`** · `lineExtraAmount` · `lineExtra` / `lineExtraLabel` · **`schemeLineAmount`（含费率标签：提成侧折 0 时只出顾客指定段）** · `calcStaffTrial` |
+| 方案菜单 / 命名 / 复制 / 删除 | 1667–1741 | `openComm2Menu` · `applyComm2Name` · `copyComm2Scheme` · `requestComm2Delete` · `confirmComm2Delete` |
+| **分配员工 Sheet**（§6.6） | 1742–1858 | `comm2StaffPool` · `comm2AvatarHtml` · `comm2CheckSvg` · `pickCheckHtml` · `renderComm2Assign` · `openComm2Assign` · `applyComm2Assign` · `syncComm2AssignCount` |
+| 规则设置 Sheet 渲染 | 1859–2201 | `sheetRowHtml`（第 5 参 `helpKey` → 行标签后注入 `[data-comm2-sheet-help]` ⓘ）· `sheetCardRoleHtml` · `renderRuleSheetBody` · `renderCardSheetBody` · `refreshCardSheetBody` · `openCardSheet` · **`setSheetExtraSplit`（开/关顾客指定）** · `openPickSettingsSheet` · `readSheetNum` · `flushSheetCapDraft` · **`toggleCapValueMode`（两段式胶囊，整块热区）** · `applySheetPairs` · `savePickSheet` · `saveCatSheet` |
+| **添加规则项**（§6.5） | 2203–2481 | `comm2Catalog` · `comm2Groups` · `resolveComm2ItemMeta` · `coveredTargetKeys` · `initPickBundle` · `renderPickGroups` · `renderPickList` · `renderPickScreen` · `togglePickItem` · `togglePickGroup`（整类与单项互斥，规则 11）· `openRulePick` / `closeRulePick` |
+| **覆盖删除 / 左滑**（§5.5 · §12.4 B1） | 2485–2761 | `RULE_UNDO_MS` · `showDeleteUndoToast` · `softDeleteOverride` · `requestOverrideDelete` · `undoOverrideDelete` · `setRuleSwipeX` · `snapRuleSwipe` · `flyOutAndDelete` · **`wireRuleCardGestures`（左滑手势）** · `confirmOverrideDelete` |
+| 工位改名 | 2554–2586 · 2764–2831 | `applyStationsGlobal` · `commitStationRename` · `scrubStationFromBlocks` · `renderStationSheet` · `openStationSheet` |
+| **方案编辑页帮助**（§6.2 · §6.9） | `renderEdit` 1355 · `wire` 2845–2863 · **Sheet 行标签 ⓘ** 1866 / 3101 | `renderEdit`（标题写入 **`#comm2EditTitleText`**，别写 `#comm2EditTitle`）· `wire` 里 `#comm2EditHelpBtn` / `#comm2RuleHelpOk` / `#comm2RuleHelpMask` 三个绑定（打开 / 关闭 / 遮罩关闭）；**规则 Sheet 两处说明弹窗**：`sheetRowHtml(..., helpKey)` 注入 ⓘ（`comm2.js:1866`）→ `#comm2CatSheetBody` **委派** `[data-comm2-sheet-help]`（`comm2.js:3101`，Sheet 重渲染后仍有效）→ `openDialog('comm2BaseHelpMask' / 'comm2PickHelpMask')`；关闭绑定 `#comm2BaseHelpOk` `2856` / `#comm2PickHelpOk` `2860` + 遮罩空白 |
 
 ## A.4 CSS 索引（`comm2.css`）
 
@@ -3755,27 +3796,28 @@ function spGateFlush() {
 | 415–530 | 覆盖规则卡 · 左滑删除 |
 | 527–730 | 编辑页 · 规则卡卡头 / 分隔线 / 标题截断 / 右栏 120px 控件槽 / 工位改名行 |
 | 729–877 | 左滑垃圾桶 · 撤销 toast |
-| 877–1095 | **分配员工 Sheet** · Sheet 参数区 · **`.comm2-sheet-avg-rows`（不分工位两行居左，§6.3 十六次）** |
-| **1158–1509** | **选择服务员工 Sheet（§12.3 全套动效）** —— 见下表细分 |
+| 877–1095 | **分配员工 Sheet** · Sheet 参数区 · **`.comm2-sheet-avg-rows`（不分工位两行居左，§6.3 十六次）** · **`.comm2-sheet-row__lbl`（`display:inline-flex` + `gap:4px`）/ `.comm2-sheet-row__help`（行标签右侧 ⓘ，967–972，§6.9）** |
+| **1156–1170** | **方案编辑页标题 ⓘ + 帮助弹窗条目卡片**（`.title__txt` 省略号 · `.comm2-hint-list` / `.comm2-hint-item` / `__no` / `__t` / `__d`，§6.2 / §6.9） |
+| **1175–1525** | **选择服务员工 Sheet（§12.3 全套动效）** —— 见下表细分 |
 
 选人段细分：
 
 | 行号 | 内容 | 对应动效 |
 |---|---|---|
-| 1159–1200 | 固定 Sheet 高度 · 预渲染占位卡高 | 防「选人 Morph / 收起时整页跳动」 |
-| 1186–1201 | `.staff-card-scrim` · `.staff-grid` · `.staff-grid.is-morphing` | A1 / A2 网格 |
-| 1202–1232 | `.staff-card` · `.staff-card__panel` · `:active` 按下形变 | A9 按压 |
-| 1233–1245 | `.is-done` 粉底 / 粉描边 · **`.is-done.is-pop` 回弹（一次性标记）** | A9 `staffDonePop` |
-| 1246–1262 | 展开卡两层面板（`[data-face="opts"]` / `--base`） | A2 交叉淡入淡出 |
-| 1263–1272 | `.staff-card__opts` 显隐 · `.is-row-muted` 同行卡淡出 | A3 / A5 |
-| **1273–1308** | **A2 收起 Morph**（`.is-collapsing` · `--sp-collapse` · Apple 标准） | A2 |
-| 1309–1340 | `.staff-opts` · `.staff-opt`（选项卡）· `.staff-opt--extra` 基线红边 | A4 |
-| **1341–1400** | **勾选控件动效**：`.is-draw` 变红+画勾 · `.is-undraw` 收勾+褪红 · **`.staff-opt.is-on .staff-opt__box.is-undraw` 反超**（§12.3 A7 必读） | A6 / A7 |
-| 1401–1405 | 员工卡粉底（`background-color` + 渐变两层，解「渐变不可插值」） | A7 宿主卡通兑 |
-| 1406–1414 | `.is-splitting` 分裂入场（4 张卡 `0/35/70/105ms`） | A4 `staffRoleSplit` |
-| 1415–1442 | 头像 / 姓名 / 摘要 · `.staff-card__pick-x`（红字「顾客指定」） | —— |
-| 1443–1446 | **注释：`.staff-card__tick` 已于十九次整体删除**（收缩态卡无勾选控件） | A10 废止 |
-| 1447–1509 | 入口摘要行（`.staff-pick-*`）· 模式按钮（按工位 / 不分工位）· 顾客指定分段 | —— |
+| 1176–1217 | 固定 Sheet 高度 · 预渲染占位卡高 | 防「选人 Morph / 收起时整页跳动」 |
+| 1203–1218 | `.staff-card-scrim` · `.staff-grid` · `.staff-grid.is-morphing` | A1 / A2 网格 |
+| 1219–1249 | `.staff-card` · `.staff-card__panel` · `:active` 按下形变 | A9 按压 |
+| 1250–1262 | `.is-done` 粉底 / 粉描边 · **`.is-done.is-pop` 回弹（一次性标记）** | A9 `staffDonePop` |
+| 1263–1279 | 展开卡两层面板（`[data-face="opts"]` / `--base`） | A2 交叉淡入淡出 |
+| 1280–1289 | `.staff-card__opts` 显隐 · `.is-row-muted` 同行卡淡出 | A3 / A5 |
+| **1290–1325** | **A2 收起 Morph**（`.is-collapsing` · `--sp-collapse` · Apple 标准） | A2 |
+| 1326–1357 | `.staff-opts` · `.staff-opt`（选项卡）· `.staff-opt--extra` 基线红边 | A4 |
+| **1358–1417** | **勾选控件动效**：`.is-draw` 变红+画勾 · `.is-undraw` 收勾+褪红 · **`.staff-opt.is-on .staff-opt__box.is-undraw` 反超**（§12.3 A7 必读） | A6 / A7 |
+| 1418–1422 | 员工卡粉底（`background-color` + 渐变两层，解「渐变不可插值」） | A7 宿主卡通兑 |
+| 1423–1431 | `.is-splitting` 分裂入场（4 张卡 `0/35/70/105ms`） | A4 `staffRoleSplit` |
+| 1432–1459 | 头像 / 姓名 / 摘要 · `.staff-card__pick-x`（红字「顾客指定」） | —— |
+| 1460–1463 | **注释：`.staff-card__tick` 已于十九次整体删除**（收缩态卡无勾选控件） | A10 废止 |
+| 1464–1525 | 入口摘要行（`.staff-pick-*`）· 模式按钮（按工位 / 不分工位）· 顾客指定分段 | —— |
 
 ## A.5 HTML 索引（`index.html`）
 
@@ -3784,9 +3826,10 @@ function spGateFlush() {
 | **332–363** | **选择服务员工**：`#screen-comm2-staff-pick`（页面态：标题 `#comm2StaffPickLead` · 模式 `#comm2StaffPickMode` · `#comm2StaffPickExtra` · 卡片区 `#comm2StaffPickCard` · 摘要 `#comm2SpBlock`）+ `#comm2StaffSheetMask` / `#comm2StaffSheetRoot` / `#comm2StaffSheetHint` / `#comm2StaffSheetDone`（底部 Sheet） |
 | 365–395 | 提成设置：方案列表 `#screen-comm2-list`（`#comm2List` · `#comm2UnassignedTip` · `#comm2BtnAdd`）+ 方案编辑 `#screen-comm2-edit`（`#comm2EditCards` · `#comm2BtnAddRule` · `#comm2BtnSave`） |
 | 397–421 | 添加规则项 `#screen-comm2-pick`（`#comm2PickTypes` · `#comm2PickGroups` · `#comm2PickList` · `#comm2PickOk`） |
-| 423–462 | 规则设置 Sheet `#comm2CatSheetMask` / `#comm2CatSheetBody`（**参数区动态渲染**）+ 基数说明 / 分配模式说明 Dialog |
-| 463–530 | 未分配名单 · 方案菜单 · 方案命名 / 重命名 · 删除确认 · **分配员工 Sheet `#comm2AssignMask`**（`#comm2AssignList` · `#comm2AssignCount` · 全选 / 清空） |
-| 532–545 | 「多方案规则」帮助弹窗 |
+| 423–462 | 规则设置 Sheet `#comm2CatSheetMask` / `#comm2CatSheetBody`（**参数区动态渲染**·行标签 ⓘ 由 JS 注入）+ **基数说明 `#comm2BaseHelpMask` / 分配模式说明 `#comm2PickHelpMask`**（触发 = Sheet「计算基数」/「分配模式」行标签右侧 ⓘ，§6.9） |
+| 463–491 | **方案编辑页帮助**「提成怎么设、钱怎么算」`#comm2RuleHelpMask`（`comm2-hint-list` 两节 5 + 8 条序号卡片，§6.9） |
+| 492–559 | 未分配名单 · 方案菜单 · 方案命名 / 重命名 · 删除确认 · **分配员工 Sheet `#comm2AssignMask`**（`#comm2AssignList` · `#comm2AssignCount` · 全选 / 清空） |
+| 561–574 | 「多方案规则」帮助弹窗（**列表页**，内容与触发均未改） |
 
 > **注意**：`#comm2CatSheetBody`（规则设置 Sheet 内容）与 `#comm2StaffSheetRoot`（选人 Sheet 内容）**都是 JS 动态渲染**（`renderRuleSheetBody` / `spRenderSheet`），HTML 里只有空壳 —— 找 DOM 请查 §A.2 / §A.3 的渲染函数。
 
@@ -3803,3 +3846,6 @@ function spGateFlush() {
 | 胶囊位置 / 溢出 | `comm2.js` → `toggleCapValueMode` + `syncCapFieldWidths`；`comm2.css:301–341` |
 | 规则卡摘要不对 | `comm2.js` → `formatBlockSummaryHtml` / `formatStationPairHtml` / `formatExtraValHtml` |
 | 旧数据迁移不对 | `comm2.js` → `migrateExtraFields` / `migratePerValueModes` / `applyExtraSplitFlag`（§6.3） |
+| 方案编辑页标题的 ⓘ 不见了 / 方案名不截断 | `index.html` → `#comm2EditTitle`（外层）＋ `#comm2EditTitleText`（文字）＋ `#comm2EditHelpBtn`；`comm2.js:1355` `renderEdit`（**只写内层 span**）；`comm2.css:1156–1170`（`.title__txt` 省略号） |
+| 帮助弹窗文案 / 条目样式不对 | `index.html` → `#comm2RuleHelpMask`（**文案原文见 §6.9 附表**）；`comm2.css:1156–1170`（`.comm2-hint-item*`，两条规则须写 `.emp-help-body .comm2-hint-item__*` 才不被 `.emp-help-body p` 覆盖） |
+| Sheet 行标签的 ⓘ 点不动 / 开错弹窗 / 重渲染后失效 | `comm2.js:1866` `sheetRowHtml(..., helpKey)`（注入 `[data-comm2-sheet-help]`）→ **委派**在 `comm2.js:3101`（绑 `#comm2CatSheetBody`，**别绑具体按钮**，Sheet 会整块重渲染）→ `openDialog('comm2BaseHelpMask' / 'comm2PickHelpMask')`；样式 `comm2.css:967–972` |
