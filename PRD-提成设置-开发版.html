@@ -100,9 +100,9 @@ tr:nth-child(even) td{background:#fafbfc}
 </tbody>
 </table>
 <hr />
-<h2>版本摘要（源 PRD 23 条修订的终态压缩）</h2>
+<h2>版本摘要（源 PRD 24 条修订的终态压缩）</h2>
 <blockquote>
-<p>源 PRD 的 23 条修订是<strong>迭代流水</strong>，开发只需<strong>终态口径</strong>。下表把每条压成一句话终态 + 影响面；要看完整流水请回源 PRD 文件头。</p>
+<p>源 PRD 的 24 条修订是<strong>迭代流水</strong>，开发只需<strong>终态口径</strong>。下表把每条压成一句话终态 + 影响面；要看完整流水请回源 PRD 文件头。</p>
 </blockquote>
 <table>
 <thead>
@@ -232,6 +232,11 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>09-18 二十三</td>
 <td><strong>两处孤立帮助弹窗接入触发点</strong>（此前 HTML 有弹窗、JS 无入口）：规则 Sheet「计算基数」行标签右侧 ⓘ → <code>#comm2BaseHelpMask</code>；「分配模式」行右侧 ⓘ → <code>#comm2PickHelpMask</code>；<code>sheetRowHtml(..., helpKey)</code> 注入 <code>[data-comm2-sheet-help]</code>，事件走 <code>#comm2CatSheetBody</code> <strong>委派</strong>（Sheet 重渲染后仍有效）；弹窗 <code>z 50</code> &gt; Sheet <code>30</code>、打开时 Sheet 不关；「分配模式说明」补「只勾顾客指定也可单独分配」</td>
 <td>§6.9</td>
+</tr>
+<tr>
+<td>09-18 二十四</td>
+<td><strong>列表页帮助弹窗白话重写</strong>：「多方案规则」→「<strong>一个人挂几个方案，钱怎么算</strong>」，5 段技术条目整组作废，改两节 <strong>2 + 5 条</strong>白话序号卡片（复用编辑页那批 <code>.comm2-hint-item*</code>，零新增 CSS）；「按项分摊 · 适用范围」（含基数公式）<strong>整条删除</strong>（改由 Sheet「计算基数」ⓘ 承担）；<code>aria-label</code> 同步改弹窗标题原文</td>
+<td>§3 · §6.1 · §6.9 · §9.1 · §10.2</td>
 </tr>
 </tbody>
 </table>
@@ -819,7 +824,7 @@ tr:nth-child(even) td{background:#fafbfc}
 </blockquote>
 <pre><code>提成设置（多方案）
  ├─ 方案列表
- │    ├─ 标题栏：提成设置 · 帮助（多方案规则）
+ │    ├─ 标题栏：提成设置 · 帮助（一个人挂几个方案，钱怎么算）
  │    ├─ 未分配提示条（还有 N 人未分配任何提成方案）
  │    ├─ 方案卡：图标 · 名称 · 已分配员工
  │    │         · 分配入口 · ⋯ 菜单（重命名 / 复制方案 / 删除）
@@ -1353,7 +1358,7 @@ flowchart LR
 <h2>6.1 方案列表</h2>
 <p><strong>结构</strong></p>
 <ul>
-<li>标题栏：返回 ·「提成设置」· 帮助（多方案规则）。</li>
+<li>标题栏：返回 ·「提成设置」· 帮助（<strong>一个人挂几个方案，钱怎么算</strong>）。</li>
 <li>未分配提示条（<code>comm2UnassignedTip</code>）：存在未分配员工时显示「还有 <strong>N</strong> 人未分配任何提成方案」+ 右侧 chevron；点击弹 Dialog 列出名单；无未分配时隐藏。</li>
 <li>方案卡（<code>emp-comm-card</code>）：</li>
 <li>主区：图标（提成图）· 方案名称 · 提成规则摘要「5 项默认」或「5 项默认 · N 条覆盖」。</li>
@@ -2033,8 +2038,8 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </thead>
 <tbody>
 <tr>
-<td>多方案规则（列表页帮助）</td>
-<td>①每人可分配多个提成方案（已在其他方案以图标+方案名提示，仍可勾选）；②计算项重叠按行取金额更高者（并列按列表顺序）；③按订单行内适用范围金额分摊计提（非整单命中）；④方案内覆盖优先于默认；同方案多覆盖重叠取高（并列按添加顺序）；⑤不同业务行分别取高后可相加</td>
+<td><strong>一个人挂几个方案，钱怎么算</strong>（列表页帮助，<code>#comm2HelpMask</code>，<strong>二十四次白话重写</strong>）</td>
+<td><strong>白话条目版</strong>，面向文化水平有限的小店主 / 店员，<strong>全篇不得出现「取高 / 分摊 / 覆盖 / 分类默认 / 订单行 / 试算 / 计提 / 并列 / 命中 / 金额最大 / 写入 / 胜出 / 适用范围」等内部术语，也不得出现任何公式（<code>×</code> <code>÷</code>）</strong>。分两节 <strong>「一、谁能挂几个方案（2 条）」/「二、钱怎么算（5 条）」共 7 条</strong>，复用 <code>.comm2-hint-list</code> / <code>.comm2-hint-item</code> <strong>序号圆点卡片</strong>（零新增 CSS），序号两节<strong>各自从 1 起</strong>，正文区可滚动。原 5 段技术条目已整组作废：原「按项分摊 · 适用范围」（含基数公式 / 卡付面值 / 计次折算）<strong>整条删除</strong> —— 改由 Sheet「计算基数」行右侧 ⓘ（<code>#comm2BaseHelpMask</code>）在配置现场承担；原第 1 段的实现细节（分配 Sheet 副文显示图标与方案名、「也在：」字面）<strong>删除</strong>。文案原文见下（可整段照抄）</td>
 </tr>
 <tr>
 <td>计算基数说明（规则 Sheet <strong>「计算基数」行标签右侧 ⓘ</strong>，<code>data-comm2-sheet-help="base"</code> → <code>#comm2BaseHelpMask</code>）</td>
@@ -2046,7 +2051,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 <tr>
 <td><strong>提成怎么设、钱怎么算</strong></td>
-<td><strong>方案编辑页</strong>标题右侧 ⓘ（<code>comm2EditHelpBtn</code>）打开（<code>comm2RuleHelpMask</code>）。<strong>白话条目版</strong>，面向文化水平有限的小店主 / 店员；与列表页「多方案规则」<strong>分工</strong>：列表页讲多方案之间的取高规则，本弹窗讲<strong>「这张卡怎么填 + 钱怎么算」</strong>。分两节：<strong>「一、怎么设置（5 步）」/「二、钱怎么算出来（8 条）」</strong>，条目渲染为<strong>序号圆点卡片</strong>（序号 18×18 圆形 + 加粗 13px 结论 + 12px <code>#929292</code> 补充），序号与分节标题<strong>左对齐</strong>，正文区可滚动。文案原文见下（可整段照抄）</td>
+<td><strong>方案编辑页</strong>标题右侧 ⓘ（<code>comm2EditHelpBtn</code>）打开（<code>comm2RuleHelpMask</code>）。<strong>白话条目版</strong>，面向文化水平有限的小店主 / 店员；与列表页「一个人挂几个方案，钱怎么算」<strong>分工</strong>：列表页讲<strong>方案之间怎么比 / 方案内重复卡怎么比</strong>，本弹窗讲<strong>「这张卡怎么填 + 钱怎么算一遍」</strong>（两者文风统一为白话序号卡片，条目层面允许重复，见 §6.9 附 2）。分两节：<strong>「一、怎么设置（5 步）」/「二、钱怎么算出来（8 条）」</strong>，条目渲染为<strong>序号圆点卡片</strong>（序号 18×18 圆形 + 加粗 13px 结论 + 12px <code>#929292</code> 补充），序号与分节标题<strong>左对齐</strong>，正文区可滚动。文案原文见下（可整段照抄）</td>
 </tr>
 </tbody>
 </table>
@@ -2153,7 +2158,102 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <li>标题栏：<code>.page-title-bar .title.title--with-help &gt; .title__txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }</code> —— 方案名可省略，ⓘ 不被裁切</li>
 <li>方案名写入 <code>#comm2EditTitleText</code>（<strong>不是</strong> <code>#comm2EditTitle</code>；后者含 ⓘ 按钮，写 <code>textContent</code> 会连带清掉）</li>
 </ul>
-<p><strong>关闭</strong>：<code>知道了</code> / 点遮罩空白（<code>e.target === mask</code>）。<strong>不改动</strong>列表页「多方案规则」弹窗（<code>comm2HelpMask</code>）。</p>
+<p><strong>关闭</strong>：<code>知道了</code> / 点遮罩空白（<code>e.target === mask</code>）。</p>
+<p><strong>§6.9 附 2 · 「一个人挂几个方案，钱怎么算」文案原文（原型 <code>#comm2HelpMask</code>，须逐字一致，二十四次白话重写）</strong></p>
+<p>弹窗标题：<strong>一个人挂几个方案，钱怎么算</strong>；底部单按钮「知道了」；<code>#comm2HelpBtn</code> 的 <code>aria-label</code> 取<strong>弹窗标题原文</strong>（与编辑页 ⓘ 同约定）。</p>
+<table>
+<thead>
+<tr>
+<th>节</th>
+<th style="text-align: center;">序</th>
+<th>加粗结论（<code>comm2-hint-item__t</code>，13px/600）</th>
+<th>灰字补充（<code>comm2-hint-item__d</code>，12px/<code>#929292</code>）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>一、谁能挂几个方案（2 条）</td>
+<td style="text-align: center;">1</td>
+<td>一个人可以同时挂几个方案</td>
+<td>在方案卡上点「已分配」把人加进来；已经在别的方案里的人，还能再加进来，不冲突。</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: center;">2</td>
+<td>挂得多，不等于拿得多</td>
+<td>同一笔生意只会用<strong>一个</strong>方案算钱，不会几个方案都给他。</td>
+</tr>
+<tr>
+<td>二、钱怎么算（5 条）</td>
+<td style="text-align: center;">1</td>
+<td>哪个方案算出来的钱多，就按哪个给</td>
+<td>同一笔生意，把他挂的每个方案都算一遍，挑钱最多的那个给他，多的不算。</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: center;">2</td>
+<td>钱一样多时，看方案列表里谁在前面</td>
+<td>从上往下数，排在前面那个方案说了算。</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: center;">3</td>
+<td>单独加的规则项，比大类卡更优先</td>
+<td>给某个项目单独加过规则项，就按它算，不再按大类卡算。</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: center;">4</td>
+<td>同一个方案里，好几张卡都管到同一个项目</td>
+<td>也是挑钱多的那张算；钱一样多，就按加卡的先后。</td>
+</tr>
+<tr>
+<td></td>
+<td style="text-align: center;">5</td>
+<td>一笔生意里不同的项目，各算各的，最后加起来</td>
+<td>比如洗剪吹和买产品，分开算完再加在一起。</td>
+</tr>
+</tbody>
+</table>
+<p><strong>与编辑页弹窗的关系</strong>：两份弹窗<strong>文风统一为白话序号卡片</strong>，条目层面<strong>允许重复</strong>（第 3–5 条与编辑页「单独加的卡更优先 / 一个人挂了好几个方案怎么办 / 不同业务各算各的」同义）—— 两条 ⓘ 分挂列表页与编辑页，读者可能只从其中一个入口进来，<strong>各自自洽优于强行去重</strong>。二者分工仍成立：<strong>列表页只讲方案之间怎么比、方案内重复卡怎么比</strong>（不涉及某张卡怎么填），<strong>编辑页讲「这张卡怎么填 + 钱怎么算一遍」</strong>。</p>
+<p><strong>样式契约</strong>：与编辑页弹窗<strong>完全同源</strong>，复用同一批 <code>.comm2-hint-list</code> / <code>.comm2-hint-item</code> / <code>__no</code> / <code>__main</code> / <code>__t</code> / <code>__d</code> 规则与 <code>dialog dialog--emp-help</code> + <code>dialog__scroll emp-help-body</code> 容器 —— <strong>零新增 CSS</strong>。序号在两个分节内<strong>各自从 1 起</strong>（与编辑页 5 + 8 同约定）。</p>
+<p><strong>已作废的原文（供回溯，不得再出现于原型）</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>作废段落</th>
+<th>原技术口径</th>
+<th>处置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>「每人可分配多个提成方案」</td>
+<td>含「分配 Sheet 中若已在其他方案，副文显示图标与方案名（无「也在：」字面）」</td>
+<td><strong>实现细节删除</strong>，只留「照样能加进来，不冲突」</td>
+</tr>
+<tr>
+<td>「计算项重叠时取高」</td>
+<td>开单按<strong>订单行</strong>计提、取<strong>金额最大</strong>者<strong>写入本行</strong>、多方案<strong>不加总</strong>、并列按方案列表顺序、同方案多覆盖<strong>试算金额取高</strong></td>
+<td><strong>改白话</strong>为「哪个方案算出来的钱多，就按哪个给」+「钱一样多时，看方案列表里谁在前面」+「同一个方案里，好几张卡都管到同一个项目」</td>
+</tr>
+<tr>
+<td>「按项分摊 · 适用范围」</td>
+<td>原价模式基数 = 原价 ×（范围内实付 ÷ 该行全部实付）；实收模式 = 范围内实付之和；固定额 × 分摊系数；卡付面值 / 计次折算</td>
+<td><strong>整条删除</strong> —— 改由 Sheet「计算基数」行右侧 ⓘ（<code>#comm2BaseHelpMask</code>）承担；<strong>列表页不得出现公式</strong></td>
+</tr>
+<tr>
+<td>「覆盖优先」</td>
+<td>覆盖规则项（含「快捷开单」）优先于<strong>分类默认</strong>；命中覆盖后不再吃分类默认；覆盖间取高；方案间再取高</td>
+<td><strong>改白话</strong>为「单独加的规则项，比大类卡更优先」</td>
+</tr>
+<tr>
+<td>「不同行可相加」</td>
+<td>不同业务行分别取高后相加汇总</td>
+<td><strong>改白话</strong>为「一笔生意里不同的项目，各算各的，最后加起来」</td>
+</tr>
+</tbody>
+</table>
 <h2>6.10 关联页面变更（薪资 / 流水 · 对齐提成设置）</h2>
 <blockquote>
 <p><strong>【范围说明】本章属于「提成侧口径」</strong>：它规定<strong>下游承载页</strong>（员工薪资明细 / 员工业绩提成明细 / 门店流水三页）必须与提成设置 5 类口径<strong>对齐</strong>，是提成设置的<strong>验收外延</strong> —— 改提成设置必然牵动这些页面。
@@ -2833,7 +2933,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <h2>9.1 文案清单（须与原型一致）</h2>
 <p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet、选择服务员工</strong>、<strong>顾客指定、指定、提成、小工、中工、大工、不分工位、按工位、未选择、已选 N 人</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、提成、<strong>顾客指定</strong>（规则卡上的取值段标签；Sheet 参数卡内标题仍为「指定」）、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
-<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、多方案规则、<strong>提成怎么设、钱怎么算</strong>（方案编辑页帮助，两节 5 + 8 条白话条目，原文见 §6.9）、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工</strong>、<strong>比例 / 金额（两段式胶囊）</strong>；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 <strong>大工 / 中工 / 小工 / 顾客指定</strong>，不分工位+开顾客指定为 <strong>服务提成 / 顾客指定</strong>。</p>
+<p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、<strong>一个人挂几个方案，钱怎么算</strong>（列表页帮助，两节 2 + 5 条白话条目，原文见 §6.9 附 2）、<strong>提成怎么设、钱怎么算</strong>（方案编辑页帮助，两节 5 + 8 条白话条目，原文见 §6.9）、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工</strong>、<strong>比例 / 金额（两段式胶囊）</strong>；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 <strong>大工 / 中工 / 小工 / 顾客指定</strong>，不分工位+开顾客指定为 <strong>服务提成 / 顾客指定</strong>。</p>
 <p><strong>选人摘要 / 提示（§6.7.1）</strong>：<strong>员工卡第三行</strong>摘要 <code>大工</code> / <code>大工 · 顾客指定</code> / <code>顾客指定</code> / <code>提成</code> / <code>提成 · 顾客指定</code>（<code>顾客指定</code> 为红字 <code>.staff-card__pick-x</code>）；<strong>入口下方「已选员工」摘要行</strong>另记缺工位情形为 <code>无工位 · 顾客指定</code>（纯文本）。提示行四态文案见 §6.7.1；分配模式说明 Dialog 含「只勾「顾客指定」也可单独分配（只发顾客指定提成）」。<strong>界面不得再出现「普通」作为不分工位侧标签</strong>（已改「提成」），不得再出现「未选」作为摘要文案，卡片第三行也不得再出现灰字「无工位」（「未选」/「无工位」只允许出现在入口摘要行）。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的顾客指定比例/金额、请输入有效的提成比例/金额、比例需在 0–100%、名称不能为空、工位名最多 6 个字。</p>
 <p><strong>流水</strong>：业绩（只读）、提成、修改提成、仅店主/合伙人/店长可调整提成、请输入有效提成金额、金额不能为负、金额未变化、已修改，直接生效。</p>
@@ -3008,7 +3108,8 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 56j. <strong>Given</strong> 旧数据（正交 3×2 = 6 值，存在 3 组工位点客值且互不相同），<strong>When</strong> 加载方案，<strong>Then</strong> 点客值提升为 <code>CatRule</code> 级 <code>extraValue</code> 并取 <strong><code>stationIds[0]</code> 对应工位</strong>的点客值；<code>stations[*]</code> 仅保留提成侧；旧 <code>guestSplit</code> / <code>designated*</code> 键删除、<code>_ex1</code> 置为已归一化、<code>extraSplit</code> 按「点客 ≠ 工位提成」判定为 <code>true</code>。
 56k. <strong>Given</strong> 按工位 + 开顾客指定的方案，<strong>When</strong> 分别对「未勾选顾客指定」「勾选顾客指定」的员工开单并把订单行落在大工 / 中工 / 小工，<strong>Then</strong> 未勾选者三次金额分别取该工位提成值（互不相同）；勾选者三次金额 = 各自工位提成 <strong>+ 同一全局顾客指定值</strong>。
 56l. <strong>Given</strong> 方案编辑页，<strong>When</strong> 查看标题栏，<strong>Then</strong> 标题（方案名）右侧有一个 <code>20×20</code> 热区 / <code>16×16</code> 线性 ⓘ（<code>comm2EditHelpBtn</code>、<code>#B2B2B2</code>，与列表页帮助同一组件、与方案名间距 <code>4px</code>）；<strong>And When</strong> 把方案名改为超过可视宽度的长名，<strong>Then</strong> <strong>只截断方案名本身</strong>（<code>#comm2EditTitleText</code> 省略号），<strong>ⓘ 恒完整可见、不溢出标题栏</strong>；<strong>And</strong> 方案名由 <code>renderEdit()</code> 写入 <code>#comm2EditTitleText</code>，<strong>不得</strong>直接写 <code>#comm2EditTitle</code>（否则会连带清掉 ⓘ）。
-56l2. <strong>Given</strong> 方案编辑页，<strong>When</strong> 点标题右侧 ⓘ，<strong>Then</strong> 弹出「<strong>提成怎么设、钱怎么算</strong>」（<code>comm2RuleHelpMask</code>，<code>dialog--emp-help</code>，<code>max-width 326px</code> / <code>max-height min(520px,75vh)</code>、正文可滚动、底部单按钮「知道了」）：两节 <strong>「一、怎么设置（5 步）」</strong> 与 <strong>「二、钱怎么算出来（8 条）」</strong>，共 <strong>13 条</strong>；每条为<strong>序号卡片</strong> —— 序号圆点 <code>18×18</code>（<code>border-radius:50%</code>、<code>#F0F0F0</code> 底、<code>11px/600</code>）与分节标题<strong>左对齐</strong>、与文字间距 <code>8px</code>，右侧为<strong>加粗 13px 白话结论</strong> + <strong>12px <code>#929292</code> 灰字补充</strong>（文案逐字见 §6.9「文案原文」表）；<strong>统一用白话</strong>，不得出现「取高」「分摊」「覆盖优先于默认」等术语（这些留在列表页「多方案规则」弹窗，两处<strong>分工不合并</strong>）。<strong>And When</strong> 点「知道了」或点遮罩空白，<strong>Then</strong> 关闭；<strong>And Given</strong> 列表页，<strong>Then</strong> 其 ⓘ 仍打开原「多方案规则」弹窗（<code>comm2HelpMask</code>），<strong>不受影响</strong>。</p>
+56l2. <strong>Given</strong> 方案编辑页，<strong>When</strong> 点标题右侧 ⓘ，<strong>Then</strong> 弹出「<strong>提成怎么设、钱怎么算</strong>」（<code>comm2RuleHelpMask</code>，<code>dialog--emp-help</code>，<code>max-width 326px</code> / <code>max-height min(520px,75vh)</code>、正文可滚动、底部单按钮「知道了」）：两节 <strong>「一、怎么设置（5 步）」</strong> 与 <strong>「二、钱怎么算出来（8 条）」</strong>，共 <strong>13 条</strong>；每条为<strong>序号卡片</strong> —— 序号圆点 <code>18×18</code>（<code>border-radius:50%</code>、<code>#F0F0F0</code> 底、<code>11px/600</code>）与分节标题<strong>左对齐</strong>、与文字间距 <code>8px</code>，右侧为<strong>加粗 13px 白话结论</strong> + <strong>12px <code>#929292</code> 灰字补充</strong>（文案逐字见 §6.9「文案原文」表）；<strong>统一用白话</strong>，不得出现「取高」「分摊」「覆盖优先于默认」等术语。<strong>And When</strong> 点「知道了」或点遮罩空白，<strong>Then</strong> 关闭；<strong>And Given</strong> 列表页，<strong>Then</strong> 其 ⓘ 打开<strong>列表页自己的</strong>弹窗（<code>comm2HelpMask</code>，二十四次已白话重写，见 <code>56n</code>），两处<strong>触发互不串台</strong>。</p>
+<p>56n. <strong>Given</strong> 方案列表页，<strong>When</strong> 点标题「提成设置」右侧 ⓘ（<code>comm2HelpBtn</code>，<code>20×20</code> 热区 / <code>16×16</code> 线性 ⓘ / <code>#B2B2B2</code>、<code>aria-label</code> = <strong>弹窗标题原文</strong>），<strong>Then</strong> 弹出「<strong>一个人挂几个方案，钱怎么算</strong>」（<code>comm2HelpMask</code>，<code>dialog--emp-help</code>，<code>max-width 326px</code> / <code>max-height min(520px,75vh)</code>、正文可滚动、底部单按钮「知道了」）：两节 <strong>「一、谁能挂几个方案（2 条）」</strong> 与 <strong>「二、钱怎么算（5 条）」</strong>，共 <strong>7 条</strong>；每条为<strong>序号卡片</strong> —— 序号圆点 <code>18×18</code>、序号与分节标题左对齐、与文字间距 <code>8px</code>，右侧为<strong>加粗 13px 白话结论</strong> + <strong>12px <code>#929292</code> 灰字补充</strong>（文案逐字见 §6.9 附 2 表）；<strong>两个分节的序号各自从 1 起</strong>（与编辑页弹窗同约定）；样式<strong>复用</strong>编辑页那批 <code>.comm2-hint-list</code> / <code>.comm2-hint-item*</code>，<strong>零新增 CSS</strong>。<strong>And</strong> 正文<strong>不得出现</strong>「取高 / 分摊 / 覆盖 / 分类默认 / 订单行 / 试算 / 计提 / 并列 / 命中 / 金额最大 / 写入 / 胜出 / 适用范围」等内部术语，<strong>也不得出现任何公式</strong>（<code>×</code> <code>÷</code>）—— 原「按项分摊 · 适用范围」段（含基数公式 / 卡付面值 / 计次折算）<strong>已整条删除</strong>，该内容由 Sheet「计算基数」行右侧 ⓘ 承担；原「分配 Sheet 副文显示图标与方案名（无「也在：」字面）」实现细节<strong>已删除</strong>。<strong>And When</strong> 点「知道了」或点遮罩空白，<strong>Then</strong> 关闭。</p>
 <p>56m. <strong>Given</strong> 规则设置 Sheet（<code>#comm2CatSheetBody</code>），<strong>When</strong> 查看行标签，<strong>Then</strong> <strong>仅「计算基数」「分配模式」两行</strong>标签文字后各有一个 ⓘ（<code>emp-ach-info-btn comm2-sheet-row__help</code>，<code>14×14</code> 圆 <code>#929292</code>、字号 <code>9px</code>、<code>aria-label</code> 分别为「计算基数说明」「分配模式说明」、<code>data-comm2-sheet-help</code> 为 <code>base</code> / <code>pick</code>），其余行（适用范围 / 提成参数表头等）<strong>无 ⓘ</strong>；<strong>And</strong> 行标签列宽恒为 <code>72px</code>、内容宽 <code>52 + 4 + 14 = 70px</code>（<strong>不换行、不溢出、控件区左缘不位移</strong>）。<strong>And When</strong> 点「计算基数」ⓘ，<strong>Then</strong> 打开 <code>#comm2BaseHelpMask</code>（「计算基数说明」，两节「原价模式 / 实收模式」）；<strong>And</strong> 点「分配模式」ⓘ，<strong>Then</strong> 打开 <code>#comm2PickHelpMask</code>（「分配模式说明」，两节「不分工位 / 按工位分配」，含「也可以只勾「顾客指定」单独分配（此种情况只发顾客指定提成）」）。<strong>And</strong> 两弹窗 <strong><code>z-index 50</code> &gt; Sheet <code>30</code></strong>，打开时 <strong>Sheet 保持打开</strong>（可边看说明边配置）；<strong>And When</strong> 点「知道了」或点遮罩空白，<strong>Then</strong> 关弹窗<strong>且不关 Sheet</strong>。<strong>And Given</strong> Sheet 重渲染（改任一参数）后，<strong>Then</strong> 两处 ⓘ <strong>仍可点</strong>（事件绑在 <code>#comm2CatSheetBody</code> 上<strong>委派</strong> <code>[data-comm2-sheet-help]</code>，不得绑具体按钮）。</p>
 <h3>10.2.1 关联页面 · 选择服务员工（§6.7.1）P0</h3>
 <blockquote>
@@ -8026,7 +8127,7 @@ function spGateFlush() {
 </tr>
 <tr>
 <td>561–574</td>
-<td>「多方案规则」帮助弹窗（<strong>列表页</strong>，内容与触发均未改）</td>
+<td><strong>「一个人挂几个方案，钱怎么算」帮助弹窗</strong>（<strong>列表页</strong> <code>#comm2HelpMask</code> / <code>#comm2HelpBtn</code>；<strong>二十四次白话重写</strong>：两节 2 + 5 条 <code>.comm2-hint-item</code> 序号卡片，§6.9 附 2）</td>
 </tr>
 </tbody>
 </table>
@@ -8089,6 +8190,10 @@ function spGateFlush() {
 <tr>
 <td>Sheet 行标签的 ⓘ 点不动 / 开错弹窗 / 重渲染后失效</td>
 <td><code>comm2.js:1866</code> <code>sheetRowHtml(..., helpKey)</code>（注入 <code>[data-comm2-sheet-help]</code>）→ <strong>委派</strong>在 <code>comm2.js:3101</code>（绑 <code>#comm2CatSheetBody</code>，<strong>别绑具体按钮</strong>，Sheet 会整块重渲染）→ <code>openDialog('comm2BaseHelpMask' / 'comm2PickHelpMask')</code>；样式 <code>comm2.css:967–972</code></td>
+</tr>
+<tr>
+<td>列表页弹窗文案不对 / 又冒出术语</td>
+<td><code>index.html:561–574</code>（<code>#comm2HelpMask</code>，<strong>文案原文见 §6.9 附 2 表</strong>，两节 2 + 5 条）；样式<strong>复用</strong> <code>comm2.css:1167–1174</code> 的 <code>.comm2-hint-item*</code>（<strong>不要为列表页另写一套</strong>）</td>
 </tr>
 </tbody>
 </table>

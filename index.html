@@ -365,7 +365,7 @@
 <div class="screen hidden" id="screen-comm2-list">
   <div class="page-title-bar">
     <button type="button" class="back" id="comm2ListBack" aria-label="返回"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg></button>
-    <span class="title title--with-help">提成设置<button type="button" class="emp-ach-help-btn" id="comm2HelpBtn" aria-label="多方案规则说明"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.25v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="5.2" r="0.85" fill="currentColor"/></svg></button></span>
+    <span class="title title--with-help">提成设置<button type="button" class="emp-ach-help-btn" id="comm2HelpBtn" aria-label="一个人挂几个方案，钱怎么算"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.25v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="5.2" r="0.85" fill="currentColor"/></svg></button></span>
   </div>
   <div class="page-body" style="padding:0;">
     <button type="button" class="comm2-unassigned hidden" id="comm2UnassignedTip" aria-hidden="true"></button>
@@ -560,18 +560,21 @@
 
 <div class="dialog-mask" id="comm2HelpMask">
   <div class="dialog dialog--emp-help" role="dialog" aria-labelledby="comm2HelpTitle">
-    <div class="dialog__title" id="comm2HelpTitle">多方案规则</div>
+    <div class="dialog__title" id="comm2HelpTitle">一个人挂几个方案，钱怎么算</div>
     <div class="dialog__scroll emp-help-body">
-      <h4>每人可分配多个提成方案</h4>
-      <p>列表里点「已分配」给人时，同一员工可同时属于多个提成方案。分配 Sheet 中若已在其他方案，副文显示图标与方案名（无「也在：」字面），仍可勾选。</p>
-      <h4>计算项重叠时取高</h4>
-      <p>开单按<strong>订单行</strong>计提：对该员工所属每个方案分别算出本行提成金额，取<strong>金额最大</strong>者写入本行；多方案<strong>不加总</strong>。金额并列时按方案列表顺序，先出现的方案胜出。同一方案内多条覆盖规则命中同一项时，同样按试算金额取高；并列按规则卡添加顺序先出现者胜。</p>
-      <h4>按项分摊 · 适用范围</h4>
-      <p>「适用范围」指对应到开单中每一个项目/产品/会员卡的金额分摊，不是整单是否命中某种支付方式。混合支付时：计算基数=原价 → 基数 = 原价 ×（范围内实付 ÷ 该行全部实付）；计算基数=实收 → 基数 = 范围内实付之和；固定金额 → 固定额 ×（范围内实付 ÷ 全部实付）。卡付含会员卡面值（充值+赠送）与计次（购买+赠送次数/数量）；计次按卡内成本/均价折算为卡付实付。</p>
-      <h4>覆盖优先</h4>
-      <p>方案内覆盖规则项（含系统「快捷开单」）优先于分类默认；命中覆盖后不再吃分类默认。覆盖之间允许重复添加同一项，再比金额取高。方案之间再比金额取高。</p>
-      <h4>不同行可相加</h4>
-      <p>不同业务行分别取高后，行与行之间可相加汇总。</p>
+      <h4>一、谁能挂几个方案（2 条）</h4>
+      <div class="comm2-hint-list">
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">1</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">一个人可以同时挂几个方案</p><p class="comm2-hint-item__d">在方案卡上点「已分配」把人加进来；已经在别的方案里的人，还能再加进来，不冲突。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">2</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">挂得多，不等于拿得多</p><p class="comm2-hint-item__d">同一笔生意只会用<strong>一个</strong>方案算钱，不会几个方案都给他。</p></div></div>
+      </div>
+      <h4>二、钱怎么算（5 条）</h4>
+      <div class="comm2-hint-list">
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">1</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">哪个方案算出来的钱多，就按哪个给</p><p class="comm2-hint-item__d">同一笔生意，把他挂的每个方案都算一遍，挑钱最多的那个给他，多的不算。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">2</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">钱一样多时，看方案列表里谁在前面</p><p class="comm2-hint-item__d">从上往下数，排在前面那个方案说了算。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">3</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">单独加的规则项，比大类卡更优先</p><p class="comm2-hint-item__d">给某个项目单独加过规则项，就按它算，不再按大类卡算。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">4</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">同一个方案里，好几张卡都管到同一个项目</p><p class="comm2-hint-item__d">也是挑钱多的那张算；钱一样多，就按加卡的先后。</p></div></div>
+        <div class="comm2-hint-item"><span class="comm2-hint-item__no" aria-hidden="true">5</span><div class="comm2-hint-item__main"><p class="comm2-hint-item__t">一笔生意里不同的项目，各算各的，最后加起来</p><p class="comm2-hint-item__d">比如洗剪吹和买产品，分开算完再加在一起。</p></div></div>
+      </div>
     </div>
     <div class="dialog__actions dialog__actions--single">
       <button type="button" class="btn-main" id="comm2HelpOk">知道了</button>
