@@ -1424,7 +1424,7 @@
     { id: 'tl1', name: '开卡 · 尊享组合卡', cat: 'issue', kind: 'card', refId: 'demo_vip_combo', cardRole: 'issue', pay: 'cash', list: 2000, paid: 2000, extra: true },
     { id: 'tl2', name: '充卡 · 老客续充', cat: 'card', pay: 'cash', list: 1000, paid: 1000, extra: true },
     { id: 'tl3', name: '深层补水护理', cat: 'labor', kind: 'project', refId: 'p21', pay: 'memberCard', list: 268, paid: 268, extra: true },
-    { id: 'tl4', name: '染发', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', list: 358, paid: 358, extra: true, station: 'senior' },
+    { id: 'tl4', name: '染发', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', list: 358, paid: 358, extra: true, stations: ['senior', 'mid'] },
     { id: 'tl4b', name: '染发 · 混合支付', cat: 'labor', kind: 'project', refId: 'p6', pay: 'cash', payParts: { cash: 40, memberCard: 60, groupBuy: 0 }, list: 100, paid: 100, extra: true, station: 'senior' },
     { id: 'tl5', name: '剑琅玻尿酸精华液', cat: 'sales', kind: 'product', refId: 'pd19', pay: 'memberCard', list: 198, paid: 198, extra: true },
     { id: 'tl6', name: '团购体验 · 洗头', cat: 'labor', kind: 'project', refId: 'p19', pay: 'groupBuy', list: 28, paid: 28, extra: false },
@@ -1512,7 +1512,9 @@
 
   /* 费率取值口径（「顾客指定」= 在提成之上叠加该值，不再替换）：
      先取基础费率 → 按工位取该工位提成值（stations[sid].valueMode）/ 不分工位取 rule 级提成值（nonDesignatedValueMode）；
-     若该开单为顾客指定且已开启顾客指定提成，再叠加 rule 级顾客指定值（见 lineExtraAmount / lineExtraLabel）。 */
+     若该开单为顾客指定且已开启顾客指定提成，再叠加 rule 级顾客指定值（见 lineExtraAmount / lineExtraLabel）。
+     二十五次：按工位可多选 → 订单行 `stations: string[]`（旧单值 `station` 兼容包成数组）；
+     提成侧金额 = Σ(各勾选工位金额)。 */
   /** 订单行「提成侧」是否被**明确勾选**（十七次新增口径）：
       `basePicked === false` → 开单侧**明确没有勾提成侧**（按工位 = 未点工位；不分工位 = 未勾「提成」）
         → **提成侧金额为 0，只发顾客指定提成**；
@@ -1522,17 +1524,71 @@
     if (!line) return true;
     return line.basePicked !== false;
   }
+  /** 订单行勾选的工位列表：优先 `stations[]`；旧单值 `station` 包成数组；
+      二者皆无且需回落时 → `[stationIds[0]]`（仅 `basePicked !== false` 路径调用）。 */
+  function lineStationIds(sch, line) {
+    if (line && Array.isArray(line.stations) && line.stations.length) {
+      var ids = getStationIds(sch);
+      return ids.filter(function (id) { return line.stations.indexOf(id) >= 0; })
+        .concat(line.stations.filter(function (id) { return ids.indexOf(id) < 0; }));
+    }
+    if (line && line.station) return [line.station];
+    return [getStationIds(sch)[0]];
+  }
+  /** 单工位提成侧金额 + 标签片段（pct / amount 各自算） */
+  function stationSidePiece(st, base, ratio) {
+    var sAmt = stationIsAmt(st);
+    var rate = stationNonVal(st, sAmt);
+    if (sAmt) {
+      return { amount: Math.round(rate * ratio * 100) / 100, label: '¥' + fmtMoney(rate), isAmt: true, rate: rate };
+    }
+    return { amount: Math.round(base * rate) / 100, label: rate + '%', isAmt: false, rate: rate };
+  }
   function lineRateMeta(sch, block, rule, line) {
     /* 明确没勾提成侧 → 提成侧折 0（金额与标签都不出提成侧），顾客指定侧照旧叠加 */
-    if (!lineBasePicked(line)) return { rate: 0, isAmt: false, none: true };
+    if (!lineBasePicked(line)) return { rate: 0, isAmt: false, none: true, pieces: [] };
     if (block.pickMode === 'station') {
-      var stId = line.station || getStationIds(sch)[0];
-      var st = rule.stations[stId] || defaultStationPair();
-      var sAmt = stationIsAmt(st);
-      return { rate: stationNonVal(st, sAmt), isAmt: sAmt };
+      var stIds = lineStationIds(sch, line);
+      var pieces = stIds.map(function (stId) {
+        var st = rule.stations[stId] || defaultStationPair();
+        return { stId: stId, st: st, isAmt: stationIsAmt(st), rate: stationNonVal(st, stationIsAmt(st)) };
+      });
+      /* 兼容旧调用方：单工位时仍暴露 rate / isAmt；多工位时 rate = 比例之和（仅全为 pct 时有意义） */
+      var allPct = pieces.every(function (p) { return !p.isAmt; });
+      var allAmt = pieces.every(function (p) { return p.isAmt; });
+      var sumRate = pieces.reduce(function (s, p) { return s + p.rate; }, 0);
+      return {
+        rate: sumRate,
+        isAmt: allAmt && !allPct ? true : (allPct ? false : false),
+        mixed: !(allPct || allAmt),
+        pieces: pieces,
+        multi: pieces.length > 1
+      };
     }
     var nAmt = nonIsAmt(rule);
-    return { rate: pairVal(rule, nAmt, 'nonDesignated', 'nonDesignatedAmt'), isAmt: nAmt };
+    return { rate: pairVal(rule, nAmt, 'nonDesignated', 'nonDesignatedAmt'), isAmt: nAmt, pieces: [] };
+  }
+  /** 提成侧合计金额 + 标签（多工位 = 各工位金额相加；标签用 `12% + 10%`） */
+  function lineBaseSide(sch, block, rule, line, base, ratio) {
+    if (!lineBasePicked(line)) return { amount: 0, label: '' };
+    if (block.pickMode === 'station') {
+      var stIds = lineStationIds(sch, line);
+      var total = 0;
+      var labels = [];
+      stIds.forEach(function (stId) {
+        var st = rule.stations[stId] || defaultStationPair();
+        var piece = stationSidePiece(st, base, ratio);
+        total += piece.amount;
+        labels.push(piece.label);
+      });
+      return { amount: Math.round(total * 100) / 100, label: labels.join(' + ') };
+    }
+    var nAmt = nonIsAmt(rule);
+    var rate = pairVal(rule, nAmt, 'nonDesignated', 'nonDesignatedAmt');
+    if (nAmt) {
+      return { amount: Math.round(rate * ratio * 100) / 100, label: '¥' + fmtMoney(rate) };
+    }
+    return { amount: Math.round(base * rate) / 100, label: rate + '%' };
   }
   /** 顾客指定提成金额（叠加）：比例 → 基数×比例；金额 → 固定额按实收占比缩放 */
   function lineExtraAmount(rule, line, base, ratio) {
@@ -1562,19 +1618,15 @@
     /* 经理签单（实收=0）：不走三类适用范围；是否计提由命中块 baseMode 决定 */
     if (line.sign) {
       var ruleS = ensureCat(block.rule, getStationIds(sch));
-      var metaS = lineRateMeta(sch, block, ruleS, line);
-      var rateS = metaS.rate;
-      var isAmtS = metaS.isAmt;
       var baseS = block.baseMode === 'paid' ? 0 : (Number(line.list) || 0);
+      var sideS = lineBaseSide(sch, block, ruleS, line, baseS, 1);
       var extraS = lineExtraAmount(ruleS, line, baseS, 1);
       var extraLblS = lineExtraLabel(ruleS, line);
-      /* 明确没勾提成侧 → 标签只出「顾客指定 x」，不出「0%」 */
-      var baseLblS = lineBasePicked(line) ? (isAmtS ? ('¥' + fmtMoney(rateS)) : (rateS + '%')) : '';
+      var baseLblS = sideS.label;
       var sepS = (baseLblS && extraLblS) ? ' + ' : '';
-      var amountS = isAmtS ? rateS : Math.round(baseS * rateS) / 100;
-      amountS = Math.round((amountS + extraS) * 100) / 100;
-      if (!isAmtS && baseS <= 0 && extraS <= 0) {
-        return { amount: 0, skipped: 'sign', rateLabel: rateS + '%', base: 0 };
+      var amountS = Math.round((sideS.amount + extraS) * 100) / 100;
+      if (baseS <= 0 && extraS <= 0 && sideS.amount <= 0) {
+        return { amount: 0, skipped: 'sign', rateLabel: baseLblS || '0%', base: 0 };
       }
       return {
         amount: amountS,
@@ -1591,31 +1643,20 @@
     }
     var rule = ensureCat(block.rule, getStationIds(sch));
     var meta = lineRateMeta(sch, block, rule, line);
-    var rate = meta.rate;
-    var isAmt = meta.isAmt;
     var ratio = totalPaid > 0 ? (inScope / totalPaid) : 0;
     var extraLbl = lineExtraLabel(rule, line);
-    /* 明确没勾提成侧 → 标签只出「顾客指定 x」 */
-    var baseLbl = lineBasePicked(line) ? (isAmt ? ('¥' + fmtMoney(rate)) : (rate + '%')) : '';
+    var basePct = lineBaseAmount(block, line);
+    var side = lineBaseSide(sch, block, rule, line, basePct, ratio);
+    /* 顾客指定比例侧：提成侧全为固定金额时沿用旧口径用 inScope 作基数；否则用 lineBaseAmount */
+    var extraBase = (meta.isAmt && !meta.mixed) ? inScope : basePct;
+    var extraAmt = lineExtraAmount(rule, line, extraBase, ratio);
+    var baseLbl = side.label;
     var sep = (baseLbl && extraLbl) ? ' + ' : '';
-    if (isAmt) {
-      var amtFixed = Math.round(rate * ratio * 100) / 100;
-      var amtTotal = Math.round((amtFixed + lineExtraAmount(rule, line, inScope, ratio)) * 100) / 100;
-      return {
-        amount: amtTotal,
-        skipped: '',
-        rateLabel: baseLbl + sep + extraLbl,
-        base: inScope
-      };
-    }
-    var base = lineBaseAmount(block, line);
-    var amount = Math.round(base * rate) / 100;
-    amount = Math.round((amount + lineExtraAmount(rule, line, base, ratio)) * 100) / 100;
     return {
-      amount: amount,
+      amount: Math.round((side.amount + extraAmt) * 100) / 100,
       skipped: '',
       rateLabel: baseLbl + sep + extraLbl,
-      base: base
+      base: (meta.isAmt && !meta.mixed) ? inScope : basePct
     };
   }
 
@@ -3294,8 +3335,34 @@
   }
 
   /* 提成侧在选人状态里的编码：`staffRoles[sid]` 统一存「**提成侧选择**」——
-     按工位 = 工位 id；不分工位 = `SP_PICK_AVG`（哨兵，「提成」卡）。 */
+     按工位 = **工位 id 数组**（可多选，按 `stationIds` 序）；不分工位 = `[SP_PICK_AVG]`（哨兵，「提成」卡）。
+     旧数据若仍是单值字符串，`spEnsureState` / `spRolesOf` 会自动包成数组。 */
   var SP_PICK_AVG = 'avg';
+
+  /** 读提成侧选择为数组；旧单值字符串兼容包成 `[id]`；空 / 非法 → `[]` */
+  function spRolesOf(sid) {
+    var v = spState.row.staffRoles[sid];
+    if (Array.isArray(v)) return v.filter(Boolean);
+    if (typeof v === 'string' && v) return [v];
+    return [];
+  }
+  /** 写提成侧：空数组则删键；按工位时按 `stationIds` 排序去重 */
+  function spSetRoles(sid, roles) {
+    var list = (roles || []).filter(Boolean);
+    if (!list.length) {
+      delete spState.row.staffRoles[sid];
+      return;
+    }
+    if (list.indexOf(SP_PICK_AVG) >= 0) {
+      spState.row.staffRoles[sid] = [SP_PICK_AVG];
+      return;
+    }
+    var ordered = spStationIds().filter(function (id) { return list.indexOf(id) >= 0; });
+    spState.row.staffRoles[sid] = ordered.length ? ordered : list.slice();
+  }
+  function spHasRole(sid, key) {
+    return spRolesOf(sid).indexOf(key) >= 0;
+  }
 
   function spEnsureState() {
     var row = spState.row;
@@ -3310,6 +3377,13 @@
       Object.keys(row[k]).forEach(function (sid) {
         if (row.staffIds.indexOf(sid) < 0) delete row[k][sid];
       });
+    });
+    /* 旧单值字符串 → 数组；空数组 / 非法值清掉 */
+    Object.keys(row.staffRoles).forEach(function (sid) {
+      var v = row.staffRoles[sid];
+      if (typeof v === 'string' && v) row.staffRoles[sid] = [v];
+      else if (!Array.isArray(v) || !v.length) delete row.staffRoles[sid];
+      else row.staffRoles[sid] = v.filter(Boolean);
     });
     row.staffIds.forEach(function (sid) {
       if (typeof row.staffExtra[sid] !== 'boolean') row.staffExtra[sid] = false;
@@ -3329,10 +3403,10 @@
     var mask = spEl('comm2StaffSheetMask');
     return !!(mask && mask.classList.contains('open'));
   }
-  /** 展开后的选项（交互四态 · 十七次）：
-     按工位 + 顾客指定 → 3 工位 + 「顾客指定」；**工位之间单选（可点掉、可全不选）**，
+  /** 展开后的选项（交互四态 · 二十五次：工位多选）：
+     按工位 + 顾客指定 → 3 工位 + 「顾客指定」；**工位之间多选（可点掉、可全不选）**，
                           「顾客指定」独立可勾选，两者**互不排斥** —— 都不勾 = 未选。
-     按工位（未开）  → 3 工位
+     按工位（未开）  → 3 工位（多选）
      不分工位 + 顾客指定 → 「服务提成」/「顾客指定」；**两者可叠加**（先勾「服务提成」再勾「顾客指定」），
                           也可只勾「顾客指定」单独分配（只发顾客指定提成）。
      不分工位（未开）  → 无选项（点卡片即完成） */
@@ -3356,9 +3430,9 @@
     if (!opt) return false;
     var row = spState.row;
     if (opt.kind === 'extra') return row.staffExtra[sid] === true;
-    if (opt.kind === 'plain') return row.staffRoles[sid] === SP_PICK_AVG;
-    /* 工位：必须由用户点击才会勾选（不预选默认工位） */
-    return row.staffRoles[sid] === opt.key;
+    if (opt.kind === 'plain') return spHasRole(sid, SP_PICK_AVG);
+    /* 工位：必须由用户点击才会勾选（不预选默认工位）；可多选 */
+    return spHasRole(sid, opt.key);
   }
   function spOptionByKey(key) {
     var list = spOptionList();
@@ -3371,8 +3445,8 @@
     var row = spState.row;
     return !!row.staffChosen[sid] && row.staffIds.indexOf(sid) >= 0;
   }
-  /** 「提成侧」是否已选（按工位 = 选了工位；不分工位 = 勾了「提成」） */
-  function spBasePicked(sid) { return !!spState.row.staffRoles[sid]; }
+  /** 「提成侧」是否已选（按工位 = 选了至少一个工位；不分工位 = 勾了「提成」） */
+  function spBasePicked(sid) { return spRolesOf(sid).length > 0; }
   /** 只勾了「顾客指定」、**没有**任何提成侧选择 —— 合法状态：
       员工计入已选（发顾客指定提成），但提成侧金额为 0、摘要的提成位置显示「无工位」（按工位态）。 */
   function spExtraOnly(sid) {
@@ -3381,25 +3455,25 @@
     return !spBasePicked(sid) && row.staffIds.indexOf(sid) >= 0;
   }
   /** 摘要拆件（供纯文本 / 带样式两处共用）：
-      按工位：工位名（+「· 顾客指定」）/ 只有顾客指定 → 缺工位（`miss`）
+      按工位：工位名列表（`stations`，大→中→小序）+ 可选「顾客指定」/ 只有顾客指定 → 缺工位（`miss`）
       不分工位：`提成`（+「· 顾客指定」）/ 只有顾客指定 → 只有「顾客指定」 */
   function spSummaryParts(sid) {
     var row = spState.row;
     if (row.staffIds.indexOf(sid) < 0) return null;
     var extra = row.staffExtra[sid] === true && spNeedExtra();
     if (spNeedStation()) {
-      var rid = row.staffRoles[sid];
-      if (rid) return { miss: '', main: spStationLabel(rid), extra: extra };
-      return extra ? { miss: '无工位', main: '', extra: true } : null;
+      var labels = spRolesOf(sid).map(function (rid) { return spStationLabel(rid); }).filter(Boolean);
+      if (labels.length) return { miss: '', stations: labels, main: labels.join(' · '), extra: extra };
+      return extra ? { miss: '无工位', stations: [], main: '', extra: true } : null;
     }
     if (spNeedExtra()) {
-      if (row.staffRoles[sid] === SP_PICK_AVG) return { miss: '', main: '提成', extra: extra };
-      return extra ? { miss: '', main: '', extra: true } : null;
+      if (spHasRole(sid, SP_PICK_AVG)) return { miss: '', stations: ['提成'], main: '提成', extra: extra };
+      return extra ? { miss: '', stations: [], main: '', extra: true } : null;
     }
     return null;
   }
   /** 摘要纯文本（入口下方「已选员工」行用；仅已计入已选的员工会出现）：
-      工位名 / 工位名 · 顾客指定 / 无工位 · 顾客指定 / 提成 / 提成 · 顾客指定 / 顾客指定 */
+      工位名 / 大工 · 中工 / 大工 · 中工 · 顾客指定 / 无工位 · 顾客指定 / 提成 / 提成 · 顾客指定 / 顾客指定 */
   function spSummaryText(sid) {
     var p = spSummaryParts(sid);
     if (!p) return '';
@@ -3409,16 +3483,41 @@
     if (p.extra) out.push('顾客指定');
     return out.join(' · ');
   }
-  /** 卡片摘要（**带样式**）：十八次起按工位下「只勾顾客指定、没选工位」**只画红字「顾客指定」**
-      —— 与不分工位态同款，不再前置灰字「无工位」（缺工位信息只在入口摘要行保留）。 */
+  /** 卡片摘要（**带样式**）：
+      · 十八次起「只勾顾客指定」**只画红字「顾客指定」**（缺工位信息只在入口摘要行保留）；
+      · 二十五次补：工位 **固定两行拆分**——1～2 个工位同行；**3 个工位** → 上行「第 1·第 2」、下行「第 3」
+        （大→中→小序，如 `大工 · 中工` / `小工`），**禁止省略号截断**；
+      · 工位 > 1（或工位已拆成多行）且勾了顾客指定 → 「顾客指定」独占下一行；
+        单行摘要在预留高度内**垂直居中**。 */
+  function spStationPickLines(stations) {
+    var esc = (stations || []).map(function (s) { return spEsc(s); });
+    if (!esc.length) return [];
+    if (esc.length <= 2) return [esc.join(' · ')];
+    /* 固定拆分：前 2 个一行，其余每个各占一行（当前最多 3 工位 → 正好两行） */
+    return [esc.slice(0, 2).join(' · ')].concat(esc.slice(2));
+  }
   function spSummaryHtml(sid) {
     var p = spSummaryParts(sid);
     if (!p) return '';
     if (p.miss) return '<span class="staff-card__pick-x">顾客指定</span>';
-    var out = [];
-    if (p.main) out.push(p.main);
-    if (p.extra) out.push('顾客指定');
-    return spEsc(out.join(' · '));
+    var stations = p.stations || [];
+    var stationLines = spStationPickLines(stations);
+    /* 单工位 + 顾客指定：仍同行 `大工 · 顾客指定` */
+    if (stations.length === 1 && p.extra) {
+      return stationLines[0] + ' · ' + spEsc('顾客指定');
+    }
+    var lines = stationLines.slice();
+    if (p.extra) {
+      if (!lines.length) return '<span class="staff-card__pick-x">顾客指定</span>';
+      lines.push('<span class="staff-card__pick-x">顾客指定</span>');
+    }
+    if (!lines.length) return '';
+    if (lines.length === 1) return lines[0];
+    return '<div class="staff-card__pick-stack">' +
+      lines.map(function (ln) {
+        return '<div class="staff-card__pick-line">' + ln + '</div>';
+      }).join('') +
+      '</div>';
   }
   /** 卡片第三行：态4（不分工位+未开顾客指定）选中后仍灰字头衔；其余「已选」显示红色摘要 */
   function spCardPickLineHtml(st, done) {
@@ -3700,10 +3799,11 @@
   }
 
   /** 应用一次勾选结果（动效播完后调用）。
-      展开态**点任一按钮都收起**；**提成侧与顾客指定侧各自独立、互不排斥**（十七次）——
-      · 提成侧（按工位 = 工位 / 不分工位 =「提成」）：**单选、可点掉、可全不选**；
+      展开态**点任一按钮都收起**；**提成侧与顾客指定侧各自独立、互不排斥**——
+      · 提成侧按工位 = **工位多选**（可点掉、可全不选）；不分工位 =「提成」单卡可点掉；
       · 「顾客指定」：独立勾选，**不要求先有工位/提成** —— 只勾它也能单独分配（只发顾客指定提成）；
-      · 两侧**都不勾** = 该员工未选（唯一被取消的路径）。 */
+      · 两侧**都不勾** = 该员工未选（唯一被取消的路径）。
+      加第二个工位需**再展开**卡片点选（每次点选项卡都立刻收起，见确认 3B/4B）。 */
   function spApplyOptionToggle(sid, key) {
     if (!sid || !key) return;
     spEnsureState();
@@ -3727,19 +3827,35 @@
       return;
     }
 
-    /* 提成侧（工位 / 不分工位的「提成」卡）：单选且可点掉 */
+    if (opt.kind === 'plain') {
+      /* 不分工位「提成」卡：仍为单卡开关 */
+      if (checked) {
+        spSetRoles(sid, []);
+        if (row.staffExtra[sid] !== true) spDropStaff(sid);
+      } else {
+        spSetRoles(sid, [SP_PICK_AVG]);
+        spSelectStaff(sid);
+      }
+      spApplyEdit(null);
+      return;
+    }
+
+    /* 按工位：多选；再点已勾选 = 取消该工位；点新工位 = 追加（旧勾保留，无红色交接） */
+    var roles = spRolesOf(sid);
     if (checked) {
-      delete row.staffRoles[sid];
-      /* 还有「顾客指定」→ 员工仍已选（摘要「无工位 · 顾客指定」）；否则该员工没有任何选择 → 取消 */
-      if (row.staffExtra[sid] !== true) spDropStaff(sid);
+      roles = roles.filter(function (r) { return r !== key; });
+      spSetRoles(sid, roles);
+      if (!roles.length && row.staffExtra[sid] !== true) spDropStaff(sid);
     } else {
-      row.staffRoles[sid] = (opt.kind === 'plain') ? SP_PICK_AVG : key;
+      roles.push(key);
+      spSetRoles(sid, roles);
       spSelectStaff(sid);
     }
     spApplyEdit(null);
   }
 
-  /** 点展开态选项卡：勾选 / 取消勾选（再点已勾选的工位 = 取消该工位）；收起等勾选动效**真正播完**才发生 */
+  /** 点展开态选项卡：勾选 / 取消勾选；收起等勾选动效**真正播完**才发生。
+      二十五次起工位**多选**——点新工位只播该卡正向画勾，**不再**对旧工位做「红色交接」反序。 */
   function spTapOption(sid, key) {
     if (!sid || !key) return;
     if (!spState.edit || spState.edit.staffId !== sid) return;
@@ -3747,22 +3863,6 @@
     var opt = spOptionByKey(key);
     if (!opt) return;
     var checked = spOptionChecked(sid, opt);
-    /* 切换工位：**并行「红色交接」**（q3 / q7-C）——
-       新卡立刻变红 + 画勾（正向 170ms）；**同时**旧卡整卡红色快速淡出 + 勾反序收回（反向 85ms）；
-       落定取较长者（= 正向 170ms）。**不要**再串行成 spUncheckMs() + spCheckMs()（255ms），
-       那样旧卡红先淡、新卡才画勾，观感断成两截。
-       注：点**已勾选**的同一张工位卡 = 取消该工位（不再抖动提醒），走下方单轮反向动效；
-           不分工位下的「提成」卡只有一张，不存在工位切换，走单轮 */
-    var prevKey = opt.kind === 'role' ? spState.row.staffRoles[sid] : null;
-    var prevBox = (prevKey && prevKey !== key) ? spOptBoxEl(sid, prevKey) : null;
-    if (prevBox) {
-      var nextBox = spOptBoxEl(sid, key);
-      spPlayCheck(prevBox, false);                   /* 旧卡：红色 85ms 淡出 + 收勾 */
-      spPlayCheck(nextBox, true);                    /* 新卡：立刻变红 + 画勾（170ms） */
-      spGateAfter([prevBox, nextBox], function () { spApplyOptionToggle(sid, key); },
-        Math.max(spCheckMs(), spUncheckMs()));
-      return;
-    }
     /* 单轮：勾选按正向时长（170ms）、取消按反向时长（85ms）——取消时整卡红色同步淡出 */
     spPlayCheck(spOptBoxEl(sid, key), !checked);
     spGateAfter(spOptBoxEl(sid, key), function () { spApplyOptionToggle(sid, key); }, spCheckMsFor(!checked));
@@ -3776,7 +3876,7 @@
     spEnsureState();
     if (spStaffIsChosen(sid)) { spRemoveStaff(sid); return; }
     spState.row.staffExtra[sid] = false;
-    spState.row.staffRoles[sid] = SP_PICK_AVG;
+    spSetRoles(sid, [SP_PICK_AVG]);
     spSelectStaff(sid);
     spState.edit = null;
     spHaptic();
@@ -3979,8 +4079,8 @@
     if (!needS && !needE) return '可多选员工；点卡片即完成选择。';
     if (!needS && needE) return '可多选员工；点卡片后勾选「提成」「顾客指定」（两者可同时勾选、提成叠加），' +
       '只勾「顾客指定」也可单独分配；点选后即收起。';
-    if (needS && !needE) return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位单选、点选后即收起，再点已勾选工位即取消。';
-    return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位单选、点选后即收起，再点已勾选工位即取消；' +
+    if (needS && !needE) return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位可多选、点选后即收起，再点已勾选工位即取消；加选其它工位需再次展开。';
+    return '可多选员工；点卡片后勾选工位（' + spStationLabelsJoined() + '），工位可多选、点选后即收起，再点已勾选工位即取消；加选其它工位需再次展开；' +
       '「顾客指定」可与任一工位同时勾选（提成叠加），也可以不选工位单独分配「顾客指定」——' +
       '此种情况只发顾客指定提成。';
   }

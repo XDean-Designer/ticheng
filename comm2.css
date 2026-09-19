@@ -1198,9 +1198,9 @@
 .comm2-staff-sheet__body .detail-item__staff-block { margin: 0; }
 .comm2-staff-sheet__body .detail-item__panel-row--staff-head { display: none; }
 .add-card-staff-sheet__hint { margin: 0 16px 10px; font-size: 12px; line-height: 1.45; color: var(--text-sec); }
-/* 预留两行卡片高度，重绘时空档不塌陷 */
+/* 预留两行卡片高度，重绘时空档不塌陷（摘要最多 3 行：大工·中工 / 小工 / 顾客指定） */
 #comm2StaffSheetMask .staff-grid {
-  min-height: calc(96px * 2 + 10px + 14px);
+  min-height: calc(128px * 2 + 10px + 14px);
 }
 .detail-item__staff-block { border-bottom: none; position: relative; }
 .staff-card-scrim {
@@ -1221,7 +1221,7 @@
 .staff-grid.is-morphing > .staff-card { justify-self: start; align-self: start; }
 .staff-card {
   position: relative;
-  min-height: 96px;
+  min-height: 128px;
   width: 100%;
   box-sizing: border-box;
   z-index: 1;
@@ -1236,7 +1236,7 @@
   position: relative;
   box-sizing: border-box;
   width: 100%;
-  min-height: 96px;
+  min-height: 128px;
   padding: 10px 8px 8px;
   border-radius: 12px;
   background: #fff;
@@ -1268,8 +1268,8 @@
   position: relative;
   z-index: 1;                 /* 压在收起动画的「下层头像卡面」之上（后者 z-index: 0） */
   width: 100%;
-  min-height: 96px;
-  height: 96px;
+  min-height: 128px;
+  height: 128px;
   padding: 0;
   gap: 0;
   border: none;
@@ -1448,10 +1448,25 @@
   text-align: center; max-width: 100%;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
+/* 选人摘要区：预留最多 3 行（三工位拆两行 + 顾客指定）；单行垂直居中；行内不省略 */
 .staff-card__title--pick {
   font-size: 11px; font-weight: 600; color: var(--brand);
   letter-spacing: .01em;
+  min-height: 3.6em;
+  height: auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  white-space: normal; overflow: visible; text-overflow: unset;
+  line-height: 1.2;
   animation: staffMetaIn .36s cubic-bezier(.22,.82,.24,1);
+}
+.staff-card__pick-stack {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 1px; width: 100%;
+}
+.staff-card__pick-line {
+  max-width: 100%;
+  overflow: visible; text-overflow: unset; white-space: nowrap;
+  line-height: 1.2; text-align: center;
 }
 /* 「只勾顾客指定、没选工位/提成」的合法状态（十七次起计入已选，只发顾客指定提成；
    十八次起卡片第三行**只画红字「顾客指定」**，不再前置灰字「无工位」） */
