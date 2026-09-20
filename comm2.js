@@ -1563,7 +1563,8 @@
     recalcState.sch = sch;
     recalcState.before = before;
     recalcState.scope = COMM2_EFFECTIVE_DEFAULT;
-    $('comm2RecalcTitle').textContent = '改「' + sch.name + '」后，提成怎么算？';
+    /* 三十次：标题**固定文案**，不再拼方案名（店家已从编辑页知道自己改的是哪个方案，
+       标题里重复一遍方案名只会让长名称挤成两行） */
     recalcSyncUi();
     openDialog('comm2RecalcMask');
   }
