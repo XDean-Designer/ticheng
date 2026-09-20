@@ -10426,16 +10426,6 @@
     getCurrentPeriodInfo: function () {
       return this.getPeriodInfo(getPeriodContaining(new Date()));
     },
-    /* 二十六次：本期「已算好」的提成行数（改动重算弹窗的影响面；`pending` 待确认不计入） */
-    countEffectiveCommLines: function (staffIds) {
-      var ids = Array.isArray(staffIds) ? staffIds : [];
-      var n = 0;
-      ids.forEach(function (sid) {
-        if (!staffById(sid)) return;
-        getCommLines(sid).forEach(function (ln) { if (ln.status === 'effective') n++; });
-      });
-      return n;
-    },
     invalidateCommLineCache: invalidateCommLineCache,
     syncStaffSchemeFromComm2: syncStaffSchemeFromComm2,
     resetSchemePickSheetChrome: resetSchemePickSheetChrome,

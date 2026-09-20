@@ -414,10 +414,15 @@
       'comm2-sheet-help-pick': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 300), click('#comm2CatSheetBody [data-comm2-sheet-help="pick"]', 320)],
       /* 二十六次：改动重算 —— 改「计算基数」后保存（影响金额）→ 弹「本期提成怎么算」 */
       'comm2-recalc': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-base="paid"]', 260), click('#comm2BtnSave', 460)],
-      /* 选「本期先不动，下期再用新方案」并确定 → 回列表，方案卡带「下期生效」角标 */
+      /* 选「本期不动，下期再换」→ 回列表，方案卡带「下期生效」角标 */
       'comm2-recalc-next': [
         openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-base="paid"]', 260), click('#comm2BtnSave', 460),
-        click('#comm2RecalcOpts [data-comm2-recalc="next"]', 220), click('#comm2RecalcOk', 480)
+        click('#comm2RecalcNext', 220)
+      ],
+      /* 打开开关（本期算好的要重算）→ 右按钮文案与开关态 */
+      'comm2-recalc-on': [
+        openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-base="paid"]', 260), click('#comm2BtnSave', 460),
+        click('#comm2RecalcToggle', 220)
       ],
 
       /* 关联页面 · 选择服务员工 */

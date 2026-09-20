@@ -1364,6 +1364,10 @@
   }
 
   function openList() {
+    /* 二十八次②：任何回到列表的路径（返回按钮 / 顶部导航 / 程序化调用）都汇到这里。
+       若重算弹窗还悬着没回答，先按默认口径落库 —— 否则下面的 `_draft` / `_snapshot` 会被清掉，
+       等于把用户已经点过「保存」的改动静默丢弃。兜底函数内部会自己回到列表，故直接返回。 */
+    if (recalcFallbackForward()) return;
     store.editingId = null;
     store._draft = null;
     store._snapshot = null;
@@ -1416,6 +1420,9 @@
   }
 
   function requestComm2Exit() {
+    /* 二十八次②：重算弹窗未回答就点了返回 → 先按默认口径（从现在起用新方案）落库，
+       不再弹「尚未保存」（改动已经保存了，没有未保存内容） */
+    if (recalcFallbackForward()) return;
     if (store._dirty || store._draft) { openDialog('comm2UnsavedMask'); return; }
     leaveComm2Edit();
   }
@@ -1527,62 +1534,78 @@
     return !!sch && (sch.effectiveMode === 'next') && !!sch.effectiveFrom;
   }
 
-  /* ==== 二十六次：改动重算弹窗 ====
+  /* ==== 二十六次：改动重算弹窗（二十八次：三选一 → 「一个开关 + 两个按钮」） ====
      触发：**已分配员工**的方案被改动，且改动**影响金额**（纯改名 / 改分配 不弹）。
-     口径：三个选项都不预置"跳过"，**必须选一项**才能完成保存（遮罩点击 / Esc 均无效）。 */
-  var RECALC_OPTS = ['recalc', 'forward', 'next'];
+     开关：**本期已经算好的提成要不要重算** —— 是 = `recalc`，否 = `forward`（默认关）。
+     左按钮：本期先不动、下期起再用新方案（`next`）。
+     右按钮：按开关的口径**立刻生效**（`recalc` / `forward`）。
+     两个按钮都是「明确决定」，所以**必须点一个**才能完成保存（遮罩点击 / Esc 均无效）。 */
 
-  var recalcState = { sch: null, before: null, mode: COMM2_EFFECTIVE_DEFAULT };
+  var recalcState = { sch: null, before: null, scope: COMM2_EFFECTIVE_DEFAULT };
 
-  function recalcImpactHtml(sch) {
-    var cur = cmCurrentPeriod();
-    var lineN = 0;
-    if (window.EmployeeDemo && typeof window.EmployeeDemo.countEffectiveCommLines === 'function') {
-      try { lineN = window.EmployeeDemo.countEffectiveCommLines(sch.assigneeIds || []); } catch (e) { lineN = 0; }
-    }
-    return '<span class="comm2-recalc__impact-k">本期</span>' +
-      '<span class="comm2-recalc__impact-v">' + esc(cur.range || cur.label) + '</span>' +
-      '<span class="comm2-recalc__impact-sep" aria-hidden="true">·</span>' +
-      '<span class="comm2-recalc__impact-k">已算好</span>' +
-      '<span class="comm2-recalc__impact-v">' + lineN + ' 条</span>';
+  /** 右按钮文案跟随开关：选「是」才是真的重算，选「否」只是从此刻起换新规则 */
+  function recalcNowLabel(scope) {
+    return scope === 'recalc' ? '立即重新计算' : '从现在起用新方案';
   }
 
-  /** 三个选项的文案。区间/期名**动态注入**，让用户看到真实日期而不是抽象描述 */
-  function recalcOptsHtml() {
-    var cur = cmCurrentPeriod();
-    var nxt = cmNextPeriod(cur.key);
-    var title = {
-      recalc: '本期全部重算',
-      forward: '算好的不动，从现在起用新方案',
-      next: '本期先不动，下期再用新方案'
-    };
-    var desc = {
-      recalc: '本期（' + cur.range + '）已经算出来的提成，按新规则重算一遍 —— 金额会变',
-      forward: '之前已经算出来的保持原样；从现在开始的新单子按新规则算',
-      next: '本期（' + cur.range + '）整期还按老规则算，本次发薪不受影响；' + (nxt.label || '下期') + '起用新规则'
-    };
-    return RECALC_OPTS.map(function (mode) {
-      var on = mode === recalcState.mode;
-      return '<button type="button" class="comm2-recalc__opt' + (on ? ' on' : '') + '" data-comm2-recalc="' + mode + '"' +
-        ' role="radio" aria-checked="' + (on ? 'true' : 'false') + '">' +
-        '<span class="comm2-recalc__radio" aria-hidden="true"></span>' +
-        '<span class="comm2-recalc__main">' +
-        '<span class="comm2-recalc__t">' + esc(title[mode]) + '</span>' +
-        '<span class="comm2-recalc__d">' + esc(desc[mode]) + '</span>' +
-        '</span></button>';
-    }).join('');
+  function recalcSyncUi() {
+    var on = recalcState.scope === 'recalc';
+    var sw = $('comm2RecalcToggle');
+    if (sw) {
+      if (on) { sw.classList.add('on'); } else { sw.classList.remove('on'); }
+      sw.setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+    var now = $('comm2RecalcNow');
+    if (now) now.textContent = recalcNowLabel(recalcState.scope);
   }
 
   function openRecalcDialog(sch, before) {
     recalcState.sch = sch;
     recalcState.before = before;
-    recalcState.mode = COMM2_EFFECTIVE_DEFAULT;
-    var staffN = (sch.assigneeIds || []).length;
+    recalcState.scope = COMM2_EFFECTIVE_DEFAULT;
     $('comm2RecalcTitle').textContent = '改「' + sch.name + '」后，提成怎么算？';
-    $('comm2RecalcLead').textContent = '这个方案有 ' + staffN + ' 名员工在用，改动会影响他们本期已经算出来的提成。';
-    $('comm2RecalcImpact').innerHTML = recalcImpactHtml(sch);
-    $('comm2RecalcOpts').innerHTML = recalcOptsHtml();
+    recalcSyncUi();
     openDialog('comm2RecalcMask');
+  }
+
+  /** 点了某个按钮 → 落口径、关弹窗、落库 */
+  function commitRecalcChoice(mode) {
+    var sch = recalcState.sch;
+    var before = recalcState.before;
+    clearRecalcPending();
+    if (!sch) { closeDialog('comm2RecalcMask'); return; }
+    applyEffectiveChoice(sch, mode, before);
+    closeDialog('comm2RecalcMask');
+    commitSchemeSave();
+  }
+
+  function clearRecalcPending() { recalcState.sch = null; recalcState.before = null; }
+
+  /**
+   * 二十八次②：弹窗**未选择就消失**时的兜底 —— 一律按 `forward`（从现在起用新方案）落库。
+   *
+   * 为什么必须是 forward：用户**已经点过「保存」**（改动意图已表达），只是没回答「本期怎么算」。
+   * 此时既不能把改动丢掉（等于吞掉用户的编辑），也不能默认 recalc（会动已经发出的账）。
+   * `forward` 是唯一「改动保住 + 已算好的账不动」的口径 —— 也就是弹窗默认态的那个选择。
+   *
+   * 覆盖的退出路径（PRD §6.13.8）：
+   *   ① 关闭 / 刷新页面（`pagehide` / `beforeunload`）
+   *   ② 返回按钮（`requestComm2Exit`）
+   *   ③ 任何回到列表的路径（`openList` —— 返回按钮、顶部导航、程序化调用都汇到这里）
+   *
+   * 注意：原型无持久化（无 localStorage），① 在原型里只体现为「契约」。真实产品须由
+   * **服务端**保证同一语义 —— 请求里没带 `effectiveMode` 时按 `forward` 落库。
+   */
+  function recalcFallbackForward() {
+    if (!recalcState || !recalcState.sch) return false;
+    var sch = recalcState.sch;
+    var before = recalcState.before;
+    clearRecalcPending();
+    applyEffectiveChoice(sch, COMM2_EFFECTIVE_DEFAULT, before);
+    closeDialog('comm2RecalcMask');
+    commitSchemeSave();
+    toast('已按「从现在起用新方案」保存');
+    return true;
   }
 
   /** 把用户选的口径落到方案上：`_prev` 存**改动前**的规则快照 */
@@ -3119,22 +3142,18 @@
       commitSchemeSave();
     });
 
-    /* 二十六次：改动重算弹窗 —— 点选即换（不关闭），「确定」才落库；遮罩/Esc 一律无效 */
-    $('comm2RecalcOpts') && $('comm2RecalcOpts').addEventListener('click', function (e) {
-      var hit = e.target.closest('[data-comm2-recalc]');
-      if (!hit) return;
-      recalcState.mode = hit.getAttribute('data-comm2-recalc');
-      $('comm2RecalcOpts').innerHTML = recalcOptsHtml();
+    /* 二十八次：改动重算弹窗 —— 开关切换不关闭；两个按钮各自落一种口径；遮罩/Esc 一律无效 */
+    $('comm2RecalcToggle') && $('comm2RecalcToggle').addEventListener('click', function () {
+      recalcState.scope = (recalcState.scope === 'recalc') ? 'forward' : 'recalc';
+      recalcSyncUi();
     });
-    $('comm2RecalcOk') && $('comm2RecalcOk').addEventListener('click', function () {
-      var sch = recalcState.sch;
-      if (!sch) { closeDialog('comm2RecalcMask'); return; }
-      applyEffectiveChoice(sch, recalcState.mode, recalcState.before);
-      closeDialog('comm2RecalcMask');
-      recalcState.sch = null;
-      recalcState.before = null;
-      commitSchemeSave();
-    });
+    $('comm2RecalcNext') && $('comm2RecalcNext').addEventListener('click', function () { commitRecalcChoice('next'); });
+    $('comm2RecalcNow') && $('comm2RecalcNow').addEventListener('click', function () { commitRecalcChoice(recalcState.scope); });
+
+    /* 二十八次②：弹窗未回答就离开页面（关闭 / 刷新 / 崩溃前的 pagehide）→ 默认「从现在起用新方案」。
+       原型无持久化，这两条在原型里是**契约**：真实产品由服务端保证「请求没带 effectiveMode → forward」。 */
+    window.addEventListener('pagehide', recalcFallbackForward);
+    window.addEventListener('beforeunload', recalcFallbackForward);
 
     $('comm2EditCards') && $('comm2EditCards').addEventListener('click', function (e) {
       var swipeDel = e.target.closest('[data-comm2-swipe-del]');
