@@ -612,6 +612,21 @@
     </div>
   </div>
 </div>
+<!-- 二十六次：改动重算 —— 已分配员工的方案被改动且影响金额时，保存前必须选定本期怎么算 -->
+<div class="dialog-mask" id="comm2RecalcMask">
+  <div class="dialog dialog--recalc" role="dialog" aria-modal="true" aria-labelledby="comm2RecalcTitle">
+    <div class="dialog__title" id="comm2RecalcTitle">改「方案名」后，提成怎么算？</div>
+    <div class="dialog__scroll comm2-recalc__body">
+      <p class="comm2-recalc__lead" id="comm2RecalcLead"></p>
+      <div class="comm2-recalc__impact" id="comm2RecalcImpact"></div>
+      <div class="comm2-recalc__opts" id="comm2RecalcOpts" role="radiogroup" aria-label="本期提成怎么算"></div>
+      <p class="comm2-recalc__note">已经手工调整过的单子，金额不受影响。</p>
+    </div>
+    <div class="dialog__actions dialog__actions--single">
+      <button type="button" class="btn-main" id="comm2RecalcOk">确定</button>
+    </div>
+  </div>
+</div>
 <div class="dialog-mask" id="comm2OverrideDelMask">
   <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="comm2OverrideDelTitle">
     <div class="dialog__title" id="comm2OverrideDelTitle">确认删除该规则项？</div>

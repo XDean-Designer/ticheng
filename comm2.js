@@ -861,6 +861,8 @@
         '<span class="emp-comm-card__icon" aria-hidden="true"><img src="assets/workbench/commission.png" alt="" width="40" height="40"></span>' +
         '<span class="emp-comm-card__title-wrap">' +
         '<span class="emp-comm-card__name">' + esc(s.name) + '</span>' +
+        /* 二十六次：本期仍按老规则跑 → 卡上明确标出「下期生效」，避免用户以为改动没生效 */
+        (schemePendingNext(s) ? '<span class="comm2-scheme__badge">下期生效</span>' : '') +
         '</span></div></div></button>' +
         '<button type="button" class="emp-comm-card__assign" data-comm2-assign="' + esc(s.id) + '">' +
         '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + assignChev + '</span></button>' +
@@ -1418,6 +1420,200 @@
     leaveComm2Edit();
   }
 
+  /* ==== 二十六次：方案改动 → 本期提成是否重算（生效口径） ====
+
+     规则：**已分配员工**的方案被改动（且改动**影响金额**）时，必须让用户明确选择本期怎么算。
+
+     三种口径（详见 PRD §6.13）：
+       recalc  = 本期全按新方案重算（本期已算好的行也重算；**人工改过的值仍保留**）
+       forward = 算好的不动，从改动时刻起用新方案（**默认**）
+       next    = 本期整期仍按老规则，下个结算周期起用新方案
+
+     落地方式：
+       · 方案本体存**新**规则；
+       · 改动前的规则快照存 `sch._prev`（仅金额相关字段）；
+       · `sch.effectiveMode` / `effectiveAt`（分界日，forward/recalc 用）/ `effectiveFrom`（生效期 key，next 用）。
+
+     解析：`schForLine(sch, periodKey, ymd)` 返回该行应当使用的**规则集载体** ——
+     可能是方案本身（用新规则），也可能是套了 `_prev` 口径的影子对象（用老规则）。
+     试算链路（calcStaffTrial → schemeLineAmount）只需换掉传入的方案对象，其余逻辑零改动。
+  */
+  var COMM2_EFFECTIVE_DEFAULT = 'forward';
+  var COMM2_EFFECTIVE_LABEL = { recalc: '本期重算', forward: '往新算', next: '下期生效' };
+
+  /** 薪资侧「期」信息（跨模块读取；缺失时退化为自然月，保证 comm2 单独打开不报错） */
+  function cmPeriodInfo(key) {
+    var api = window.EmployeeDemo;
+    if (api && typeof api.getPeriodInfo === 'function') {
+      try { return api.getPeriodInfo(key); } catch (e) { /* fall through */ }
+    }
+    var k = String(key || '').slice(0, 10);
+    return { key: key, label: key || '', range: '', start: k, end: k };
+  }
+  function cmCurrentPeriod() {
+    var api = window.EmployeeDemo;
+    if (api && typeof api.getCurrentPeriodInfo === 'function') {
+      try { return api.getCurrentPeriodInfo(); } catch (e) { /* fall through */ }
+    }
+    return cmPeriodInfo(String(new Date().toISOString().slice(0, 10)));
+  }
+  function cmNextPeriod(key) {
+    var api = window.EmployeeDemo;
+    if (api && typeof api.nextPeriodInfo === 'function') {
+      try { return api.nextPeriodInfo(key); } catch (e) { /* fall through */ }
+    }
+    return cmPeriodInfo(key);
+  }
+  function cmToday() { return new Date().toISOString().slice(0, 10); }
+
+  /** 方案「影响金额」的字段指纹 —— 纯改名 / 改分配 / 改生效口径 都不算改动 */
+  function schemeMoneyFingerprint(sch) {
+    if (!sch) return '';
+    normalizeScheme(sch);
+    return JSON.stringify({
+      defaults: sch.defaults,
+      overrides: (sch.overrides || []).map(function (o) {
+        return { targets: o.targets, payScope: o.payScope, baseMode: o.baseMode, pickMode: o.pickMode, rule: o.rule };
+      }),
+      stationIds: sch.stationIds,
+      stationLabels: sch.stationLabels
+    });
+  }
+  /** 改动是否**影响金额**（before/after 任一为空的场景一律视为有改动，宁可多问一次） */
+  function schemeMoneyChanged(before, after) {
+    if (!before || !after) return true;
+    return schemeMoneyFingerprint(before) !== schemeMoneyFingerprint(after);
+  }
+
+  /** 从方案里抽出「规则集快照」（只留金额相关字段） */
+  function schemeRuleSnapshot(sch) {
+    if (!sch) return null;
+    normalizeScheme(sch);
+    return {
+      defaults: JSON.parse(JSON.stringify(sch.defaults)),
+      overrides: JSON.parse(JSON.stringify(sch.overrides || [])),
+      stationIds: (sch.stationIds || []).slice(),
+      stationLabels: JSON.parse(JSON.stringify(sch.stationLabels || {}))
+    };
+  }
+
+  /** 该行应使用的规则集载体：老口径期间返回套了 `_prev` 的影子对象，其余返回方案本身 */
+  function schForLine(sch, periodKey, ymd) {
+    if (!sch) return sch;
+    var prev = sch._prev;
+    if (!prev) return sch;
+    var mode = sch.effectiveMode || COMM2_EFFECTIVE_DEFAULT;
+    var useOld = false;
+    if (mode === 'recalc') {
+      useOld = false;                                   /* 立即生效：本期也走新规则 */
+    } else if (mode === 'next') {
+      var from = sch.effectiveFrom;
+      useOld = !!from && cmPeriodInfo(periodKey).end < cmPeriodInfo(from).end;
+    } else {
+      var at = sch.effectiveAt;
+      useOld = !!at && String(ymd || '').slice(0, 10) < at;
+    }
+    if (!useOld) return sch;
+    return Object.assign({}, sch, {
+      defaults: prev.defaults,
+      overrides: prev.overrides,
+      stationIds: prev.stationIds || sch.stationIds,
+      stationLabels: prev.stationLabels || sch.stationLabels
+    });
+  }
+
+  /** 方案是否处于「下期生效」状态（列表页角标用） */
+  function schemePendingNext(sch) {
+    return !!sch && (sch.effectiveMode === 'next') && !!sch.effectiveFrom;
+  }
+
+  /* ==== 二十六次：改动重算弹窗 ====
+     触发：**已分配员工**的方案被改动，且改动**影响金额**（纯改名 / 改分配 不弹）。
+     口径：三个选项都不预置"跳过"，**必须选一项**才能完成保存（遮罩点击 / Esc 均无效）。 */
+  var RECALC_OPTS = ['recalc', 'forward', 'next'];
+
+  var recalcState = { sch: null, before: null, mode: COMM2_EFFECTIVE_DEFAULT };
+
+  function recalcImpactHtml(sch) {
+    var cur = cmCurrentPeriod();
+    var lineN = 0;
+    if (window.EmployeeDemo && typeof window.EmployeeDemo.countEffectiveCommLines === 'function') {
+      try { lineN = window.EmployeeDemo.countEffectiveCommLines(sch.assigneeIds || []); } catch (e) { lineN = 0; }
+    }
+    return '<span class="comm2-recalc__impact-k">本期</span>' +
+      '<span class="comm2-recalc__impact-v">' + esc(cur.range || cur.label) + '</span>' +
+      '<span class="comm2-recalc__impact-sep" aria-hidden="true">·</span>' +
+      '<span class="comm2-recalc__impact-k">已算好</span>' +
+      '<span class="comm2-recalc__impact-v">' + lineN + ' 条</span>';
+  }
+
+  /** 三个选项的文案。区间/期名**动态注入**，让用户看到真实日期而不是抽象描述 */
+  function recalcOptsHtml() {
+    var cur = cmCurrentPeriod();
+    var nxt = cmNextPeriod(cur.key);
+    var title = {
+      recalc: '本期全部重算',
+      forward: '算好的不动，从现在起用新方案',
+      next: '本期先不动，下期再用新方案'
+    };
+    var desc = {
+      recalc: '本期（' + cur.range + '）已经算出来的提成，按新规则重算一遍 —— 金额会变',
+      forward: '之前已经算出来的保持原样；从现在开始的新单子按新规则算',
+      next: '本期（' + cur.range + '）整期还按老规则算，本次发薪不受影响；' + (nxt.label || '下期') + '起用新规则'
+    };
+    return RECALC_OPTS.map(function (mode) {
+      var on = mode === recalcState.mode;
+      return '<button type="button" class="comm2-recalc__opt' + (on ? ' on' : '') + '" data-comm2-recalc="' + mode + '"' +
+        ' role="radio" aria-checked="' + (on ? 'true' : 'false') + '">' +
+        '<span class="comm2-recalc__radio" aria-hidden="true"></span>' +
+        '<span class="comm2-recalc__main">' +
+        '<span class="comm2-recalc__t">' + esc(title[mode]) + '</span>' +
+        '<span class="comm2-recalc__d">' + esc(desc[mode]) + '</span>' +
+        '</span></button>';
+    }).join('');
+  }
+
+  function openRecalcDialog(sch, before) {
+    recalcState.sch = sch;
+    recalcState.before = before;
+    recalcState.mode = COMM2_EFFECTIVE_DEFAULT;
+    var staffN = (sch.assigneeIds || []).length;
+    $('comm2RecalcTitle').textContent = '改「' + sch.name + '」后，提成怎么算？';
+    $('comm2RecalcLead').textContent = '这个方案有 ' + staffN + ' 名员工在用，改动会影响他们本期已经算出来的提成。';
+    $('comm2RecalcImpact').innerHTML = recalcImpactHtml(sch);
+    $('comm2RecalcOpts').innerHTML = recalcOptsHtml();
+    openDialog('comm2RecalcMask');
+  }
+
+  /** 把用户选的口径落到方案上：`_prev` 存**改动前**的规则快照 */
+  function applyEffectiveChoice(sch, mode, before) {
+    sch._prev = schemeRuleSnapshot(before);
+    sch.effectiveMode = mode;
+    if (mode === 'next') {
+      sch.effectiveFrom = cmNextPeriod(cmCurrentPeriod().key).key;
+      sch.effectiveAt = '';
+    } else {
+      sch.effectiveFrom = '';
+      sch.effectiveAt = cmToday();
+    }
+  }
+
+  /** 保存落库（弹窗选定后、或无需询问时走这里） */
+  function commitSchemeSave() {
+    if (store._draft) {
+      store.schemes.unshift(store._draft);
+      store._draft = null;
+      store._snapshot = null;
+      store._dirty = false;
+    } else {
+      store._snapshot = null;
+      store._dirty = false;
+    }
+    toast('提成方案已保存');
+    if (window.Comm2Demo && window.Comm2Demo.notifySalarySync) window.Comm2Demo.notifySalarySync();
+    openList();
+  }
+
   /* ==== 试算引擎：按行 payScope 过滤 → 多方案候选 → 金额取高（并列按方案列表顺序） ==== */
 
   var COMM2_TRIAL_LINES = [
@@ -1660,13 +1856,15 @@
     };
   }
 
-  function calcStaffTrial(staffId, lines) {
+  function calcStaffTrial(staffId, lines, periodKey) {
     /* schemes 顺序 = store.schemes 列表顺序，并列时先出现者胜出 */
     var schemes = schemesForStaff(staffId);
+    /* 二十六次：按期解析 —— 该行可能仍走方案的**老口径**（`_prev`），由 schForLine 决定 */
+    var pk = periodKey || cmCurrentPeriod().key;
     var rows = (lines || COMM2_TRIAL_LINES).map(function (line) {
       var cands = [];
       schemes.forEach(function (sch, schIdx) {
-        var r = schemeLineAmount(sch, line);
+        var r = schemeLineAmount(schForLine(sch, pk, line.ymd), line);
         if (r.skipped) {
           cands.push({
             schemeId: sch.id, schemeName: sch.name, schemeIndex: schIdx,
@@ -2912,18 +3110,30 @@
       if (badCat) { toast('「' + badCat.label + '」至少选一种支付方式', true); return; }
       var badOv = (sch.overrides || []).find(function (o) { return payScopeCountBlock(o) < 1; });
       if (badOv) { toast((isQuickOverride(badOv) ? '「快捷开单」' : ('覆盖规则「' + (badOv.title || '未命名') + '」')) + '至少选一种支付方式', true); return; }
-      if (store._draft) {
-        store.schemes.unshift(store._draft);
-        store._draft = null;
-        store._snapshot = null;
-        store._dirty = false;
-      } else {
-        store._snapshot = null;
-        store._dirty = false;
+      /* 二十六次：已分配员工 + 改动影响金额 → 先问「本期提成怎么算」，选定后才落库 */
+      var before = (store._snapshot && store._snapshot.id === sch.id) ? store._snapshot : null;
+      if ((sch.assigneeIds || []).length > 0 && before && schemeMoneyChanged(before, sch)) {
+        openRecalcDialog(sch, before);
+        return;
       }
-      toast('提成方案已保存');
-      if (window.Comm2Demo && window.Comm2Demo.notifySalarySync) window.Comm2Demo.notifySalarySync();
-      openList();
+      commitSchemeSave();
+    });
+
+    /* 二十六次：改动重算弹窗 —— 点选即换（不关闭），「确定」才落库；遮罩/Esc 一律无效 */
+    $('comm2RecalcOpts') && $('comm2RecalcOpts').addEventListener('click', function (e) {
+      var hit = e.target.closest('[data-comm2-recalc]');
+      if (!hit) return;
+      recalcState.mode = hit.getAttribute('data-comm2-recalc');
+      $('comm2RecalcOpts').innerHTML = recalcOptsHtml();
+    });
+    $('comm2RecalcOk') && $('comm2RecalcOk').addEventListener('click', function () {
+      var sch = recalcState.sch;
+      if (!sch) { closeDialog('comm2RecalcMask'); return; }
+      applyEffectiveChoice(sch, recalcState.mode, recalcState.before);
+      closeDialog('comm2RecalcMask');
+      recalcState.sch = null;
+      recalcState.before = null;
+      commitSchemeSave();
     });
 
     $('comm2EditCards') && $('comm2EditCards').addEventListener('click', function (e) {

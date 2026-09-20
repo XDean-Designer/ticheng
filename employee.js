@@ -3493,7 +3493,7 @@
     if (!window._ladderAllocCache) window._ladderAllocCache = {};
     var C = window.Comm2Demo;
     var trialPayload = lines.map(function (ln) {
-      return ln._trial || {
+      var base = ln._trial || {
         id: ln.comm2TrialId,
         name: ln.name,
         cat: ln.kind === 'product' ? 'sales' : (ln.kind === 'card' || ln.kind === 'issue' ? 'issue' : (ln.kind === 'recharge' ? 'card' : 'labor')),
@@ -3505,9 +3505,11 @@
         designated: true,
         sign: ln.channel === '经理签单'
       };
+      /* 二十六次：带上日期 —— `forward` 口径按「改动时刻」切分老/新规则 */
+      return Object.assign({}, base, { ymd: ln.ymd });
     });
     var trial = (C && typeof C.calcStaffTrial === 'function')
-      ? C.calcStaffTrial(staffId, trialPayload)
+      ? C.calcStaffTrial(staffId, trialPayload, state.salaryMonth)
       : null;
     if (!window._ladderAllocCache) window._ladderAllocCache = {};
     if (!trial) {
@@ -10405,6 +10407,35 @@
     getAchCalcMode: getAchCalcMode,
     getStationLabel: getStationLabel,
     getStationLabels: getStationLabels,
+    /* 二十六次：供提成设置侧读取结算周期口径（改动重算弹窗的「本期 / 下期」区间与名称） */
+    getPeriodInfo: function (key) {
+      var k = key || state.salaryMonth;
+      return {
+        key: k,
+        label: periodLabel(k),
+        range: periodRangeText(k),
+        start: periodParts(k).start,
+        end: periodParts(k).end
+      };
+    },
+    nextPeriodInfo: function (key) {
+      return this.getPeriodInfo(shiftPeriod(key || state.salaryMonth, 1));
+    },
+    /* 二十六次：**当前结算周期** = 含今天的那一期（与「正在查看的期」区分开 ——
+       用户可把月份 pill 切到过去某期，但改动重算问的是当下这一期） */
+    getCurrentPeriodInfo: function () {
+      return this.getPeriodInfo(getPeriodContaining(new Date()));
+    },
+    /* 二十六次：本期「已算好」的提成行数（改动重算弹窗的影响面；`pending` 待确认不计入） */
+    countEffectiveCommLines: function (staffIds) {
+      var ids = Array.isArray(staffIds) ? staffIds : [];
+      var n = 0;
+      ids.forEach(function (sid) {
+        if (!staffById(sid)) return;
+        getCommLines(sid).forEach(function (ln) { if (ln.status === 'effective') n++; });
+      });
+      return n;
+    },
     invalidateCommLineCache: invalidateCommLineCache,
     syncStaffSchemeFromComm2: syncStaffSchemeFromComm2,
     resetSchemePickSheetChrome: resetSchemePickSheetChrome,

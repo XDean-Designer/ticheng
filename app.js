@@ -412,6 +412,13 @@
       /* 规则设置 Sheet 行标签后的 ⓘ：计算基数说明 / 分配模式说明（弹窗浮在 Sheet 之上，Sheet 不关） */
       'comm2-sheet-help-base': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 300), click('#comm2CatSheetBody [data-comm2-sheet-help="base"]', 320)],
       'comm2-sheet-help-pick': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-open]', 300), click('#comm2CatSheetBody [data-comm2-sheet-help="pick"]', 320)],
+      /* 二十六次：改动重算 —— 改「计算基数」后保存（影响金额）→ 弹「本期提成怎么算」 */
+      'comm2-recalc': [openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-base="paid"]', 260), click('#comm2BtnSave', 460)],
+      /* 选「本期先不动，下期再用新方案」并确定 → 回列表，方案卡带「下期生效」角标 */
+      'comm2-recalc-next': [
+        openFlagshipEdit(), click('#comm2EditCards [data-comm2-card-base="paid"]', 260), click('#comm2BtnSave', 460),
+        click('#comm2RecalcOpts [data-comm2-recalc="next"]', 220), click('#comm2RecalcOk', 480)
+      ],
 
       /* 关联页面 · 选择服务员工 */
       'staff-pick': [go('staff-pick', 80)],
