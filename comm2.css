@@ -1557,8 +1557,8 @@
   margin: 0 0 16px; text-align: left;
 }
 .comm2-recalc__note {
-  display: flex; align-items: flex-start; gap: 6px;
-  margin: 0; font-size: 12px; color: #9A9A9A; line-height: 17px;
+  display: flex; align-items: flex-start; justify-content: center; gap: 6px;
+  margin: 0; font-size: 12px; color: #9A9A9A; line-height: 17px; text-align: center;
 }
 .comm2-recalc__note-ico { display: inline-flex; flex-shrink: 0; margin-top: 1px; color: #B2B2B2; }
 /* 三十一次：两枚按钮**竖排**（各自即一个结果），文案较长故收到 14px 并收紧内边距 */

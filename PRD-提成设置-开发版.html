@@ -259,6 +259,11 @@ tr:nth-child(even) td{background:#fafbfc}
 <td>§6.13.2 · §6.13.3 · §6.13.4 · <strong>§6.13.5（作废）</strong> · §6.13.6 · §6.13.7 · §7.1 · §8 规则 33 · §9.1 · §10.2</td>
 </tr>
 <tr>
+<td>09-20 三十二</td>
+<td><strong>改动重算弹窗提示行改水平居中</strong>：<code>.comm2-recalc__note</code> 加 <code>justify-content: center</code> + <code>text-align: center</code>（图标 + 文字作为<strong>整体</strong>居中）；实测弹窗内容宽 <code>284px</code>、左右留白各 <code>30px</code>、偏离中心 <code>0px</code>、单行不折行</td>
+<td>§6.13.3</td>
+</tr>
+<tr>
 <td>09-20 三十</td>
 <td><strong>重算弹窗标题改为固定文案</strong>：<code>改「{方案名}」后，提成怎么算？</code> → <strong><code>改方案后，提成怎么计算？</code></strong>（不再引用方案名）；删除 <code>openRecalcDialog()</code> 里的动态标题赋值，标题由 <code>index.html</code> 静态承载</td>
 <td>§6.13.3 · §9.1 · §10.2</td>
@@ -2550,6 +2555,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 - 下「<strong>从现在起用新方案</strong>」 → <code>forward</code>：之前算出来的<strong>保持原样</strong>，从现在开始的新单子按新规则算</p>
 <p><strong>为什么改成按钮而不是开关</strong>：只剩两种结果时，开关会多出一层「开关＝什么」的推断 —— 对文化水平有限的店主是纯增负担。按钮把<strong>结果直接写在按钮上</strong>，读一遍就懂，点一下即生效。代价是<strong>没有回退机会</strong>，所以两个结果的措辞必须<strong>各自说清钱会不会变</strong>（见上表）。</p>
 <p><strong>排版细节（竖排）</strong>：<code>.dialog__actions--stack</code>（<code>flex-direction: column</code>、<code>gap: 8px</code>、两枚按钮各自 <code>width: 100%</code>），<strong>次要按钮在上、主按钮在下</strong>（主按钮落在拇指最自然的位置，且与全站 Dialog 的「主按钮收尾」一致）。因文案较长，本弹窗内的按钮收到 <code>font-size: 14px</code> + <code>padding: 0 8px</code>（<code>.dialog--recalc .dialog__actions .btn-main</code>），实测两枚按钮<strong>均不溢出、不折行</strong>（<code>scrollWidth - clientWidth = 0</code>、Range 行框数 = 1）。</p>
+<p><strong>提示行水平居中（三十二次）</strong>：<code>.comm2-recalc__note</code> 加 <code>justify-content: center</code> + <code>text-align: center</code> —— <strong>图标 + 文字作为一个整体居中</strong>（不是只让文字居中而图标留在左侧）。实测弹窗内容宽 <code>284px</code>，提示行左留白 <code>30px</code> / 右留白 <code>30px</code>，<strong>整体偏离中心 <code>0px</code></strong>，单行不折行。</p>
 <p><strong>两枚按钮都是决定性动作</strong>：因此<strong>必须点一个才能完成保存</strong> —— <strong>无取消按钮</strong>，<strong>点遮罩空白与按 Esc 均不关闭</strong>（全仓无通用 outside-close 机制，本弹窗不接线即天然成立）。</p>
 <p><strong>未回答就退出</strong> → 见 §6.13.8（一律兜底为 <code>forward</code>）。</p>
 <h3>6.13.4 数据落地与解析</h3>
