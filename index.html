@@ -612,23 +612,20 @@
     </div>
   </div>
 </div>
-<!-- 二十六次：改动重算 —— 已分配员工的方案被改动且影响金额时，保存前必须选定本期怎么算 -->
+<!-- 二十六次：改动重算 —— 已分配员工的方案被改动且影响金额时，保存前必须选定本期怎么算
+     三十一次：领导拍板取消「本期不动，下期换」→ 只剩两种结果，直接做成两枚按钮（点即生效） -->
 <div class="dialog-mask" id="comm2RecalcMask">
   <div class="dialog dialog--recalc" role="dialog" aria-modal="true" aria-labelledby="comm2RecalcTitle">
     <div class="dialog__title" id="comm2RecalcTitle">改方案后，提成怎么计算？</div>
     <div class="dialog__scroll comm2-recalc__body">
-      <div class="comm2-recalc__row">
-        <span class="comm2-recalc__row-lbl" id="comm2RecalcToggleLbl">本期已经算好的提成，要重新算吗？</span>
-        <button type="button" class="comm2-recalc__switch" id="comm2RecalcToggle" role="switch" aria-checked="false" aria-labelledby="comm2RecalcToggleLbl"></button>
-      </div>
       <p class="comm2-recalc__note">
         <span class="comm2-recalc__note-ico"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.2"/><path d="M8 7.25v4" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="5.2" r="0.85" fill="currentColor"/></svg></span>
         <span>已经手工改过的订单，金额不受影响。</span>
       </p>
     </div>
-    <div class="dialog__actions dialog__actions--row">
-      <button type="button" class="btn-main secondary" id="comm2RecalcNext">本期不动，下期换</button>
-      <button type="button" class="btn-main" id="comm2RecalcNow">立即重新计算</button>
+    <div class="dialog__actions dialog__actions--stack">
+      <button type="button" class="btn-main secondary" id="comm2RecalcAll">本期全部重算</button>
+      <button type="button" class="btn-main" id="comm2RecalcForward">从现在起用新方案</button>
     </div>
   </div>
 </div>

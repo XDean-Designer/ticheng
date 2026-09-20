@@ -10418,9 +10418,6 @@
         end: periodParts(k).end
       };
     },
-    nextPeriodInfo: function (key) {
-      return this.getPeriodInfo(shiftPeriod(key || state.salaryMonth, 1));
-    },
     /* 二十六次：**当前结算周期** = 含今天的那一期（与「正在查看的期」区分开 ——
        用户可把月份 pill 切到过去某期，但改动重算问的是当下这一期） */
     getCurrentPeriodInfo: function () {

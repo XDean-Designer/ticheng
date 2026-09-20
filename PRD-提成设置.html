@@ -185,6 +185,10 @@ tr:nth-child(even) td{background:#fafbfc}
 <td><strong>已分配员工的方案被改动 → 保存前必须选定「本期提成怎么算」（新增 §6.13）</strong>。<strong>① 触发</strong>：方案<strong>已分配 ≥1 名员工</strong>（<code>assigneeIds</code> 非空）且本次改动<strong>影响金额</strong>（<code>defaults</code> / <code>overrides</code> / <code>stationIds</code> / <code>stationLabels</code> 的指纹有变化）时，点「保存」<strong>不直接落库</strong>，先弹 <code>#comm2RecalcMask</code>；<strong>纯改名 / 改分配 / 无改动不弹</strong>（<code>schemeMoneyChanged()</code>）。<strong>② 三种口径</strong>：<code>recalc</code> 本期全按新方案重算（<strong>人工改过的值仍保留</strong>）· <code>forward</code> 算好的不动、从改动时刻起用新方案（<strong>默认选中</strong>）· <code>next</code> 本期整期仍按老规则、下个结算周期起用新方案。<strong>③ 「本期」的正确定义</strong>：= <strong>含今天的那一期</strong>（<code>getPeriodContaining(new Date())</code>），与「正在查看的期」<strong>区分开</strong> —— 月份 pill 可切 ±3 期，但改动重算问的是当下这一期；三个选项说明里的区间/期名<strong>动态注入真实日期</strong>。<strong>④ 数据模型（§7.1 新增 4 字段）</strong>：<code>effectiveMode</code>（<code>recalc</code>/<code>forward</code>/<code>next</code>）· <code>effectiveAt</code>（分界日）· <code>effectiveFrom</code>（生效期 key）· <code>_prev</code>（改动前的规则集快照：<code>defaults</code> / <code>overrides</code> / <code>stationIds</code> / <code>stationLabels</code>）。<strong>⑤ 解析（关键设计）</strong>：新增 <code>schForLine(sch, periodKey, ymd)</code> —— 老口径期间返回<strong>套了 <code>_prev</code> 的影子对象</strong>（<code>Object.assign({}, sch, _prev)</code>），因此试算链路 <code>calcStaffTrial → schemeLineAmount</code> <strong>只需换掉传入的方案对象，其余零改动</strong>（<code>schemeLineAmount</code> / <code>resolveLineBlock</code> / <code>lineRateMeta</code> / <code>lineBaseSide</code> 全部原样复用）；<code>calcStaffTrial(staffId, lines, periodKey)</code> 新增第 3 参，薪资侧 <code>finalizeSeedCommLines</code> 传入 <code>state.salaryMonth</code> 并把每行 <code>ymd</code> 带进 <code>trialPayload</code>。<strong>⑥ 落库与重算</strong>：<code>notifySalarySync()</code> → <code>invalidateCommLineCache()</code> 是<strong>既有能力</strong>（重建本期提成行、先把 <code>commManual</code> / <code>commEditLogs</code> 的行原值搬进 <code>_commManualPreserve</code> 再回填）—— 因此「重算但保护人工值」<strong>无需新增代码</strong>，<code>recalc</code> 只靠 <code>effectiveMode</code> 让本期全部走新规则。<strong>⑦ UI</strong>：居中 Dialog（沿用 ModalPopup 规范 <code>max-width 326px</code>）＝标题「<strong>改方案后，提成怎么计算？</strong>」+ 说明「这个方案有 <strong>N</strong> 名员工在用，改动会影响他们本期已经算出来的提成。」+ <strong>影响面</strong>（本期区间 · 已算好 <strong>M</strong> 条）+ <strong>3 张单选卡</strong>（借用结算周期页 <code>.emp-pay-cycle-opt</code> 的视觉语言，但样式定义在 <code>comm2.css</code> 内，避免 comm2 与 salary 两模块互相依赖）+ 提示「已经手工调整过的单子，金额不受影响。」+ 底部单按钮「确定」。<strong>必须选一项</strong>：<strong>无取消按钮、点遮罩空白与按 Esc 均不关闭</strong>（全仓无通用 outside-close，本弹窗不接线即天然成立）。<strong>⑧ 列表页角标</strong>：<code>next</code> 口径下方案卡加「<strong>下期生效</strong>」（<code>#FFF3E8</code> / <code>#C2701A</code> / <code>11px</code>）—— 本期仍按老规则跑时，明确告知用户改动已存下、下期才生效。<strong>⑨ 文案</strong>（面向文化水平有限的小店主 / 店员，<strong>全篇无「结算周期 / 落地 / 生效口径 / 重算引擎」等术语</strong>）：选项1「<strong>本期全部重算</strong>」/「本期（9.01–9.30）已经算出来的提成，按新规则重算一遍 —— 金额会变」；选项2「<strong>算好的不动，从现在起用新方案</strong>」/「之前已经算出来的保持原样；从现在开始的新单子按新规则算」；选项3「<strong>本期先不动，下期再用新方案</strong>」/「本期（9.01–9.30）整期还按老规则算，本次发薪不受影响；2026年10月起用新规则」。<strong>⑩ 新建抓取路由</strong>：<code>comm2-recalc</code>（改计算基数 → 保存 → 弹窗）与 <code>comm2-recalc-next</code>（再选第 3 项并确定 → 列表页「下期生效」角标）。<strong>实测</strong>（Edge headless 390×880）：新建 <code>_tmp_probe_recalc.mjs</code> <strong>44 项全 PASS</strong> —— 触发（无改动保存不弹 / 改「计算基数」则弹）、形态与文案（标题含方案名、说明含「N 名员工在用」、影响面 2 项、3 张卡、默认 <code>forward</code>、每卡有单选控件、<code>max-width 326px</code>、<code>z-index 50</code>）、必须选一项（遮罩空白 / Esc 均不关）、切换（选中态唯一 + <code>aria-checked</code> 同步）、落库（<code>effectiveMode=next</code> / <code>_prev</code> 2043 字节 / <code>effectiveFrom</code> = 下一期 <code>2026-10</code> / 不写 <code>effectiveAt</code> / 角标「下期生效」）、非金额改动（纯改名不弹）、<strong>三口径计算差异</strong>（两行 1000 元、老 10% / 新 20%：<code>recalc</code> <strong>400</strong>、<code>forward</code> <strong>300</strong>〔改前 100 + 改后 200〕、<code>next</code> <strong>200</strong>；<code>forward</code> 在期内<strong>按日期切分</strong>、<code>recalc</code> 不切分、<strong>无 <code>_prev</code> 的历史方案一律新规则</strong>）；<code>_tmp_smoke.js</code> <strong>ALL PASS</strong>（计提口径无回归）。<strong>⑪ 已知既有欠账（非本次引入）</strong>：<code>_tmp_ui_verify.mjs</code> 的 <code>D7</code> / <code>D12</code> / <code>D13</code> / <code>I2</code> / <code>I3</code> 在 HEAD 上<strong>同样失败</strong> —— 这 5 项是<strong>为「工位三选一 + 换工位替换」写的</strong>，二十五次改多选后未同步（<code>D12</code> 仍断言「切到中工只选中工」），<strong>待与多选口径一并重写</strong>。同步 §6.13（新增）/ §7.1 / §8 规则 33 / §9.1 / §10.2（新增 <code>56o</code> / <code>56o2</code> / <code>56o3</code> / <code>56o4</code>）/ <strong>开发版 PRD</strong>。</td>
 </tr>
 <tr>
+<td>修订（2026-09-20 三十一次）</td>
+<td><strong>改动重算弹窗「三选一 → 两枚按钮即两个结果」（领导拍板取消「本期不动，下期换」）</strong>。<strong>① 口径收敛</strong>：数据侧只剩 <code>recalc</code> / <code>forward</code> 两种（<strong>删除第三口径 <code>next</code></strong>），<code>§6.13.2</code> 由「三种口径」改为「两种口径」，切分粒度只剩「<code>forward</code> 按行日期切分 / <code>recalc</code> 不切分」。<strong>② UI 重做</strong>：删除开关行（<code>#comm2RecalcToggle</code> / <code>#comm2RecalcToggleLbl</code> / <code>.comm2-recalc__row*</code> / <code>.comm2-recalc__switch*</code>）与两枚并排按钮（<code>#comm2RecalcNext</code> / <code>#comm2RecalcNow</code>），改为<strong>两枚竖排按钮</strong> —— 上「<strong>本期全部重算</strong>」（描边次要，落 <code>recalc</code>）、下「<strong>从现在起用新方案</strong>」（品牌主按钮，落 <code>forward</code>），新增容器修饰类 <code>.dialog__actions--stack</code>（<code>base.css</code>：<code>flex-direction: column</code> + 按钮 <code>width: 100%</code>）。实测两枚按钮<strong>均 <code>284px</code> 宽、左缘对齐、不溢出、不折行</strong>。<strong>③ 无间接层</strong>：只剩两个结果时，开关会多出一层「开关＝什么」的推断 —— 按钮把结果直接写在按钮上；<code>recalcNowLabel()</code> / <code>recalcSyncUi()</code> 与 <code>recalcState.scope</code> 随之删除（<code>recalcState</code> 收窄为 <code>{ sch, before }</code>）。<strong>④ 连带清理（不留死代码）</strong>：<code>schForLine()</code> 的 <code>next</code> 分支、<code>cmNextPeriod()</code>、<code>schemePendingNext()</code> 与列表页「下期生效」角标（<code>comm2.js</code> 渲染分支 + <code>.comm2-scheme__badge</code> 样式整段删）、<code>COMM2_EFFECTIVE_LABEL</code>（本就没用）、<code>applyEffectiveChoice()</code> 的 <code>effectiveFrom</code> 写入、<code>EmployeeDemo.nextPeriodInfo()</code>（已无调用方）、<code>#comm2RecalcRow</code> 相关 DOM —— 全部删除；<code>§6.13.5</code> <strong>整节作废</strong>；<code>§7.1</code> 字段由 4 个收为 <strong>3 个</strong>（<code>effectiveMode</code> / <code>effectiveAt</code> / <code>_prev</code>）。<strong>⑤ 保留不变</strong>：触发条件（已分配员工 + 影响金额）、<code>_prev</code> 快照与 <code>schForLine</code> 影子对象、人工修正恒优先、「本期 = 含今天那一期」的口径来源、<strong>必须点一个</strong>（无取消、遮罩与 Esc 均不关闭）、<strong>未回答就退出仍兜底 <code>forward</code> + toast</strong>（见 §6.13.8）。<strong>⑥ 新增备案</strong>：<code>§6.13.7</code> 增「点错按钮<strong>无撤销入口</strong>」一行 —— 这是「按钮即结果」的固有代价，挽救路径 = 再改一个金额字段保存、<strong>会再次弹窗</strong>重选。<strong>⑦ 抓取路由</strong>：<code>comm2-recalc-next</code> / <code>comm2-recalc-on</code> → <strong><code>comm2-recalc-all</code></strong>（点上按钮）+ <strong><code>comm2-recalc-forward</code></strong>（点下按钮）。<strong>实测</strong>：重写 <code>_tmp_probe_recalc.mjs</code> <strong>62 项全 PASS</strong>（形态 19 项含「开关节点与样式全零残留」「column 竖排 / 等宽对齐 / 撑满 / 不溢出 / 不折行」「字段里不再有 <code>effectiveFrom</code>」；两按钮各落各的口径；<code>recalc</code> 400 / <code>forward</code> 300；兜底三条路径 + 幂等 + 两按钮不被兜底二次触发）。<strong>⑧ 文案与术语</strong>：<code>§9.1</code> 文案清单改写；<code>§10.2</code> 改写 <code>56o2</code> / <code>56o3</code> / <code>56o4</code> / <code>56o5</code> / <code>56o7</code>；<code>§8</code> 规则 33 与 <code>62</code> 处「本期」口径说明同步。同步 <strong>§6.13.2 / §6.13.3 / §6.13.4 / §6.13.5（作废）/ §6.13.6 / §6.13.7 / §7.1 / §8 规则 33 / §9.1 / §10.2 / 开发版 PRD</strong>。</td>
+</tr>
+<tr>
 <td>修订（2026-09-20 三十次）</td>
 <td><strong>重算弹窗标题改为固定文案</strong>：<code>改「{方案名}」后，提成怎么算？</code> → <strong><code>改方案后，提成怎么计算？</code></strong> —— 标题<strong>不再引用方案名</strong>（店家在编辑页里本就知道自己改的是哪个方案，标题重复一遍方案名只会让长名称挤成两行）；<code>openRecalcDialog()</code> 里对应的动态赋值整行删除，标题直接由 <code>index.html</code> 静态承载（<code>#comm2RecalcTitle</code>）。同步 §6.13.3（表格首行改为「标题（<strong>固定</strong>，不引用方案名）」）/ §9.1 / §10.2（改写 <code>56o2</code>）/ 开发版 PRD。</td>
 </tr>
@@ -3114,7 +3118,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tbody>
 </table>
 <p><strong>不弹的情形</strong>（③ 仍成立但 ② 为假）：<strong>纯改名</strong>、<strong>改员工分配</strong>、<strong>未改任何字段</strong>的重复保存。这三类保存一律直接落库 + toast，不打扰用户。</p>
-<h3>6.13.2 三种口径</h3>
+<h3>6.13.2 两种口径（三十一次：取消「下期生效」）</h3>
 <table>
 <thead>
 <tr>
@@ -3143,22 +3147,18 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <td><strong>新规则</strong></td>
 <td>新规则</td>
 </tr>
-<tr>
-<td><strong>本期先不动，下期再用新方案</strong></td>
-<td><code>next</code></td>
-<td>本期马上要发薪、不想再变</td>
-<td>保持原样（老规则）</td>
-<td><strong>老规则</strong></td>
-<td><strong>新规则</strong></td>
-</tr>
 </tbody>
 </table>
-<p><strong>切分依据</strong>：<code>forward</code> 按<strong>行的日期</strong>（<code>ymd</code>）与 <code>effectiveAt</code>（= 保存当天）比较 —— 同一期内<strong>会切分</strong>（改前的老规则、改后的新规则各算各的）；<code>next</code> 按<strong>期</strong>比较（该期结束日 &lt; <code>effectiveFrom</code> 期结束日 → 该期整期走老规则，不切分）；<code>recalc</code> <strong>不切分</strong>，整期新规则。</p>
-<p><strong>三种口径 ↔ 弹窗控件的对应（二十八次）</strong>：<code>recalc</code> / <code>forward</code> 由<strong>开关 + 右按钮</strong>产生（开关开 = <code>recalc</code>，开关关 = <code>forward</code>），<code>next</code> 由<strong>左按钮</strong>独立产生。三者是<strong>数据侧的三种口径</strong>，弹窗只是把其中两种归到同一个按钮上、用开关区分范围 —— 数据模型与解析逻辑不因 UI 改版而改变。</p>
+<p><strong>切分依据</strong>：<code>forward</code> 按<strong>行的日期</strong>（<code>ymd</code>）与 <code>effectiveAt</code>（= 保存当天）比较 —— 同一期内<strong>会切分</strong>（改前的老规则、改后的新规则各算各的）；<code>recalc</code> <strong>不切分</strong>，整期新规则。</p>
+<p><strong>两种口径 ↔ 弹窗控件一一对应（三十一次）</strong>：弹窗里<strong>两枚按钮就是两个结果</strong> —— 上按钮 = <code>recalc</code>，下按钮 = <code>forward</code>。不再有开关、不再有中间态，「点了哪个就是哪个」，没有任何需要用户推断的间接层。</p>
+<blockquote>
+<p><strong>三十一次的删除说明</strong>：原第三口径 <code>next</code>（本期先不动、下期再用新方案，<code>effectiveFrom</code> 字段）经领导拍板<strong>整条取消</strong>。连带删除：<code>schForLine()</code> 的 <code>next</code> 分支、<code>cmNextPeriod()</code>、列表页「下期生效」角标（§6.13.5 整节作废）、<code>EmployeeDemo.nextPeriodInfo()</code>。数据侧只剩 3 个字段（<code>effectiveMode</code> / <code>effectiveAt</code> / <code>_prev</code>）。</p>
+</blockquote>
 <p><strong>人工修正优先（所有口径一律）</strong>：已经人工改过的提成行（<code>commManual</code> 或带 <code>commEditLogs</code>）<strong>金额恒不变</strong>。由 <code>invalidateCommLineCache()</code> 的既有机制保证（重建前把原值搬进 <code>_commManualPreserve</code>，重建后回填）。</p>
-<h3>6.13.3 弹窗规格与文案（二十八次：<strong>一个开关 + 两个按钮</strong>）</h3>
+<h3>6.13.3 弹窗规格与文案（三十一次：<strong>两枚按钮即两个结果</strong>）</h3>
 <p><strong>形态</strong>：居中 Dialog（<code>#comm2RecalcMask</code>），沿用 ModalPopup 规范 —— <code>max-width 326px</code>、<code>max-height min(560px, 78vh)</code>、正文区 <code>overflow-y: auto</code>、<code>z-index 50</code>（高于提成设置 Sheet 的 <code>30</code>）。</p>
-<p><strong>二十八次精简</strong>：弹窗<strong>不再展示任何影响面信息</strong> —— 原「这个方案有 N 名员工在用…」说明行、原灰条「本期 9.01–9.30 · 已算好 M 条」<strong>整段删除</strong>（连带删除 <code>countEffectiveCommLines()</code> 这个只为统计条数而存在的接口）。用户看到的只有：<strong>标题 + 一个开关 + 一句提示 + 两个按钮</strong>。</p>
+<p><strong>二十八次精简</strong>：弹窗<strong>不再展示任何影响面信息</strong> —— 原「这个方案有 N 名员工在用…」说明行、原灰条「本期 9.01–9.30 · 已算好 M 条」<strong>整段删除</strong>（连带删除 <code>countEffectiveCommLines()</code> 这个只为统计条数而存在的接口）。</p>
+<p><strong>三十一次精简</strong>：删除开关与「本期不动，下期换」按钮，改为<strong>两枚竖排按钮</strong>。用户看到的只有：<strong>标题 + 一句提示 + 两枚按钮</strong>。</p>
 <table>
 <thead>
 <tr>
@@ -3172,43 +3172,34 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <td>改方案后，提成怎么计算？</td>
 </tr>
 <tr>
-<td>开关行问句（左）</td>
-<td>本期已经算好的提成，要重新算吗？</td>
-</tr>
-<tr>
-<td>开关（右）</td>
-<td>iOS 开关：<strong>关 = 否</strong>（默认）· <strong>开 = 是</strong></td>
-</tr>
-<tr>
 <td>提示（左侧带 ⓘ 图标）</td>
 <td>已经手工改过的订单，金额不受影响。</td>
 </tr>
 <tr>
-<td>左按钮（描边次要）</td>
-<td>本期不动，下期换</td>
+<td>上按钮（<strong>描边次要</strong>，<code>#comm2RecalcAll</code>）</td>
+<td>本期全部重算</td>
 </tr>
 <tr>
-<td>右按钮（品牌主按钮，<strong>文案随开关变化</strong>）</td>
-<td>开 = <strong>立即重新计算</strong> ／ 关 = <strong>从现在起用新方案</strong></td>
+<td>下按钮（<strong>品牌主按钮</strong>，<code>#comm2RecalcForward</code>）</td>
+<td>从现在起用新方案</td>
 </tr>
 </tbody>
 </table>
-<p><strong>开关语义</strong>：就是「本期已经算好的提成要不要重算」这一个问题 ——
-- 开关<strong>开（是）</strong> → 右按钮 = <strong><code>recalc</code></strong>：本期已算出来的按新规则重算一遍，金额会变
-- 开关<strong>关（否，默认）</strong> → 右按钮 = <strong><code>forward</code></strong>：之前算出来的保持原样，从现在开始的新单子按新规则算</p>
-<p><strong>右按钮文案必须随开关变化</strong>：关闭态下并没有发生「重新计算」，若仍写「立即重新计算」会直接误导用户 —— 故关闭态显示「从现在起用新方案」。这是本弹窗唯一的一处文案联动，<code>recalcSyncUi()</code> 负责同步文案与 <code>aria-checked</code>。</p>
-<p><strong>两个按钮都是决定性动作</strong>：因此<strong>必须点一个才能完成保存</strong> —— <strong>无取消按钮</strong>，<strong>点遮罩空白与按 Esc 均不关闭</strong>（全仓无通用 outside-close 机制，本弹窗不接线即天然成立）。</p>
-<p><strong>开关样式自带</strong>：<code>.comm2-recalc__switch</code>（<code>44×26</code> 胶囊 / <code>22px</code> 白色滑块 / <code>box-shadow 0 1px 2px rgba(0,0,0,.16)</code> / 关 <code>#E5E5E5</code> → 开 <code>var(--brand)</code> / 滑块 <code>translateX(18px)</code> / <code>.18s ease</code>），定义在 <code>comm2.css</code> 内，<strong>不跨模块引用 <code>salary.css</code> 的 <code>.switch</code></strong>。</p>
-<p><strong>排版细节</strong>：两个按钮并排（<code>gap: 8px</code>）、次要按钮在左、主按钮在右；因文案较长，本弹窗内的按钮收到 <code>font-size: 14px</code> + <code>padding: 0 8px</code>（<code>.dialog--recalc .dialog__actions .btn-main</code>），实测两枚按钮文案<strong>均不溢出、不折行</strong>（<code>scrollWidth - clientWidth = 0</code>）。</p>
+<p><strong>两枚按钮各自说什么</strong>：
+- 上「<strong>本期全部重算</strong>」 → <code>recalc</code>：本期已经算出来的按新规则重算一遍，<strong>钱会变</strong>
+- 下「<strong>从现在起用新方案</strong>」 → <code>forward</code>：之前算出来的<strong>保持原样</strong>，从现在开始的新单子按新规则算</p>
+<p><strong>为什么改成按钮而不是开关</strong>：只剩两种结果时，开关会多出一层「开关＝什么」的推断 —— 对文化水平有限的店主是纯增负担。按钮把<strong>结果直接写在按钮上</strong>，读一遍就懂，点一下即生效。代价是<strong>没有回退机会</strong>，所以两个结果的措辞必须<strong>各自说清钱会不会变</strong>（见上表）。</p>
+<p><strong>排版细节（竖排）</strong>：<code>.dialog__actions--stack</code>（<code>flex-direction: column</code>、<code>gap: 8px</code>、两枚按钮各自 <code>width: 100%</code>），<strong>次要按钮在上、主按钮在下</strong>（主按钮落在拇指最自然的位置，且与全站 Dialog 的「主按钮收尾」一致）。因文案较长，本弹窗内的按钮收到 <code>font-size: 14px</code> + <code>padding: 0 8px</code>（<code>.dialog--recalc .dialog__actions .btn-main</code>），实测两枚按钮<strong>均不溢出、不折行</strong>（<code>scrollWidth - clientWidth = 0</code>、Range 行框数 = 1）。</p>
+<p><strong>两枚按钮都是决定性动作</strong>：因此<strong>必须点一个才能完成保存</strong> —— <strong>无取消按钮</strong>，<strong>点遮罩空白与按 Esc 均不关闭</strong>（全仓无通用 outside-close 机制，本弹窗不接线即天然成立）。</p>
+<p><strong>未回答就退出</strong> → 见 §6.13.8（一律兜底为 <code>forward</code>）。</p>
 <h3>6.13.4 数据落地与解析</h3>
-<p><strong>§7.1 新增 4 个字段</strong>（<code>effectiveMode</code> / <code>effectiveAt</code> / <code>effectiveFrom</code> / <code>_prev</code>），落库时机 = 用户在弹窗点「确定」时（<code>applyEffectiveChoice()</code>）：</p>
+<p><strong>§7.1 新增 3 个字段</strong>（<code>effectiveMode</code> / <code>effectiveAt</code> / <code>_prev</code>；原 <code>effectiveFrom</code> 已随三十一次删除），落库时机 = 用户在弹窗点任一枚按钮时（<code>applyEffectiveChoice()</code>）：</p>
 <table>
 <thead>
 <tr>
 <th>口径</th>
 <th><code>effectiveMode</code></th>
 <th><code>effectiveAt</code></th>
-<th><code>effectiveFrom</code></th>
 <th><code>_prev</code></th>
 </tr>
 </thead>
@@ -3216,22 +3207,13 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <tr>
 <td><code>recalc</code></td>
 <td><code>'recalc'</code></td>
-<td>保存当天 <code>YYYY-MM-DD</code></td>
-<td><code>''</code></td>
+<td><code>''</code>（立即生效，不需要分界日）</td>
 <td>改动前的规则集快照</td>
 </tr>
 <tr>
 <td><code>forward</code></td>
 <td><code>'forward'</code></td>
-<td>保存当天</td>
-<td><code>''</code></td>
-<td>同上</td>
-</tr>
-<tr>
-<td><code>next</code></td>
-<td><code>'next'</code></td>
-<td><code>''</code></td>
-<td><strong>下一期 key</strong>（<code>cmNextPeriod(本期).key</code>）</td>
+<td>保存当天 <code>YYYY-MM-DD</code></td>
 <td>同上</td>
 </tr>
 </tbody>
@@ -3241,9 +3223,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <pre><code>schForLine(sch, periodKey, ymd):
   if (!sch._prev) return sch                      // 历史方案（无快照）→ 一律新规则
   if (effectiveMode === 'recalc') return sch      // 立即生效，本期也走新规则
-  useOld =
-    (effectiveMode === 'next')  ? 本期结束日 &lt; effectiveFrom 期结束日
-                                : String(ymd).slice(0,10) &lt; effectiveAt
+  useOld = String(ymd).slice(0,10) &lt; effectiveAt  // forward：分界日之前走老规则
   return useOld ? Object.assign({}, sch, _prev)   // 影子对象：套老规则，其余字段照旧
                 : sch
 </code></pre>
@@ -3266,7 +3246,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 <tr>
 <td><code>Comm2Demo</code> 暴露</td>
-<td><code>schForLine</code> 内部使用；<code>EmployeeDemo</code> 提供 <code>getPeriodInfo(key)</code> / <code>nextPeriodInfo(key)</code> / <code>getCurrentPeriodInfo()</code>（二十八次：<code>countEffectiveCommLines()</code> 随影响面展示一并删除）</td>
+<td><code>schForLine</code> 内部使用；<code>EmployeeDemo</code> 提供 <code>getPeriodInfo(key)</code> / <code>getCurrentPeriodInfo()</code>（二十八次删 <code>countEffectiveCommLines()</code>；三十一次删 <code>nextPeriodInfo()</code>）</td>
 </tr>
 <tr>
 <td>薪资侧重算</td>
@@ -3274,8 +3254,8 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 </tbody>
 </table>
-<h3>6.13.5 列表页「下期生效」角标</h3>
-<p><code>effectiveMode === 'next'</code> 且 <code>effectiveFrom</code> 非空时，方案卡<strong>名称右侧</strong>渲染 <code>&lt;span class="comm2-scheme__badge"&gt;下期生效&lt;/span&gt;</code>（<code>#FFF3E8</code> 底 / <code>#C2701A</code> 字 / <code>11px</code> / <code>18px</code> 高 / <code>4px</code> 圆角 / <code>flex-shrink: 0</code>）。目的：本期仍按老规则跑，<strong>必须让用户看见「改动存下了、下期才生效」</strong>，否则会误以为保存失败。</p>
+<h3>6.13.5 列表页「下期生效」角标（<strong>三十一次作废，整节删除</strong>）</h3>
+<p>原 <code>effectiveMode === 'next'</code> 时在方案卡名称右侧渲染 <code>&lt;span class="comm2-scheme__badge"&gt;下期生效&lt;/span&gt;</code>。三十一次取消 <code>next</code> 口径后该角标<strong>永不可能出现</strong>，故连 CSS（<code>.comm2-scheme__badge</code>）一并删除，不留死代码。</p>
 <h3>6.13.6 「本期」的定义（易错点）</h3>
 <p><strong>「本期」= 含今天的那一期</strong>（<code>getPeriodContaining(new Date())</code>），<strong>不是</strong>用户当前正在查看的期。两者可以不同：员工薪资列表的月份 pill 允许切 ±3 期（含过去），而改动重算问的<strong>永远是当下这一期</strong>。</p>
 <p><strong>二十八次后弹窗不再显示日期</strong>（原「本期 9.01–9.30」「下期是 2026年10月」等文案已删），但「本期」这个口径<strong>仍然被内部使用</strong>，且必须取自正确来源：</p>
@@ -3288,16 +3268,16 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </thead>
 <tbody>
 <tr>
-<td><code>forward</code> / <code>recalc</code> 的分界日 <code>effectiveAt</code></td>
+<td><code>forward</code> 的分界日 <code>effectiveAt</code></td>
 <td><code>cmToday()</code>（= 保存当天）</td>
 </tr>
 <tr>
-<td><code>next</code> 的生效期 <code>effectiveFrom</code></td>
-<td><code>cmNextPeriod(cmCurrentPeriod().key).key</code> —— 即「<strong>含今天那一期</strong>的下一期」</td>
+<td><code>recalc</code></td>
+<td>不取期信息（立即生效）</td>
 </tr>
 </tbody>
 </table>
-<p>即：一律走 <code>cmCurrentPeriod()</code> / <code>cmNextPeriod()</code>（内部转调 <code>EmployeeDemo.getCurrentPeriodInfo()</code> / <code>nextPeriodInfo()</code>），<strong>不得</strong>读 <code>state.salaryMonth</code>（那是用户正在查看的期，可能被切到过去）。若哪天要在弹窗里重新展示日期，也必须从这两个来源取。</p>
+<p>即：涉及「含今天那一期」时一律走 <code>cmCurrentPeriod()</code>（内部转调 <code>EmployeeDemo.getCurrentPeriodInfo()</code>），<strong>不得</strong>读 <code>state.salaryMonth</code>（那是用户正在查看的期，可能被切到过去）。若哪天要在弹窗里重新展示日期，也必须从这个来源取。</p>
 <h3>6.13.7 边界</h3>
 <table>
 <thead>
@@ -3324,8 +3304,8 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <td>同上：只看本方案 <code>assigneeIds</code> 是否非空，不判断其他方案</td>
 </tr>
 <tr>
-<td><code>next</code> 再次改动</td>
-<td>覆盖 <code>effectiveFrom</code> 为新的下一期，<code>_prev</code> 更新为<strong>本次改动前</strong>（即上一次「新规则」）的快照</td>
+<td>点错按钮（<code>recalc</code> 选成 <code>forward</code> 或反之）</td>
+<td><strong>无撤销入口</strong> —— 这是「按钮即结果」的固有代价。挽救路径：再进编辑页改一个金额字段再保存，会<strong>再次弹窗</strong>，重选一次即可</td>
 </tr>
 <tr>
 <td>历史方案（无 <code>_prev</code>）</td>
@@ -3433,18 +3413,13 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 </tr>
 <tr>
 <td>effectiveMode</td>
-<td><code>'recalc'</code> | <code>'forward'</code> | <code>'next'</code></td>
+<td><code>'recalc'</code> | <code>'forward'</code></td>
 <td><strong>二十六次新增</strong>：本方案上次被改动时用户选定的「本期提成怎么算」口径。缺省 / 历史方案按 <code>'forward'</code> 处理（<strong>有 <code>_prev</code> 才参与解析</strong>，无 <code>_prev</code> 时口径不影响结果）</td>
 </tr>
 <tr>
 <td>effectiveAt</td>
 <td>string</td>
-<td><strong>二十六次新增</strong>：<code>forward</code> / <code>recalc</code> 的分界日 <code>YYYY-MM-DD</code>（= 保存当天）；<code>next</code> 时为空串。<code>forward</code> 下<strong>行日期 <code>ymd</code> 早于它</strong>的行走老规则</td>
-</tr>
-<tr>
-<td>effectiveFrom</td>
-<td>string</td>
-<td><strong>二十六次新增</strong>：<code>next</code> 的生效期 key（= 保存时的<strong>下一期</strong>，如 <code>2026-10</code>）；其余口径为空串。该期<strong>结束日之前</strong>的期整期走老规则</td>
+<td><strong>二十六次新增</strong>：<code>forward</code> 的分界日 <code>YYYY-MM-DD</code>（= 保存当天）；<code>recalc</code> 时为空串（立即生效）。<code>forward</code> 下<strong>行日期 <code>ymd</code> 早于它</strong>的行走老规则</td>
 </tr>
 <tr>
 <td>_prev</td>
@@ -3943,11 +3918,12 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <li><strong>员工 0 方案或全被滤掉</strong>：该行提成金额为 0，<code>winnerSchemeId</code> 为空 / 不写入胜出方案。</li>
 <li><strong>覆盖删除</strong>：见 §5.5；确认 Dialog 后不可撤销（无撤销 toast）。</li>
 <li><strong>经理签单按 baseMode</strong>：经理签单订单行（<code>sign=true</code>，实收=0）<strong>不走三类适用范围</strong>。命中覆盖/默认块后：<code>baseMode=list</code> → 按原价计提；<code>baseMode=paid</code> → 基数为 0，<strong>比例</strong>模式下金额为 0（<code>skipped='sign'</code>，note「实收模式下经理签单不计提成」）；该行所用费率若为固定金额则仍取固定额。无方案级 <code>signComm</code> 字段。</li>
-<li><strong>方案改动后的本期重算口径（二十六次，详见 §6.13）</strong>：<strong>已分配员工</strong>的方案被改动且改动<strong>影响金额</strong>时，保存前必须由用户选定本期怎么算 —— <code>recalc</code> 本期全按新方案重算 / <code>forward</code> 算好的不动、从现在起用新方案（默认）/ <code>next</code> 本期整期仍按老规则、下期起用新方案；<strong>不得静默按默认口径落库</strong>（弹窗无取消、遮罩与 Esc 均不关闭）。要点：<ul>
+<li><strong>方案改动后的本期重算口径（二十六次，详见 §6.13）</strong>：<strong>已分配员工</strong>的方案被改动且改动<strong>影响金额</strong>时，保存前必须由用户选定本期怎么算 —— <code>recalc</code> 本期全按新方案重算 / <code>forward</code> 算好的不动、从现在起用新方案（默认）；<strong>不得静默按默认口径落库</strong>（弹窗无取消、遮罩与 Esc 均不关闭）。要点：<ul>
 <li><strong>触发</strong>只认「影响金额」的改动（<code>defaults</code> / <code>overrides</code> / <code>stationIds</code> / <code>stationLabels</code> 的指纹变化）；<strong>纯改名 / 改员工分配 / 无改动不弹</strong>（新方案首次保存 <code>assigneeIds</code> 为空，也不弹）。</li>
-<li><strong>「本期」= 含今天的那一期</strong>（<code>getPeriodContaining(new Date())</code>），<strong>不是</strong>用户正在查看的期（月份 pill 可切 ±3 期）。弹窗里的区间与「下期」期名一律从 <code>getCurrentPeriodInfo()</code> / <code>nextPeriodInfo()</code> 取。</li>
+<li><strong>弹窗只有两枚按钮</strong>（三十一次：取消「本期不动，下期换」）—— 上「本期全部重算」= <code>recalc</code>、下「从现在起用新方案」= <code>forward</code>，<strong>点即生效</strong>。</li>
+<li><strong>「本期」= 含今天的那一期</strong>（<code>getPeriodContaining(new Date())</code>），<strong>不是</strong>用户正在查看的期（月份 pill 可切 ±3 期）。涉及当期时一律从 <code>getCurrentPeriodInfo()</code> 取。</li>
 <li><strong>人工修正优先</strong>：所有口径下，已人工改过的提成行（<code>commManual</code> 或带 <code>commEditLogs</code>）<strong>金额恒不变</strong>（由 <code>invalidateCommLineCache()</code> 的既有保留/回填机制保证）。</li>
-<li><strong>切分粒度</strong>：<code>forward</code> <strong>按行日期</strong>切分（<code>ymd</code> vs <code>effectiveAt</code> = 保存当天），同一期内新老规则各算各的；<code>next</code> <strong>按期</strong>切分（该期整期一致，不切分）；<code>recalc</code> <strong>不切分</strong>。</li>
+<li><strong>切分粒度</strong>：<code>forward</code> <strong>按行日期</strong>切分（<code>ymd</code> vs <code>effectiveAt</code> = 保存当天），同一期内新老规则各算各的；<code>recalc</code> <strong>不切分</strong>。</li>
 <li><strong>向后兼容</strong>：无 <code>_prev</code> 的历史方案一律按新规则算，口径字段不影响其结果。</li>
 <li><strong>与规则 3 的关系</strong>：计提侧仍按「重叠取最高」跨方案取高 —— 改一个方案可能让<strong>原本另一方案胜出</strong>的行换人胜出，属设计内连带影响，本期提示不逐行列差异。</li>
 </ul>
@@ -4021,7 +3997,7 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <p><strong>导航/按钮</strong>：提成设置、添加提成方案、添加规则项、保存、取消、确定、完成、下一步、全选、清空、重命名、复制方案、删除、改名、分配员工、已分配、未分配、已选 N 人、还有 N 人未分配任何提成方案、<strong>基数、适用范围</strong>、5 项默认、5 项默认 · N 条覆盖、项目、产品、会员卡、办卡、充卡、整类 · {组名}、修改记录、<strong>关联页面、头衔空态 sheet、方案空态 sheet、选择服务员工</strong>、<strong>顾客指定、指定、提成、小工、中工、大工、不分工位、按工位、未选择、已选 N 人</strong>、<strong>设置、头衔管理、角色管理、选择头衔、创建员工、邀请员工、查看记录</strong>。</p>
 <p><strong>规则卡</strong>：原价、实收、<strong>固定</strong>、提成、<strong>顾客指定</strong>（规则卡上的取值段标签；Sheet 参数卡内标题仍为「指定」）、大工、中工、小工、<strong>基数</strong>、<strong>适用范围</strong>、计算基数、分配模式、不分工位、按工位分配、按比例 %、固定金额 ¥、现金、卡付、团购、提成参数。</p>
 <p><strong>Dialog/Sheet</strong>：方案名称、重命名方案、请输入方案名称、确认删除该方案？、删除后不可恢复。、确认删除该规则项？、尚未保存、尚未保存，确定要返回吗？、留在本页、不保存、<strong>一个人挂几个方案，钱怎么算</strong>（列表页帮助，两节 2 + 5 条白话条目，原文见 §6.9 附 2）、<strong>提成怎么设、钱怎么算</strong>（方案编辑页帮助，两节 5 + 8 条白话条目，原文见 §6.9）、计算基数说明、分配模式说明、未分配任何提成方案、暂无在岗员工、<strong>选择员工、提成、指定、+ 顾客指定提成、顾客指定、大工、中工、小工</strong>、<strong>比例 / 金额（两段式胶囊）</strong>；开单侧选人演示（§6.7.1）：按工位+开顾客指定为 <strong>大工 / 中工 / 小工 / 顾客指定</strong>，不分工位+开顾客指定为 <strong>服务提成 / 顾客指定</strong>。</p>
-<p><strong>方案改动重算弹窗（§6.13，二十六次新增 / 二十八次改版）</strong>：改方案后，提成怎么计算？、本期已经算好的提成，要重新算吗？、已经手工改过的订单，金额不受影响。、本期不动，下期换、立即重新计算、从现在起用新方案；<strong>未回答即退出时的兜底 toast</strong>：已按「从现在起用新方案」保存；列表页方案卡角标：<strong>下期生效</strong>。<strong>该弹窗全篇不得出现「结算周期 / 生效口径 / 生效方式 / 落地 / 重算引擎 / 快照 / 回溯 / 计提」等术语</strong>，也不得出现公式；<strong>二十八次起也不再展示任何影响面信息</strong>（无「N 名员工在用」、无「本期 {起}–{止}」、无「已算好 M 条」）。</p>
+<p><strong>方案改动重算弹窗（§6.13，二十六次新增 / 二十八次改版 / 三十一次精简）</strong>：改方案后，提成怎么计算？、已经手工改过的订单，金额不受影响。、本期全部重算、从现在起用新方案；<strong>未回答即退出时的兜底 toast</strong>：已按「从现在起用新方案」保存。<strong>该弹窗全篇不得出现「结算周期 / 生效口径 / 生效方式 / 落地 / 重算引擎 / 快照 / 回溯 / 计提」等术语</strong>，也不得出现公式；<strong>二十八次起也不再展示任何影响面信息</strong>（无「N 名员工在用」、无「本期 {起}–{止}」、无「已算好 M 条」）；<strong>三十一次起不再有开关，也不再有「本期不动，下期换」与列表页「下期生效」角标</strong>。两枚按钮的措辞必须<strong>各自说清钱会不会变</strong>（「本期全部重算」＝金额会变 / 「从现在起用新方案」＝已算好的不动）。</p>
 <p><strong>选人摘要 / 提示（§6.7.1）</strong>：<strong>员工卡第三行</strong>摘要 <code>大工</code> / <code>大工 · 顾客指定</code> / <code>顾客指定</code> / <code>提成</code> / <code>提成 · 顾客指定</code>（<code>顾客指定</code> 为红字 <code>.staff-card__pick-x</code>）；<strong>入口下方「已选员工」摘要行</strong>另记缺工位情形为 <code>无工位 · 顾客指定</code>（纯文本）。提示行四态文案见 §6.7.1；分配模式说明 Dialog 含「只勾「顾客指定」也可单独分配（只发顾客指定提成）」。<strong>界面不得再出现「普通」作为不分工位侧标签</strong>（已改「提成」），不得再出现「未选」作为摘要文案，卡片第三行也不得再出现灰字「无工位」（「未选」/「无工位」只允许出现在入口摘要行）。</p>
 <p><strong>Toast</strong>：请输入方案名称、方案已重命名、方案已复制、方案已删除、提成方案已保存、已更新规则、已添加规则项、已删除规则项、已分配 N 人、已清空分配、<strong>已选 N 人</strong>、至少选一种支付方式、「{类}」至少选一种支付方式、覆盖规则「{标题}」至少选一种支付方式、请输入有效的顾客指定比例/金额、请输入有效的提成比例/金额、比例需在 0–100%、名称不能为空、工位名最多 6 个字。</p>
 <p><strong>员工（表单/详情/列表）</strong>：员工管理、员工详情、我的资料、创建员工、邀请员工、编辑员工、完善员工信息、请完善员工信息，以便正常开单与业绩统计、去完善、信息未完善、添加头衔、头衔管理、角色管理、选择头衔、选择员工角色、权限说明、请选择、请选择员工角色、暂未分配、添加头像、剑号、宝剑、更多信息、性别、年龄段、从业年限、状态（在岗/休假/离职）、保存、已保存、请输入员工姓名、员工姓名最多 N 字、请输入员工手机号、请输入正确的手机号、请选择头衔、请选择员工角色、请选择有效的角色身份、新建员工不可设为店主、本店已有店主（{姓名}）、请输入有效从业年限、从业年限不能超过 N 年、请输入员工基本工资、请输入有效基本工资、金额不能超过 N、注：当修改基本工资后，当月的薪资统计以最新的为准、功能开发中。</p>
@@ -4309,12 +4285,12 @@ extraSplit=true：`提成 10% │ 顾客指定 +5%`（前为提成值、后为**
 <p>56m. <strong>Given</strong> 规则设置 Sheet（<code>#comm2CatSheetBody</code>），<strong>When</strong> 查看行标签，<strong>Then</strong> <strong>仅「计算基数」「分配模式」两行</strong>标签文字后各有一个 ⓘ（<code>emp-ach-info-btn comm2-sheet-row__help</code>，<code>14×14</code> 圆 <code>#929292</code>、字号 <code>9px</code>、<code>aria-label</code> 分别为「计算基数说明」「分配模式说明」、<code>data-comm2-sheet-help</code> 为 <code>base</code> / <code>pick</code>），其余行（适用范围 / 提成参数表头等）<strong>无 ⓘ</strong>；<strong>And</strong> 行标签列宽恒为 <code>72px</code>、内容宽 <code>52 + 4 + 14 = 70px</code>（<strong>不换行、不溢出、控件区左缘不位移</strong>）。<strong>And When</strong> 点「计算基数」ⓘ，<strong>Then</strong> 打开 <code>#comm2BaseHelpMask</code>（「计算基数说明」，两节「原价模式 / 实收模式」）；<strong>And</strong> 点「分配模式」ⓘ，<strong>Then</strong> 打开 <code>#comm2PickHelpMask</code>（「分配模式说明」，两节「不分工位 / 按工位分配」，含「也可以只勾「顾客指定」单独分配（此种情况只发顾客指定提成）」）。<strong>And</strong> 两弹窗 <strong><code>z-index 50</code> &gt; Sheet <code>30</code></strong>，打开时 <strong>Sheet 保持打开</strong>（可边看说明边配置）；<strong>And When</strong> 点「知道了」或点遮罩空白，<strong>Then</strong> 关弹窗<strong>且不关 Sheet</strong>。<strong>And Given</strong> Sheet 重渲染（改任一参数）后，<strong>Then</strong> 两处 ⓘ <strong>仍可点</strong>（事件绑在 <code>#comm2CatSheetBody</code> 上<strong>委派</strong> <code>[data-comm2-sheet-help]</code>，不得绑具体按钮）。</p>
 <p>56n. <strong>Given</strong> 方案列表页，<strong>When</strong> 点标题「提成设置」右侧 ⓘ（<code>comm2HelpBtn</code>，<code>20×20</code> 热区 / <code>16×16</code> 线性 ⓘ / <code>#B2B2B2</code>、<code>aria-label</code> = <strong>弹窗标题原文</strong>），<strong>Then</strong> 弹出「<strong>一个人挂几个方案，钱怎么算</strong>」（<code>comm2HelpMask</code>，<code>dialog--emp-help</code>，<code>max-width 326px</code> / <code>max-height min(520px,75vh)</code>、正文可滚动、底部单按钮「知道了」）：两节 <strong>「一、谁能挂几个方案（2 条）」</strong> 与 <strong>「二、钱怎么算（5 条）」</strong>，共 <strong>7 条</strong>；每条为<strong>序号卡片</strong> —— 序号圆点 <code>18×18</code>、序号与分节标题左对齐、与文字间距 <code>8px</code>，右侧为<strong>加粗 13px 白话结论</strong> + <strong>12px <code>#929292</code> 灰字补充</strong>（文案逐字见 §6.9 附 2 表）；<strong>两个分节的序号各自从 1 起</strong>（与编辑页弹窗同约定）；样式<strong>复用</strong>编辑页那批 <code>.comm2-hint-list</code> / <code>.comm2-hint-item*</code>，<strong>零新增 CSS</strong>。<strong>And</strong> 正文<strong>不得出现</strong>「取高 / 分摊 / 覆盖 / 分类默认 / 订单行 / 试算 / 计提 / 并列 / 命中 / 金额最大 / 写入 / 胜出 / 适用范围」等内部术语，<strong>也不得出现任何公式</strong>（<code>×</code> <code>÷</code>）—— 原「按项分摊 · 适用范围」段（含基数公式 / 卡付面值 / 计次折算）<strong>已整条删除</strong>，该内容由 Sheet「计算基数」行右侧 ⓘ 承担；原「分配 Sheet 副文显示图标与方案名（无「也在：」字面）」实现细节<strong>已删除</strong>。<strong>And When</strong> 点「知道了」或点遮罩空白，<strong>Then</strong> 关闭；<strong>And Given</strong> 方案编辑页，<strong>Then</strong> 其 ⓘ <strong>只开</strong> <code>comm2RuleHelpMask</code>（标题「提成怎么设、钱怎么算」、5 + 8 条），<strong>两处触发互不串台</strong>。
 56o. <strong>Given</strong> 方案 S 已分配 ≥1 名员工，<strong>When</strong> 只把方案名改掉（不改任何规则参数）后点「保存」，<strong>Then</strong> <strong>不弹</strong>重算弹窗，直接落库 + toast「提成方案已保存」并回列表（<code>schemeMoneyChanged()</code> 为假）；<strong>And Given</strong> 方案 S 未做任何改动就点「保存」，<strong>Then</strong> 同样不弹；<strong>And Given</strong> 新建方案（<code>_draft</code>）首次保存，<strong>Then</strong> <code>assigneeIds</code> 为空 → 也不弹。
-56o2. <strong>Given</strong> 方案 S 已分配 ≥1 名员工，<strong>When</strong> 改动<strong>影响金额</strong>的任一字段（提成参数 / 适用范围 / 计算基数 / 分配模式 / 工位值 / 规则项）后点「保存」，<strong>Then</strong> <strong>不立即落库</strong>，先弹 <code>#comm2RecalcMask</code>（居中 Dialog、<code>max-width 326px</code>、<code>max-height min(560px,78vh)</code>、正文可滚动、<code>z-index 50</code>）：标题「改方案后，提成怎么计算？」，<strong>其下只有一个开关行</strong> —— 左问句「本期已经算好的提成，要重新算吗？」+ 右侧 <code>44×26</code> iOS 开关（<strong>默认关闭</strong>、<code>#E5E5E5</code> 底、<code>22px</code> 白滑块），再下方一行带 ⓘ 图标的灰字提示「已经手工改过的订单，金额不受影响。」，底部两枚按钮（左「本期不动，下期换」为描边次要样式、右「从现在起用新方案」为品牌主按钮）。<strong>And</strong> 弹窗内<strong>不得出现</strong>任何影响面信息 —— 无「<strong>{N}</strong> 名员工在用」说明行、无灰条、无「本期 {起}–{止} · 已算好 {M} 条」、<strong>无三张单选卡</strong>（<code>#comm2RecalcLead</code> / <code>#comm2RecalcImpact</code> / <code>#comm2RecalcOpts</code> / <code>#comm2RecalcOk</code> 四个节点在 DOM 中均不存在）。<strong>And</strong> 两枚按钮并排一行、主按钮在右、<strong>文案均不溢出也不折行</strong>（14px / <code>padding 0 8px</code>，实测 <code>scrollWidth - clientWidth = 0</code>）。<strong>And</strong> 弹窗<strong>无取消按钮</strong>；<strong>When</strong> 点遮罩空白或按 Esc，<strong>Then</strong> <strong>不关闭</strong>（必须二选一）。<strong>And</strong> 全篇<strong>不得出现</strong>「结算周期 / 生效口径 / 落地 / 重算引擎 / 快照 / 回溯」等术语与任何公式。
-56o3. <strong>Given</strong> 重算弹窗已打开，<strong>When</strong> 拨开关，<strong>Then</strong> 开关 <code>.on</code> / <code>aria-checked</code> 与<strong>右按钮文案同步</strong>（开 → 「<strong>立即重新计算</strong>」，关 → 「<strong>从现在起用新方案</strong>」），弹窗<strong>不关闭</strong>；<strong>And When</strong> 点左按钮「本期不动，下期换」，<strong>Then</strong> 落 <code>next</code> 口径（<code>effectiveFrom</code> = <strong>下一期</strong> key、<code>effectiveAt</code> 空、<code>_prev</code> = 改动前规则集快照），弹窗关闭、落库、回列表，该方案卡名称右侧出现「<strong>下期生效</strong>」角标（<code>#FFF3E8</code> 底 / <code>#C2701A</code> 字 / <code>11px</code> / <code>18px</code> 高 / <code>4px</code> 圆角 / <code>flex-shrink: 0</code>）；<strong>And When</strong> 点右按钮，<strong>Then</strong> 落<strong>开关所指</strong>的口径 —— 开关开 → <code>recalc</code>（<code>effectiveAt</code> = 保存当天）、开关关 → <code>forward</code>（<code>effectiveAt</code> = 保存当天），两者 <code>effectiveFrom</code> 均为空、均无角标。「本期」一律取<strong>含今天的那一期</strong>（<code>getPeriodContaining(new Date())</code>），<strong>不得</strong>用正在查看的期（<code>state.salaryMonth</code>，月份 pill 可切 ±3 期）。
-56o5. <strong>Given</strong> 弹窗默认态（开关关），<strong>When</strong> 直接点右按钮，<strong>Then</strong> 落 <code>forward</code>：本期已算好的提成<strong>保持原样</strong>，从现在起的新单子按新规则算；<strong>And Given</strong> 把开关拨到开再点右按钮，<strong>Then</strong> 落 <code>recalc</code>：本期已算出来的提成<strong>按新规则重算一遍</strong>（<code>_prev</code> 供 <code>schForLine</code> 判定）。两种情况下 <code>_prev</code> 均为<strong>改动前</strong>的规则集快照。
+56o2. <strong>Given</strong> 方案 S 已分配 ≥1 名员工，<strong>When</strong> 改动<strong>影响金额</strong>的任一字段（提成参数 / 适用范围 / 计算基数 / 分配模式 / 工位值 / 规则项）后点「保存」，<strong>Then</strong> <strong>不立即落库</strong>，先弹 <code>#comm2RecalcMask</code>（居中 Dialog、<code>max-width 326px</code>、<code>max-height min(560px,78vh)</code>、正文可滚动、<code>z-index 50</code>）：标题「改方案后，提成怎么计算？」，<strong>其下只有一行带 ⓘ 图标的灰字提示</strong>「已经手工改过的订单，金额不受影响。」，底部<strong>两枚竖排按钮</strong> —— 上「<strong>本期全部重算</strong>」为描边次要样式、下「<strong>从现在起用新方案</strong>」为品牌主按钮。<strong>And</strong> 弹窗内<strong>不得出现</strong>任何影响面信息 —— 无「<strong>{N}</strong> 名员工在用」说明行、无灰条、无「本期 {起}–{止} · 已算好 {M} 条」、<strong>无三张单选卡</strong>（<code>#comm2RecalcLead</code> / <code>#comm2RecalcImpact</code> / <code>#comm2RecalcOpts</code> / <code>#comm2RecalcOk</code> 四个节点在 DOM 中均不存在）。<strong>And</strong> 三十一次起<strong>也不得有开关与「本期不动，下期换」</strong>（<code>#comm2RecalcToggle</code> / <code>#comm2RecalcToggleLbl</code> / <code>#comm2RecalcNext</code> / <code>#comm2RecalcNow</code> / <code>#comm2RecalcRow</code> 与 <code>.comm2-recalc__switch</code> / <code>.comm2-recalc__row</code> / <code>.comm2-recalc__row-lbl</code> 均不存在）。<strong>And</strong> 两枚按钮<strong>竖排</strong>（容器 <code>dialog__actions--stack</code>、<code>flex-direction: column</code>、<code>gap 8px</code>）、<strong>左边缘对齐、等宽且撑满内容宽</strong>（实测均 <code>284px</code>）、<strong>文案均不溢出也不折行</strong>（14px / <code>padding 0 8px</code>，实测 <code>scrollWidth - clientWidth = 0</code>、Range 行框数 = 1）。<strong>And</strong> 弹窗<strong>无取消按钮</strong>；<strong>When</strong> 点遮罩空白或按 Esc，<strong>Then</strong> <strong>不关闭</strong>（必须二选一）。<strong>And</strong> 全篇<strong>不得出现</strong>「结算周期 / 生效口径 / 落地 / 重算引擎 / 快照 / 回溯」等术语与任何公式。
+56o3. <strong>Given</strong> 重算弹窗已打开，<strong>When</strong> 点<strong>上按钮「本期全部重算」</strong>，<strong>Then</strong> 落 <code>recalc</code>（<code>effectiveMode = 'recalc'</code>、<code>effectiveAt</code> 为<strong>空串</strong>、<code>_prev</code> = <strong>改动前</strong>的规则集快照），弹窗关闭、落库、回列表，方案卡<strong>无任何角标</strong>；<strong>And When</strong> 点<strong>下按钮「从现在起用新方案」</strong>，<strong>Then</strong> 落 <code>forward</code>（<code>effectiveMode = 'forward'</code>、<code>effectiveAt</code> = <strong>保存当天</strong>、<code>_prev</code> 同上），同样关闭落库回列表、<strong>无角标</strong>。「当期」一律取<strong>含今天的那一期</strong>（<code>getPeriodContaining(new Date())</code>），<strong>不得</strong>用正在查看的期（<code>state.salaryMonth</code>，月份 pill 可切 ±3 期）。<strong>And</strong> 数据模型<strong>不得</strong>再出现 <code>effectiveFrom</code> 字段（三十一次已删）。
+56o5. <strong>Given</strong> 重算弹窗已打开，<strong>When</strong> 点下按钮「从现在起用新方案」，<strong>Then</strong> 本期已算好的提成<strong>保持原样</strong>，从现在起的新单子按新规则算；<strong>And When</strong> 点上按钮「本期全部重算」，<strong>Then</strong> 本期已算出来的提成<strong>按新规则重算一遍</strong>（<code>_prev</code> 供 <code>schForLine</code> 判定）。两种情况下 <code>_prev</code> 均为<strong>改动前</strong>的规则集快照。
 56o6. <strong>Given</strong> 任一口径下、本期已算好的行里有<strong>人工改过</strong>的（<code>commManual</code> 或带 <code>commEditLogs</code>），<strong>When</strong> 落库后重算，<strong>Then</strong> 该行金额<strong>保持人工值不变</strong>，其余行按所选口径处理（由 <code>invalidateCommLineCache()</code> 的保留 / 回填机制保证）。<strong>And Given</strong> 弹窗底部提示，<strong>Then</strong> 该句左侧有 <code>14×14</code> 灰 ⓘ 图标（内联 SVG，<code>#B2B2B2</code>），文字为「已经手工改过的订单，金额不受影响。」。
-56o7. <strong>Given</strong> 重算弹窗已打开且<strong>未做任何选择</strong>，<strong>When</strong> 触发以下任一条退出路径 —— ① 关闭 / 刷新页面（<code>pagehide</code> / <code>beforeunload</code>）、② 点返回按钮、③ 任何回到列表的路径（<code>openList()</code>）—— <strong>Then</strong> 一律按<strong>默认口径 <code>forward</code> 落库</strong>：方案改动<strong>被保存</strong>（不丢）、<code>effectiveMode = 'forward'</code>、<code>effectiveAt</code> = 保存当天、<code>effectiveFrom</code> 为空、<code>_prev</code> = 改动前快照，且弹窗关闭、回到列表、<strong>toast「已按「从现在起用新方案」保存」</strong>。<strong>And</strong> 落库结果与「用户手动把开关留在关闭态后点右按钮」<strong>完全等价</strong>（不留任何「系统默认」标记字段）。<strong>And</strong> 点返回按钮时<strong>不再弹「尚未保存」</strong>（改动已保存，没有未保存内容）。<strong>And</strong> 兜底函数幂等：<code>openList()</code> → 兜底 → <code>commitSchemeSave()</code> → <code>openList()</code> 的重入<strong>不得</strong>造成二次落库或状态错乱。<strong>And Given</strong> 弹窗内两个按钮各自的正常路径，<strong>Then</strong> 不会被兜底二次触发（<code>commitRecalcChoice()</code> 先清 pending 再落库）。
-56o4. <strong>Given</strong> 方案 S 的 <code>_prev</code> 已写入（老口径 10% / 新口径 20%，两行各 1000 元，一行在改动日<strong>之前</strong>、一行在<strong>之后</strong>），<strong>When</strong> 计提，<strong>Then</strong> <code>recalc</code> = <strong>400</strong>（两行都用新规则、<strong>不切分</strong>）、<code>forward</code> = <strong>300</strong>（改前 100 + 改后 200、<strong>按行日期 <code>ymd</code> 切分</strong>）、<code>next</code> = <strong>200</strong>（本期整期老规则、<strong>按期切分</strong>）；<strong>And Given</strong> 该方案<strong>无 <code>_prev</code></strong>（历史方案），<strong>Then</strong> 三口径结果一致、一律按新规则算（向后兼容）。<strong>And Given</strong> 本期已算好的行里有<strong>人工改过</strong>的（<code>commManual</code> 或带 <code>commEditLogs</code>），<strong>When</strong> 选「本期全部重算」并确定，<strong>Then</strong> 该行金额<strong>保持人工值不变</strong>，其余行按新规则重算（由 <code>invalidateCommLineCache()</code> 的保留 / 回填机制保证）。</p>
+56o7. <strong>Given</strong> 重算弹窗已打开且<strong>未做任何选择</strong>，<strong>When</strong> 触发以下任一条退出路径 —— ① 关闭 / 刷新页面（<code>pagehide</code> / <code>beforeunload</code>）、② 点返回按钮、③ 任何回到列表的路径（<code>openList()</code>）—— <strong>Then</strong> 一律按<strong>默认口径 <code>forward</code> 落库</strong>：方案改动<strong>被保存</strong>（不丢）、<code>effectiveMode = 'forward'</code>、<code>effectiveAt</code> = 保存当天、<code>_prev</code> = 改动前快照，且弹窗关闭、回到列表、<strong>toast「已按「从现在起用新方案」保存」</strong>。<strong>And</strong> 落库结果与「用户直接点下按钮」<strong>完全等价</strong>（不留任何「系统默认」标记字段）。<strong>And</strong> 点返回按钮时<strong>不再弹「尚未保存」</strong>（改动已保存，没有未保存内容）。<strong>And</strong> 兜底函数幂等：<code>openList()</code> → 兜底 → <code>commitSchemeSave()</code> → <code>openList()</code> 的重入<strong>不得</strong>造成二次落库或状态错乱。<strong>And Given</strong> 弹窗内两枚按钮各自的正常路径，<strong>Then</strong> 不会被兜底二次触发（<code>commitRecalcChoice()</code> 先清 pending 再落库）。
+56o4. <strong>Given</strong> 方案 S 的 <code>_prev</code> 已写入（老口径 10% / 新口径 20%，两行各 1000 元，一行在改动日<strong>之前</strong>、一行在<strong>之后</strong>），<strong>When</strong> 计提，<strong>Then</strong> <code>recalc</code> = <strong>400</strong>（两行都用新规则、<strong>不切分</strong>）、<code>forward</code> = <strong>300</strong>（改前 100 + 改后 200、<strong>按行日期 <code>ymd</code> 切分</strong>）；<strong>And Given</strong> 该方案<strong>无 <code>_prev</code></strong>（历史方案），<strong>Then</strong> 两种口径结果一致、一律按新规则算（向后兼容）。<strong>And Given</strong> 本期已算好的行里有<strong>人工改过</strong>的（<code>commManual</code> 或带 <code>commEditLogs</code>），<strong>When</strong> 点上按钮「本期全部重算」，<strong>Then</strong> 该行金额<strong>保持人工值不变</strong>，其余行按新规则重算（由 <code>invalidateCommLineCache()</code> 的保留 / 回填机制保证）。<strong>And Given</strong> 列表页方案卡，<strong>Then</strong> <strong>不得</strong>出现「下期生效」角标（<code>.comm2-scheme__badge</code> 已随三十一次删除）。</p>
 <h3>10.2.1 关联页面 · 选择服务员工（§6.7.1）P0</h3>
 <blockquote>
 <p><strong>动效专项验收见 §12.9（N1–N25）</strong>：本节覆盖业务结果，§12.9 覆盖动效过程（时序 / 门控 / 抢断 / 降级）。两者<strong>都要过</strong>。</p>

@@ -1544,9 +1544,8 @@
 
 /* ==========================================================================
  * 二十六次 · 改动重算弹窗（PRD §6.13）
- * 沿用「居中 ModalPopup」规范；三张单选卡借用薪资结算周期页 .emp-pay-cycle-opt 的视觉语言，
- * 但样式定义在本文件内，避免 comm2 与 salary 两个模块互相依赖。
- * 「下期生效」角标用于列表页方案卡：本期仍按老规则跑时，明确告诉用户改动已存下、下期才生效。
+ * 沿用「居中 ModalPopup」规范。
+ * 三十一次：取消「本期不动，下期换」+ 取消开关 → 两枚按钮直接就是两个结果（竖排、点即生效）。
  * ========================================================================== */
 .dialog--recalc {
   max-width: 326px; max-height: min(560px, 78vh);
@@ -1557,35 +1556,12 @@
   flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
   margin: 0 0 16px; text-align: left;
 }
-/* 28 次：开关行 —— 左问句 + 右 iOS 开关（样式自带，不引用 salary.css 的 switch） */
-.comm2-recalc__row {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-}
-.comm2-recalc__row-lbl { font-size: 15px; font-weight: 500; color: var(--text); line-height: 20px; }
-.comm2-recalc__switch {
-  position: relative; flex-shrink: 0; width: 44px; height: 26px; padding: 0;
-  border: none; border-radius: 13px; background: #E5E5E5; cursor: pointer;
-  transition: background-color .18s ease;
-}
-.comm2-recalc__switch::after {
-  content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
-  border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .16);
-  transition: transform .18s ease;
-}
-.comm2-recalc__switch.on { background: var(--brand); }
-.comm2-recalc__switch.on::after { transform: translateX(18px); }
 .comm2-recalc__note {
   display: flex; align-items: flex-start; gap: 6px;
-  margin: 12px 0 0; font-size: 12px; color: #9A9A9A; line-height: 17px;
+  margin: 0; font-size: 12px; color: #9A9A9A; line-height: 17px;
 }
 .comm2-recalc__note-ico { display: inline-flex; flex-shrink: 0; margin-top: 1px; color: #B2B2B2; }
-/* 28 次：两个按钮并排（左＝下期生效 / 右＝按开关口径立即生效），文案较长故收到 14px 并收紧内边距 */
+/* 三十一次：两枚按钮**竖排**（各自即一个结果），文案较长故收到 14px 并收紧内边距 */
 .dialog--recalc .dialog__actions { gap: 8px; margin-top: 0; }
 .dialog--recalc .dialog__actions .btn-main { padding: 0 8px; font-size: 14px; }
 
-/* 列表页方案卡：「下期生效」角标 */
-.comm2-scheme__badge {
-  display: inline-flex; align-items: center; height: 18px; padding: 0 6px;
-  border-radius: 4px; background: #FFF3E8; color: #C2701A;
-  font-size: 11px; font-weight: 500; line-height: 1; flex-shrink: 0;
-}

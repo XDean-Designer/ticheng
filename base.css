@@ -826,6 +826,9 @@ html.prd-capture #catalogGroupTabs .catalog-group-scroll__capture-track {
 .dialog--stats-help .dialog__scroll { flex: 1 1 auto; min-height: 0; margin-bottom: 8px; }
 .dialog__actions--single { margin-top: 0; }
 .dialog__actions--single .btn-main { flex: none; width: 100%; max-width: none; }
+/* 三十一次：按钮**竖排**（每个按钮各自是一个结果，不需要并排对比宽度） */
+.dialog__actions--stack { flex-direction: column; margin-top: 0; }
+.dialog__actions--stack .btn-main { flex: none; width: 100%; max-width: none; }
 
 /* demo L5999-6009 */
 .page-title-bar .title.title--with-help {

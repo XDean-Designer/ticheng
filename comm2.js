@@ -861,8 +861,6 @@
         '<span class="emp-comm-card__icon" aria-hidden="true"><img src="assets/workbench/commission.png" alt="" width="40" height="40"></span>' +
         '<span class="emp-comm-card__title-wrap">' +
         '<span class="emp-comm-card__name">' + esc(s.name) + '</span>' +
-        /* 二十六次：本期仍按老规则跑 → 卡上明确标出「下期生效」，避免用户以为改动没生效 */
-        (schemePendingNext(s) ? '<span class="comm2-scheme__badge">下期生效</span>' : '') +
         '</span></div></div></button>' +
         '<button type="button" class="emp-comm-card__assign" data-comm2-assign="' + esc(s.id) + '">' +
         '<span>已分配</span><span class="emp-comm-card__assign-val">' + esc(assignLabel) + assignChev + '</span></button>' +
@@ -1431,22 +1429,20 @@
 
      规则：**已分配员工**的方案被改动（且改动**影响金额**）时，必须让用户明确选择本期怎么算。
 
-     三种口径（详见 PRD §6.13）：
+     两种口径（详见 PRD §6.13；三十一次起取消「下期生效」）：
        recalc  = 本期全按新方案重算（本期已算好的行也重算；**人工改过的值仍保留**）
        forward = 算好的不动，从改动时刻起用新方案（**默认**）
-       next    = 本期整期仍按老规则，下个结算周期起用新方案
 
      落地方式：
-       · 方案本体存**新**规则；
-       · 改动前的规则快照存 `sch._prev`（仅金额相关字段）；
-       · `sch.effectiveMode` / `effectiveAt`（分界日，forward/recalc 用）/ `effectiveFrom`（生效期 key，next 用）。
+      · 方案本体存**新**规则；
+      · 改动前的规则快照存 `sch._prev`（仅金额相关字段）；
+      · `sch.effectiveMode` / `effectiveAt`（分界日）。
 
      解析：`schForLine(sch, periodKey, ymd)` 返回该行应当使用的**规则集载体** ——
      可能是方案本身（用新规则），也可能是套了 `_prev` 口径的影子对象（用老规则）。
      试算链路（calcStaffTrial → schemeLineAmount）只需换掉传入的方案对象，其余逻辑零改动。
   */
   var COMM2_EFFECTIVE_DEFAULT = 'forward';
-  var COMM2_EFFECTIVE_LABEL = { recalc: '本期重算', forward: '往新算', next: '下期生效' };
 
   /** 薪资侧「期」信息（跨模块读取；缺失时退化为自然月，保证 comm2 单独打开不报错） */
   function cmPeriodInfo(key) {
@@ -1463,13 +1459,6 @@
       try { return api.getCurrentPeriodInfo(); } catch (e) { /* fall through */ }
     }
     return cmPeriodInfo(String(new Date().toISOString().slice(0, 10)));
-  }
-  function cmNextPeriod(key) {
-    var api = window.EmployeeDemo;
-    if (api && typeof api.nextPeriodInfo === 'function') {
-      try { return api.nextPeriodInfo(key); } catch (e) { /* fall through */ }
-    }
-    return cmPeriodInfo(key);
   }
   function cmToday() { return new Date().toISOString().slice(0, 10); }
 
@@ -1510,16 +1499,9 @@
     var prev = sch._prev;
     if (!prev) return sch;
     var mode = sch.effectiveMode || COMM2_EFFECTIVE_DEFAULT;
-    var useOld = false;
-    if (mode === 'recalc') {
-      useOld = false;                                   /* 立即生效：本期也走新规则 */
-    } else if (mode === 'next') {
-      var from = sch.effectiveFrom;
-      useOld = !!from && cmPeriodInfo(periodKey).end < cmPeriodInfo(from).end;
-    } else {
-      var at = sch.effectiveAt;
-      useOld = !!at && String(ymd || '').slice(0, 10) < at;
-    }
+    /* recalc = 立即生效：本期也走新规则；forward = 分界日之前仍走老规则 */
+    var at = sch.effectiveAt;
+    var useOld = mode !== 'recalc' && !!at && String(ymd || '').slice(0, 10) < at;
     if (!useOld) return sch;
     return Object.assign({}, sch, {
       defaults: prev.defaults,
@@ -1529,43 +1511,19 @@
     });
   }
 
-  /** 方案是否处于「下期生效」状态（列表页角标用） */
-  function schemePendingNext(sch) {
-    return !!sch && (sch.effectiveMode === 'next') && !!sch.effectiveFrom;
-  }
-
-  /* ==== 二十六次：改动重算弹窗（二十八次：三选一 → 「一个开关 + 两个按钮」） ====
+  /* ==== 二十六次：改动重算弹窗（二十八次：三选一 → 「一个开关 + 两个按钮」；
+            三十一次：领导拍板取消「本期不动，下期换」→ 「两枚按钮即两个结果」） ====
      触发：**已分配员工**的方案被改动，且改动**影响金额**（纯改名 / 改分配 不弹）。
-     开关：**本期已经算好的提成要不要重算** —— 是 = `recalc`，否 = `forward`（默认关）。
-     左按钮：本期先不动、下期起再用新方案（`next`）。
-     右按钮：按开关的口径**立刻生效**（`recalc` / `forward`）。
-     两个按钮都是「明确决定」，所以**必须点一个**才能完成保存（遮罩点击 / Esc 均无效）。 */
+     两枚按钮：左＝「本期全部重算」（`recalc`，描边次要）· 右＝「从现在起用新方案」（`forward`，品牌主按钮）。
+     两枚按钮都是「明确决定」，所以**必须点一个**才能完成保存（遮罩点击 / Esc 均无效）。 */
 
-  var recalcState = { sch: null, before: null, scope: COMM2_EFFECTIVE_DEFAULT };
-
-  /** 右按钮文案跟随开关：选「是」才是真的重算，选「否」只是从此刻起换新规则 */
-  function recalcNowLabel(scope) {
-    return scope === 'recalc' ? '立即重新计算' : '从现在起用新方案';
-  }
-
-  function recalcSyncUi() {
-    var on = recalcState.scope === 'recalc';
-    var sw = $('comm2RecalcToggle');
-    if (sw) {
-      if (on) { sw.classList.add('on'); } else { sw.classList.remove('on'); }
-      sw.setAttribute('aria-checked', on ? 'true' : 'false');
-    }
-    var now = $('comm2RecalcNow');
-    if (now) now.textContent = recalcNowLabel(recalcState.scope);
-  }
+  var recalcState = { sch: null, before: null };
 
   function openRecalcDialog(sch, before) {
     recalcState.sch = sch;
     recalcState.before = before;
-    recalcState.scope = COMM2_EFFECTIVE_DEFAULT;
     /* 三十次：标题**固定文案**，不再拼方案名（店家已从编辑页知道自己改的是哪个方案，
        标题里重复一遍方案名只会让长名称挤成两行） */
-    recalcSyncUi();
     openDialog('comm2RecalcMask');
   }
 
@@ -1613,13 +1571,7 @@
   function applyEffectiveChoice(sch, mode, before) {
     sch._prev = schemeRuleSnapshot(before);
     sch.effectiveMode = mode;
-    if (mode === 'next') {
-      sch.effectiveFrom = cmNextPeriod(cmCurrentPeriod().key).key;
-      sch.effectiveAt = '';
-    } else {
-      sch.effectiveFrom = '';
-      sch.effectiveAt = cmToday();
-    }
+    sch.effectiveAt = (mode === 'recalc') ? '' : cmToday();
   }
 
   /** 保存落库（弹窗选定后、或无需询问时走这里） */
@@ -3143,13 +3095,9 @@
       commitSchemeSave();
     });
 
-    /* 二十八次：改动重算弹窗 —— 开关切换不关闭；两个按钮各自落一种口径；遮罩/Esc 一律无效 */
-    $('comm2RecalcToggle') && $('comm2RecalcToggle').addEventListener('click', function () {
-      recalcState.scope = (recalcState.scope === 'recalc') ? 'forward' : 'recalc';
-      recalcSyncUi();
-    });
-    $('comm2RecalcNext') && $('comm2RecalcNext').addEventListener('click', function () { commitRecalcChoice('next'); });
-    $('comm2RecalcNow') && $('comm2RecalcNow').addEventListener('click', function () { commitRecalcChoice(recalcState.scope); });
+    /* 二十八次 / 三十一次：改动重算弹窗 —— 两枚按钮各对应一个结果（点即生效）；遮罩/Esc 一律无效 */
+    $('comm2RecalcAll') && $('comm2RecalcAll').addEventListener('click', function () { commitRecalcChoice('recalc'); });
+    $('comm2RecalcForward') && $('comm2RecalcForward').addEventListener('click', function () { commitRecalcChoice('forward'); });
 
     /* 二十八次②：弹窗未回答就离开页面（关闭 / 刷新 / 崩溃前的 pagehide）→ 默认「从现在起用新方案」。
        原型无持久化，这两条在原型里是**契约**：真实产品由服务端保证「请求没带 effectiveMode → forward」。 */
