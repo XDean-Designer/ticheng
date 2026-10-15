@@ -1,3 +1,7 @@
 .DS_Store
 Thumbs.db
 *.log
+
+# 开发期脚手架（截图 / capture 产物 / 一次性脚本 / 探针）——不属于交付物
+_*
+figma-capture*.json
